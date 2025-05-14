@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import path from 'path'; // Import path module
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
+import webhookRoutes from './routes/webhookRoutes'; // Import webhook routes
 import { initDb } from './config/db';
 
 // Configure dotenv to load .env file from the backend directory
@@ -28,6 +29,7 @@ app.get('/api', (req: Request, res: Response) => {
 });
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/webhookes', webhookRoutes); // Register webhook routes
 
 // Basic Error Handling
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
