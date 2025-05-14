@@ -19,7 +19,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.js" }
+    { "source": "/(.*)", "destination": "/dist/index.js" }
   ],
   "env": {
     "NODE_ENV": "production",
