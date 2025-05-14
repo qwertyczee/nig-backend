@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "src/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",   "value": "https://nig-frontend.vercel.app" },
+        { "key": "Access-Control-Allow-Credentials","value": "true" },
+        { "key": "Access-Control-Allow-Methods",   "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers",   "value": "Content-Type, Authorization, Accept, Origin, X-Requested-With" },
+        { "key": "Access-Control-Max-Age",         "value": "86400" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.js" }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "FRONTEND_URL": "https://nig-frontend.vercel.app"
+  }
+}
