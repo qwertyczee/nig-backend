@@ -1,68 +1,109 @@
 import { Request, Response } from 'express';
-import { Polar } from '@polar-sh/sdk';
-import { supabase } from '../config/db'; // Assuming supabase client is exported from db.ts
+import { supabase } from '../config/db';
+import { verifyPolarWebhookSignature } from '../services/polarService'; // Import the verification function
+import { OrderStatus } from '../types/orderTypes';
 
-// Initialize Polar SDK (if not already done elsewhere and accessible)
-// This might require environment variables for API keys
-const polar = new Polar(); // Add configuration if needed, e.g., { accessToken: process.env.POLAR_ACCESS_TOKEN }
+// Note: The Polar SDK instance might not be needed here if webhooks are just events
+// and don't require further SDK calls for verification (depends on Polar's design).
+// const polar = new Polar(); // Removed as verifyPolarWebhookSignature is standalone
 
 export const handlePolarWebhook = async (req: Request, res: Response) => {
-  const secret = process.env.POLAR_WEBHOOK_SECRET;
-  if (!secret) {
-    console.error('POLAR_WEBHOOK_SECRET is not set.');
+  const signatureHeader = req.headers['polar-signature'] as string; // Adjust if Polar uses a different header
+  const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
+
+  if (!webhookSecret) {
+    console.error('Webhook secret (POLAR_WEBHOOK_SECRET) is not configured on the server.');
     return res.status(500).send('Webhook secret not configured.');
   }
 
+  // req.body should be a Buffer here because we used express.raw() for this route in index.ts
+  if (!(req.body instanceof Buffer)) {
+    console.error('Raw request body not available for webhook verification. Ensure express.raw() is used for this route.');
+    return res.status(400).send('Webhook error: Raw body not available.');
+  }
+  const rawBody = req.body;
+
+  if (!verifyPolarWebhookSignature(rawBody, signatureHeader, webhookSecret)) {
+    console.warn('Polar webhook signature verification failed.');
+    return res.status(403).send('Webhook signature verification failed.');
+  }
+
+  // If signature is verified, parse the JSON payload from the raw body
+  let event;
   try {
-    // The Polar SDK does not currently have a built-in webhook event verification method.
-    // Verification typically involves checking a signature header.
-    // For Polar, you'd usually verify the 'Polar-Signature' header.
-    // This is a simplified placeholder. Refer to Polar's documentation for secure signature verification.
-    const signature = req.headers['polar-signature'] as string;
-    if (!signature) {
-      console.warn('Missing Polar-Signature header');
-      return res.status(400).send('Missing signature.');
-    }
+    event = JSON.parse(rawBody.toString('utf8'));
+  } catch (e: any) {
+    console.error('Error parsing webhook JSON payload:', e.message);
+    return res.status(400).send('Webhook error: Invalid JSON payload.');
+  }
+  
+  console.log('Polar webhook event received and signature verified:', event.type, event.id);
 
-    // Placeholder for signature verification logic.
-    // You would typically use crypto.createHmac, the secret, and the raw request body.
-    // const crypto = require('crypto');
-    // const hmac = crypto.createHmac('sha256', secret);
-    // hmac.update(JSON.stringify(req.body)); // Or raw body if not parsed
-    // const expectedSignature = hmac.digest('hex');
-    // if (signature !== expectedSignature) {
-    //   console.warn('Invalid Polar-Signature');
-    //   return res.status(403).send('Invalid signature.');
-    // }
-
-    console.log('Polar webhook event received:', req.body);
-    const event = req.body;
-
+  try {
     // Process the event based on its type
-    // Example:
-    // if (event.type === 'subscription.updated' || event.type === 'one_time_payment.succeeded') {
-    //   const orderId = event.data?.object?.metadata?.order_id;
-    //   if (orderId) {
-    //     // Update order status in Supabase
-    //     const { error } = await supabase
-    //       .from('orders')
-    //       .update({ payment_status: 'paid', polar_payment_id: event.data?.object?.id })
-    //       .eq('id', orderId);
-    //     if (error) {
-    //       console.error('Error updating order status:', error);
-    //     } else {
-    //       console.log(`Order ${orderId} status updated to paid.`);
-    //     }
-    //   }
-    // }
+    // IMPORTANT: Replace 'checkout.session.completed' and paths to data with actual Polar event types and structures.
+    if (event.type === 'checkout.session.completed') {
+      const checkoutSession = event.data?.object; // Adjust path based on actual Polar event structure
+      const orderId = checkoutSession?.metadata?.internal_order_id;
+      const polarChargeId = checkoutSession?.payment_intent_id || checkoutSession?.id; // Or other relevant ID from Polar
 
-    res.status(200).send('Webhook processed successfully.');
-  } catch (error) {
-    console.error('Error handling Polar webhook:', error);
-    if (error instanceof Error) {
-      res.status(400).send(`Webhook error: ${error.message}`);
-    } else {
-      res.status(400).send('Webhook error: An unknown error occurred');
+      if (orderId && checkoutSession?.status === 'paid') { // Check if payment was successful
+        console.log(`Processing successful payment for order: ${orderId}, Polar Charge ID: ${polarChargeId}`);
+        const { error } = await supabase
+          .from('orders')
+          .update({
+            status: 'processing' as OrderStatus, // Or 'completed', 'paid', etc.
+            payment_intent_id: polarChargeId, // Update with actual charge/payment ID from Polar
+            // You might add a specific 'polar_charge_id' column if 'payment_intent_id' is used for session ID before payment.
+          })
+          .eq('id', orderId)
+          .eq('status', 'awaiting_payment'); // Ensure we only update orders awaiting payment
+
+        if (error) {
+          console.error(`Error updating order ${orderId} to paid:`, error.message);
+          // Potentially retry or log for manual intervention
+          return res.status(500).send('Error updating order status in database.');
+        }
+        console.log(`Order ${orderId} status updated to processing/paid.`);
+        // TODO: Implement any post-payment success logic (e.g., send confirmation email, trigger fulfillment)
+      } else if (orderId && checkoutSession?.status === 'failed') { // Example for failed payment
+         console.log(`Processing failed payment for order: ${orderId}`);
+         const { error } = await supabase
+          .from('orders')
+          .update({ status: 'payment_failed' as OrderStatus })
+          .eq('id', orderId)
+          .eq('status', 'awaiting_payment');
+        if (error) {
+          console.error(`Error updating order ${orderId} to payment_failed:`, error.message);
+        } else {
+          console.log(`Order ${orderId} status updated to payment_failed.`);
+        }
+      } else {
+        console.warn('Webhook event checkout.session.completed received, but orderId missing or payment not successful. Metadata:', checkoutSession?.metadata);
+      }
+    } else if (event.type === 'checkout.session.expired') {
+        const checkoutSession = event.data?.object;
+        const orderId = checkoutSession?.metadata?.internal_order_id;
+        if (orderId) {
+            console.log(`Checkout session expired for order: ${orderId}`);
+            // Optionally update order status to 'cancelled' or 'payment_failed'
+            const { error } = await supabase
+                .from('orders')
+                .update({ status: 'cancelled' as OrderStatus }) // Or 'payment_failed'
+                .eq('id', orderId)
+                .eq('status', 'awaiting_payment');
+            if (error) {
+                console.error(`Error updating order ${orderId} to cancelled due to expired session:`, error.message);
+            } else {
+                console.log(`Order ${orderId} marked as cancelled due to expired Polar session.`);
+            }
+        }
     }
+    // Add more event types as needed (e.g., 'charge.refunded')
+
+    res.status(200).send('Webhook processed.');
+  } catch (error: any) {
+    console.error('Error processing Polar webhook event:', error.message, error.stack);
+    res.status(500).send('Internal server error while processing webhook.');
   }
 };

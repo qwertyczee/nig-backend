@@ -13,10 +13,10 @@ const router = Router();
 // The 'protect' middleware (if used here) would ensure a valid JWT is present
 // and could attach user info to req.user for server-side logic if needed beyond RLS.
 
-router.post('/', protect, createOrder);
-router.get('/', protect, getMyOrders);
-router.get('/:id', protect, getOrderById);
-router.patch('/:id/cancel', protect, cancelMyOrder); // Corrected syntax
+router.post('/', createOrder); // Removed 'protect' middleware for guest checkout
+router.get('/', protect, getMyOrders); // Keep protect for viewing user's own orders
+router.get('/:id', protect, getOrderById); // Keep protect for viewing specific order (RLS handles ownership)
+router.patch('/:id/cancel', protect, cancelMyOrder); // Keep protect for cancelling (RLS handles ownership)
 
 // Example Admin routes (you would uncomment and use 'admin' middleware)
 // router.get('/admin/all', protect, admin, getAllOrdersForAdmin);

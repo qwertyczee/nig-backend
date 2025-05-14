@@ -15,102 +15,183 @@ if (!polarWebhookSecret) {
 }
 
 const polar = new Polar({
+  server: 'sandbox',
   accessToken: polarSecretKey, // Use secret key for server-side operations
 });
 
-interface CreatePaymentIntentResponse {
-  paymentIntentId: string;
-  clientSecret: string;
-  amount: number;
-  currency: string;
+interface CreatePolarCheckoutSessionResponse {
+  checkoutUrl: string;
+  polarSessionId: string;
 }
 
+interface PolarItemInput {
+  priceId: string; // Assuming this is the Price ID from Polar
+  quantity: number;
+}
+
+interface BillingAddressInput {
+  country: string;
+  postal_code?: string;
+  // Add other fields like line1, city, state if Polar SDK supports/requires them for `customerBillingAddress`
+}
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nig-frontend.vercel.app'; // Fallback, ensure this is set in Vercel
+
 /**
- * Creates a payment intent with Polar.sh.
- * In a real scenario, this would make an API call to Polar.
+ * Creates a checkout session with Polar.sh using the SDK.
  */
-export const createPolarPaymentIntent = async (
-  orderId: string,
-  amount: number, // Amount in cents
-  currency: string = 'usd'
-): Promise<CreatePaymentIntentResponse> => {
+export const createPolarCheckoutSession = async (
+  orderId: string, // Your internal order ID
+  items: Array<PolarItemInput>,
+  customerEmail: string,
+  billingAddress: BillingAddressInput,
+  // totalAmountInCents: number, // No longer directly passed if Polar calculates from items
+  // currency: string = 'usd' // Currency is usually part of the price_id in Polar
+): Promise<CreatePolarCheckoutSessionResponse> => {
   if (!polarSecretKey) {
-    console.log('PolarService: POLAR_SECRET_KEY not set. Simulating payment intent creation.');
-    // Simulate response for local development without a real Polar account
+    // Fallback to simulation if secret key is not set (e.g., local dev without .env)
+    console.warn('PolarService: POLAR_SECRET_KEY not set. Simulating checkout session creation.');
+    const simulatedSessionId = `cs_sim_${Date.now()}`;
+    // const simulatedAmount = items.reduce((sum, item) => sum + item.price_in_cents * item.quantity, 0); // If items had price
     return {
-      paymentIntentId: `pi_simulated_${Date.now()}`,
-      clientSecret: `pi_simulated_${Date.now()}_secret_simulated_${Date.now()}`,
-      amount,
-      currency,
+      checkoutUrl: `${FRONTEND_URL}/simulated-polar-checkout?session_id=${simulatedSessionId}&order_id=${orderId}`,
+      polarSessionId: simulatedSessionId,
     };
   }
 
   try {
-    // This is a conceptual example. The actual Polar SDK usage might differ.
-    // You'll need to find the equivalent of creating a "Payment Intent" or "Checkout Session" in Polar.
-    // Let's assume Polar has a method like `polar.paymentIntents.create` or similar.
-    // For now, we'll mock this as Polar SDK's payment intent creation specifics are not immediately known.
-    // Please refer to the official Polar.sh API documentation for the correct method.
-    console.log(`PolarService: Attempting to create payment intent for order ${orderId}, amount ${amount} ${currency.toUpperCase()}`);
-    
-    // Example: If Polar uses something like Stripe's PaymentIntents
-    // const paymentIntent = await polar.paymentIntents.create({
-    //   amount: amount, // Amount in cents
-    //   currency: currency,
-    //   metadata: { order_id: orderId },
-    //   // customer: customerId, // Optional: if you manage customers in Polar
-    //   // payment_method_types: ['card'], // Or other types Polar supports
-    // });
+    console.log(`PolarService: Attempting to create real checkout session for order ${orderId}`);
 
-    // MOCKING THE RESPONSE as the actual SDK call is unknown
-    const mockPaymentIntent = {
-      id: `pi_polar_${Date.now()}`,
-      client_secret: `pi_polar_${Date.now()}_secret_${Date.now()}`,
-      amount: amount,
-      currency: currency,
-    };
-    console.log('PolarService: Mocked payment intent created:', mockPaymentIntent.id);
+    const successUrl = `${FRONTEND_URL}/order/success`; // Polar might append session_id, or success page handles it
+    const cancelUrl = `${FRONTEND_URL}/cart`; // Or a dedicated cancellation page
+
+    // Prepare products array for Polar: array of price_id strings, repeated by quantity
+    const productsForPolar: string[] = [];
+    items.forEach(item => {
+      for (let i = 0; i < item.quantity; i++) {
+        // Assuming item.priceId (originating from your DB product.id) IS the Polar Price ID
+        productsForPolar.push(item.priceId);
+      }
+    });
+
+    if (productsForPolar.length === 0) {
+      throw new Error('No items to checkout.');
+    }
+    
+    // Reverted to string[] for products as per SDK type definition.
+    // If Polar still errors about missing product_id/product_price_id,
+    // it means the strings in `productsForPolar` are not recognized as valid Polar Price IDs,
+    // or there's a deeper configuration issue with the products/prices in your Polar account.
+
+    const polarSession = await polar.checkouts.create({
+      products: productsForPolar, // Should be string[]
+      // successUrl: successUrl, // Removed as it's not a direct property of CheckoutCreate
+      // cancelUrl: cancelUrl,   // Removed as it's not a direct property of CheckoutCreate
+      // Ensure success and cancel URLs are configured in your Polar dashboard or if the SDK
+      // expects them under a different property or structure.
+      customerEmail: customerEmail,
+      customerBillingAddress: { // Assuming Polar SDK takes an object like this
+        country: billingAddress.country,
+        postalCode: billingAddress.postal_code, // Pass if available and supported
+        // Add other address fields here if needed by Polar SDK:
+        // line1: billingAddress.line1,
+        // city: billingAddress.city,
+        // state: billingAddress.state,
+      },
+      metadata: {
+        internal_order_id: orderId,
+      },
+      // organizationId: process.env.POLAR_ORGANIZATION_ID, // If creating checkouts for a specific org
+      // paymentMethodTypes: ['card'], // If you need to specify
+      // Polar SDK might require success_url and cancel_url within a different object or they are set globally.
+      // For now, assuming they are handled by Polar's dashboard settings or implicitly.
+      // If redirects don't work, you'll need to consult Polar's SDK docs for how to pass these.
+      // The `CheckoutCreate` type from the docs snippet did not show these as top-level properties.
+      // It's possible they are part of an `options` object or similar.
+    });
+
+    console.log('PolarService: Real checkout session created:', polarSession.id, 'URL:', polarSession.url);
+
+    if (!polarSession.url || !polarSession.id) {
+      throw new Error('Polar did not return a valid checkout URL or session ID.');
+    }
 
     return {
-      paymentIntentId: mockPaymentIntent.id,
-      clientSecret: mockPaymentIntent.client_secret,
-      amount: mockPaymentIntent.amount,
-      currency: mockPaymentIntent.currency,
+      checkoutUrl: polarSession.url,
+      polarSessionId: polarSession.id,
     };
-  } catch (error) {
-    console.error('PolarService: Error creating payment intent:', error);
-    throw new Error('Failed to create payment intent with Polar.');
+  } catch (error: any) {
+    console.error('PolarService: Error creating checkout session with Polar SDK:', error.message, error.stack);
+    // Log more details if available from Polar's error object
+    if (error.response?.data) {
+      console.error('Polar SDK error response:', error.response.data);
+    }
+    throw new Error(`Failed to create checkout session with Polar: ${error.message}`);
   }
 };
 
+import crypto from 'crypto';
+
 /**
  * Verifies a webhook signature from Polar.sh.
- * In a real scenario, this would use Polar's SDK or a standard library.
+ * This is a generic HMAC-SHA256 implementation. You MUST verify Polar's specific requirements:
+ * - The exact header name for the signature (e.g., 'Polar-Signature', 'X-Polar-Signature').
+ * - The exact algorithm (e.g., 'sha256', 'sha512').
+ * - How the signature is constructed (e.g., if it includes timestamps or other elements).
+ * - The encoding of the signature (e.g., hex, base64).
  */
 export const verifyPolarWebhookSignature = (
-  payload: string | Buffer, // Raw request body
-  signature: string | string[] | undefined // Signature from request header (e.g., 'Polar-Signature')
+  rawBody: string | Buffer, // IMPORTANT: This MUST be the raw, unparsed request body.
+  signatureHeader: string | string[] | undefined, // The signature string from the request header.
+  webhookSecret: string // Your POLAR_WEBHOOK_SECRET from environment variables.
 ): boolean => {
-  if (!polarWebhookSecret) {
-    console.warn('PolarService: POLAR_WEBHOOK_SECRET not set. Skipping webhook signature verification.');
-    return true; // Insecure: For local dev only if secret is not set
-  }
-  if (!signature) {
-    console.error('PolarService: Missing webhook signature.');
+  if (!webhookSecret) {
+    console.error('PolarService: POLAR_WEBHOOK_SECRET is not set. Cannot verify webhook signature.');
+    // In a production environment, you might want to return false or throw an error.
+    // For local dev, if you explicitly want to bypass, handle with extreme caution.
+    // Returning true here for a missing secret is INSECURE.
+    // For now, let's be strict: if no secret, verification fails.
     return false;
   }
 
+  if (!signatureHeader) {
+    console.error('PolarService: Missing webhook signature header. Webhook event will be rejected.');
+    return false;
+  }
+
+  // Ensure signatureHeader is a string if it's an array (though typically it's a single string)
+  const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
+
   try {
-    // This is a conceptual example. Refer to Polar.sh documentation for actual webhook verification.
-    // const event = polar.webhooks.constructEvent(payload, signature, polarWebhookSecret);
-    // If construction is successful, signature is valid.
-    // For now, we'll just simulate this.
-    console.log('PolarService: Simulating webhook signature verification.');
-    // A real implementation would involve cryptographic checks.
-    // Example: if (computedSignature === signature) return true;
-    return true; // Placeholder
-  } catch (error) {
-    console.error('PolarService: Webhook signature verification failed:', error);
+    // This is a common way to verify HMAC signatures. Polar might have variations.
+    // Example: Stripe uses 't=' for timestamp and 'v1=' for signature parts in their header.
+    // Adapt this logic if Polar's signature format is different (e.g., includes versioning or timestamps).
+
+    const hmac = crypto.createHmac('sha256', webhookSecret); // Assuming SHA256, Polar might use a different algo.
+    const computedSignature = hmac.update(rawBody).digest('hex'); // Assuming hex encoding.
+
+    // Securely compare the computed signature with the received signature.
+    // crypto.timingSafeEqual is preferred for security against timing attacks.
+    // Both buffers must be of the same length for timingSafeEqual.
+    const receivedSignatureBuffer = Buffer.from(signature, 'hex'); // Assuming hex encoding for received sig
+    const computedSignatureBuffer = Buffer.from(computedSignature, 'hex');
+    
+    if (receivedSignatureBuffer.length !== computedSignatureBuffer.length) {
+        console.warn('PolarService: Webhook signature length mismatch.');
+        return false;
+    }
+
+    const isValid = crypto.timingSafeEqual(receivedSignatureBuffer, computedSignatureBuffer);
+    
+    if (!isValid) {
+        console.warn('PolarService: Webhook signature verification failed. Signatures do not match.');
+    } else {
+        console.log('PolarService: Webhook signature verified successfully.');
+    }
+    return isValid;
+
+  } catch (error: any) {
+    console.error('PolarService: Error during webhook signature verification:', error.message);
     return false;
   }
 };

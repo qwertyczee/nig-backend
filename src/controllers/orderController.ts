@@ -1,24 +1,34 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/db';
 import { Order, OrderInput, OrderItemInput, OrderStatus } from '../types/orderTypes';
-import { createPolarPaymentIntent } from '../services/polarService';
+import { createPolarCheckoutSession } from '../services/polarService';
 
 export const createOrder = async (req: Request, res: Response) => {
   // user_id will come from req.user populated by authMiddleware
-  const orderInput = req.body as Omit<OrderInput, 'user_id'>; 
-  const userId = req.user?.id;
+  // Explicitly type req.body to include customer_email, as it's used for Polar
+  const body = req.body as Omit<OrderInput, 'user_id'> & { customer_email?: string };
+  const orderInput = body;
+  // For guest checkout, userId can be null.
+  // req.user might not exist if 'protect' middleware is removed for this route.
+  const userId = req.user?.id || null;
 
-  if (!userId) {
-    return res.status(401).json({ message: 'User not authenticated.' });
-  }
+  // User authentication check is removed as guests can order.
 
   if (!orderInput.items || orderInput.items.length === 0 || !orderInput.shipping_address) {
     return res.status(400).json({ message: 'Missing required fields: items and shipping_address are required.' });
   }
 
+  // Extract email for Polar. Ensure it's provided by the frontend via customer_email.
+  const customerEmail = orderInput.customer_email;
+  if (!customerEmail) {
+    return res.status(400).json({ message: 'Customer email (customer_email) is required for payment processing.' });
+  }
+
   try {
     let calculatedTotalAmount = 0;
-    const orderItemsProductData: { product_id: string; quantity: number; price_at_purchase: number }[] = [];
+    // Store polar_price_id and quantity for Polar, and other details for DB
+    // Store polar_price_id and quantity for Polar, and other details for DB
+    const orderItemsData: { polarPriceId: string; quantity: number; dbProductId: string; price_at_purchase: number; name: string; }[] = [];
 
     // 1. Validate items and calculate total amount
     for (const item of orderInput.items) {
@@ -27,12 +37,16 @@ export const createOrder = async (req: Request, res: Response) => {
       }
       const { data: product, error: productError } = await supabase
         .from('products')
-        .select('id, price, name, in_stock')
+        .select('id, price, name, in_stock, polar_price_id') // Fetch polar_price_id
         .eq('id', item.product_id)
         .single();
 
       if (productError || !product) {
         return res.status(404).json({ message: `Product with ID ${item.product_id} not found or error fetching it.` });
+      }
+      if (!product.polar_price_id) {
+        // This product is not configured for sale via Polar
+        return res.status(400).json({ message: `Product ${product.name} (ID: ${product.id}) is not configured for Polar payments (missing polar_price_id).` });
       }
       if (!product.in_stock) {
         return res.status(400).json({ message: `Product ${product.name} is out of stock.` });
@@ -40,49 +54,76 @@ export const createOrder = async (req: Request, res: Response) => {
       // TODO: Implement inventory check if quantity exceeds available stock
 
       calculatedTotalAmount += product.price * item.quantity;
-      orderItemsProductData.push({
-        product_id: product.id,
+      orderItemsData.push({
+        polarPriceId: product.polar_price_id,
         quantity: item.quantity,
+        dbProductId: product.id,
         price_at_purchase: product.price,
+        name: product.name,
       });
     }
     
-    // Ensure total amount is in cents for most payment processors
-    const totalAmountInCents = Math.round(calculatedTotalAmount * 100);
+    // Billing address for Polar from shipping address
+    // Ensure shipping_address has country and postal_code
+    const shippingAddress = orderInput.shipping_address as { country: string; postal_code?: string; [key: string]: any };
+    if (!shippingAddress.country) {
+        return res.status(400).json({ message: 'Shipping address country is required for payment processing.' });
+    }
 
-    // Use a temporary order identifier for Polar, or a pre-generated UUID for idempotency if needed.
-    // For simplicity, a timestamp-based one is used here. A proper UUID is better for production.
-    const tempOrderIdForPolar = `order_${Date.now()}`; 
+    let countryCodeForPolar = shippingAddress.country;
+    if (shippingAddress.country.toLowerCase() === 'česká republika' || shippingAddress.country.toLowerCase() === 'czech republic') {
+        countryCodeForPolar = 'CZ';
+    }
+    // Add more mappings if other country names are used and need conversion to alpha-2
 
-    // 2. Create Payment Intent with Polar
-    const paymentIntentInfo = await createPolarPaymentIntent(tempOrderIdForPolar, totalAmountInCents, 'usd');
+    const billingAddressForPolar = {
+        country: countryCodeForPolar,
+        postal_code: shippingAddress.postal_code,
+        // line1: shippingAddress.street, // Example if Polar needs more fields
+        // city: shippingAddress.city,     // Example
+    };
+
+    // Use a temporary order identifier for Polar metadata, or a pre-generated UUID for idempotency if needed.
+    const tempOrderIdForPolar = `order_${Date.now()}_${userId || 'guest'}`;
+
+    // 2. Create Checkout Session with Polar
+    const itemsForPolarPayload = orderItemsData.map(p => ({ priceId: p.polarPriceId, quantity: p.quantity }));
+    console.log('DEBUG: Items being sent to Polar createPolarCheckoutSession:', JSON.stringify(itemsForPolarPayload, null, 2));
+
+    const polarSessionInfo = await createPolarCheckoutSession(
+        tempOrderIdForPolar,
+        itemsForPolarPayload, // Corrected: Use orderItemsData and p.polarPriceId
+        customerEmail,
+        billingAddressForPolar
+    );
 
     // 3. Create the order in your database
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: userId,
-        total_amount: calculatedTotalAmount, // Store in your standard currency unit
+        total_amount: calculatedTotalAmount,
         shipping_address: orderInput.shipping_address,
         billing_address: orderInput.billing_address || orderInput.shipping_address,
-        status: 'awaiting_payment' as OrderStatus, // Initial status
+        status: 'awaiting_payment' as OrderStatus,
         payment_provider: 'polar',
-        payment_intent_id: paymentIntentInfo.paymentIntentId,
-        payment_client_secret: paymentIntentInfo.clientSecret,
+        payment_intent_id: polarSessionInfo.polarSessionId,
       })
       .select()
       .single();
 
     if (orderError || !newOrder) {
       console.error('Error creating order in DB:', orderError?.message);
-      // TODO: Potentially attempt to cancel the payment intent with Polar if order creation fails.
-      // This requires a `cancelPolarPaymentIntent` function in polarService.ts.
       return res.status(500).json({ message: 'Failed to create order after payment intent.', error: orderError?.message });
     }
 
     // 4. Create order items
-    const itemsToInsert = orderItemsProductData.map(item => ({
-      ...item,
+    const itemsToInsert = orderItemsData.map(item => ({ // Corrected: Use orderItemsData
+      product_id: item.dbProductId, // Corrected: Use item.dbProductId for your database
+      quantity: item.quantity,
+      price_at_purchase: item.price_at_purchase,
+      // name: item.name, // The 'order_items' table in migration 002 does not have a 'name' column.
+                         // If you added it later, uncomment this. For now, assuming it's not there.
       order_id: newOrder.id,
     }));
 
@@ -116,18 +157,19 @@ export const createOrder = async (req: Request, res: Response) => {
     if (fetchError || !completeOrder) {
         console.error('Error fetching complete order after creation:', fetchError?.message);
         // Order and items were created, but fetching the full details failed.
-        // Return the core order data and payment client secret.
-        return res.status(201).json({ 
-            ...newOrder, // Contains payment_client_secret from the insert
-            order_items: itemsToInsert, // Use the data we have for items
+        // Return the core order data and the checkout URL.
+        return res.status(201).json({
+            ...newOrder,
+            order_items: itemsToInsert,
+            checkoutUrl: polarSessionInfo.checkoutUrl // Add checkoutUrl to the response
         });
     }
 
-    // Ensure payment_client_secret is part of the response.
-    // If `completeOrder` comes directly from a select that might not include it (if not explicitly selected),
-    // merge it from `newOrder` or `paymentIntentInfo`.
-    // However, `newOrder` from the `.insert().select().single()` should contain all columns of the 'orders' table.
-    res.status(201).json(completeOrder); // `completeOrder` should include payment_client_secret as it's a column in 'orders'
+    // Add checkoutUrl to the successful response
+    res.status(201).json({
+        ...completeOrder,
+        checkoutUrl: polarSessionInfo.checkoutUrl
+    });
 
   } catch (error: any) {
     console.error('Unexpected error creating order:', error.message);
