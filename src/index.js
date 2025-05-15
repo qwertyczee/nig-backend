@@ -9,7 +9,8 @@ const productRoutes = require('./routes/productRoutes.js');
 const orderRoutes = require('./routes/orderRoutes.js');
 const webhookRoutes = require('./routes/webhookRoutes.js');
 const adminRoutes = require('./routes/adminRoutes.js');
-const { initDb } = require('./config/db.js');
+// initDb is no longer called here to prevent blocking cold starts.
+// const { initDb } = require('./config/db.js'); // supabase client is still imported by controllers directly
 
 console.log('LOG: index.ts: Top-level script execution start. NODE_ENV:', process.env.NODE_ENV);
 
@@ -65,10 +66,9 @@ app.use(session({
 }));
 console.log('LOG: index.ts: express-session middleware added. Secure cookie:', process.env.NODE_ENV === 'production');
 
-// Initialize DB
-initDb()
-  .then(ok => console.log(ok ? '✔️ LOG: index.ts: DB connection attempt completed.' : '❌ LOG: index.ts: DB connection attempt failed.'))
-  .catch(err => console.error('LOG: index.ts: DB init CRITICAL error:', err));
+// Initialize DB - Removed initDb() call to prevent blocking cold starts.
+// The Supabase client is initialized in db.js and used directly by controllers.
+console.log('LOG: index.ts: Supabase client is initialized in db.js and will be used by controllers.');
 
 // Health check
 app.get('/api', (req, res) => {
