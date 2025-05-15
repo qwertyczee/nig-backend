@@ -36,69 +36,82 @@ const handlePolarWebhook = async (req, res) => {
     return res.status(400).send('Webhook error: Invalid JSON payload.');
   }
   
-  console.log('Polar webhook event received and signature verified:', event.type, event.id);
+  console.log('Polar webhook event received and signature verified:', event.type, event.data?.id || 'N/A');
 
   try {
     // Process the event based on its type
-    // IMPORTANT: Replace 'checkout.session.completed' and paths to data with actual Polar event types and structures.
-    if (event.type === 'checkout.session.completed') {
-      const checkoutSession = event.data?.object; // Adjust path based on actual Polar event structure
-      const orderId = checkoutSession?.metadata?.internal_order_id;
-      const polarChargeId = checkoutSession?.payment_intent_id || checkoutSession?.id; // Or other relevant ID from Polar
+    if (event.type === 'order.paid') {
+      const orderData = event.data;
+      const internalOrderId = orderData?.metadata?.internal_order_id; // Your internal order ID
+      const polarOrderId = orderData?.id; // Polar's unique ID for this order event
 
-      if (orderId && checkoutSession?.status === 'paid') { // Check if payment was successful
-        console.log(`Processing successful payment for order: ${orderId}, Polar Charge ID: ${polarChargeId}`);
+      if (internalOrderId && orderData?.status === 'paid') {
+        console.log(`Processing 'order.paid' for internal order: ${internalOrderId}, Polar Order ID: ${polarOrderId}`);
         const { error } = await supabase
           .from('orders')
           .update({
             status: 'processing', // Or 'completed', 'paid', etc.
-            payment_intent_id: polarChargeId, // Update with actual charge/payment ID from Polar
-            // You might add a specific 'polar_charge_id' column if 'payment_intent_id' is used for session ID before payment.
+            payment_intent_id: polarOrderId, // Store Polar's order ID as reference
+            // You might add a specific 'polar_order_id' column if 'payment_intent_id' is used for other purposes.
           })
-          .eq('id', orderId)
+          .eq('id', internalOrderId)
           .eq('status', 'awaiting_payment'); // Ensure we only update orders awaiting payment
 
         if (error) {
-          console.error(`Error updating order ${orderId} to paid:`, error.message);
+          console.error(`Error updating order ${internalOrderId} to paid:`, error.message);
           // Potentially retry or log for manual intervention
           return res.status(500).send('Error updating order status in database.');
         }
-        console.log(`Order ${orderId} status updated to processing/paid.`);
+        console.log(`Order ${internalOrderId} status updated to processing/paid.`);
         // TODO: Implement any post-payment success logic (e.g., send confirmation email, trigger fulfillment)
-      } else if (orderId && checkoutSession?.status === 'failed') { // Example for failed payment
-         console.log(`Processing failed payment for order: ${orderId}`);
-         const { error } = await supabase
-          .from('orders')
-          .update({ status: 'payment_failed' })
-          .eq('id', orderId)
-          .eq('status', 'awaiting_payment');
-        if (error) {
-          console.error(`Error updating order ${orderId} to payment_failed:`, error.message);
+      } else {
+        console.warn(`Webhook event 'order.paid' received, but internal_order_id missing or payment not successful. Metadata:`, orderData?.metadata, `Status: ${orderData?.status}`);
+      }
+    } else if (event.type === 'checkout.updated') {
+      const checkoutData = event.data;
+      const internalOrderId = checkoutData?.metadata?.internal_order_id;
+      const polarCheckoutId = checkoutData?.id;
+
+      if (internalOrderId) {
+        console.log(`Processing 'checkout.updated' for internal order: ${internalOrderId}, Polar Checkout ID: ${polarCheckoutId}, Status: ${checkoutData.status}`);
+        
+        let newStatus = null;
+        let logMessage = '';
+
+        // Determine new status based on Polar checkout status
+        // Note: Polar's 'checkout.updated' might have various statuses.
+        // 'failed', 'expired', 'canceled' are common terminal states for checkouts.
+        // The provided schema only showed "open", so confirm exact values from Polar docs if issues arise.
+        if (checkoutData.status === 'failed') { // Hypothetical status, confirm with Polar
+          newStatus = 'payment_failed';
+          logMessage = `Order ${internalOrderId} status updated to payment_failed due to Polar checkout status 'failed'.`;
+        } else if (checkoutData.status === 'expired' || checkoutData.status === 'canceled') { // Hypothetical statuses
+          newStatus = 'cancelled';
+          logMessage = `Order ${internalOrderId} status updated to cancelled due to Polar checkout status '${checkoutData.status}'.`;
+        }
+        // Add other status mappings here if needed, e.g., 'open', 'processing_payment' etc.
+        // else if (checkoutData.status === 'open') { /* Potentially log or handle */ }
+        
+        if (newStatus) {
+          const { error } = await supabase
+            .from('orders')
+            .update({ status: newStatus })
+            .eq('id', internalOrderId)
+            .eq('status', 'awaiting_payment'); // Only update if it was awaiting payment
+
+          if (error) {
+            console.error(`Error updating order ${internalOrderId} to ${newStatus}:`, error.message);
+          } else {
+            console.log(logMessage);
+          }
         } else {
-          console.log(`Order ${orderId} status updated to payment_failed.`);
+          console.log(`No specific status update for order ${internalOrderId} based on checkout status: ${checkoutData.status}`);
         }
       } else {
-        console.warn('Webhook event checkout.session.completed received, but orderId missing or payment not successful. Metadata:', checkoutSession?.metadata);
+        console.warn(`Webhook event 'checkout.updated' received, but internal_order_id missing. Metadata:`, checkoutData?.metadata);
       }
-    } else if (event.type === 'checkout.session.expired') {
-        const checkoutSession = event.data?.object;
-        const orderId = checkoutSession?.metadata?.internal_order_id;
-        if (orderId) {
-            console.log(`Checkout session expired for order: ${orderId}`);
-            // Optionally update order status to 'cancelled' or 'payment_failed'
-            const { error } = await supabase
-                .from('orders')
-                .update({ status: 'cancelled' }) // Or 'payment_failed'
-                .eq('id', orderId)
-                .eq('status', 'awaiting_payment');
-            if (error) {
-                console.error(`Error updating order ${orderId} to cancelled due to expired session:`, error.message);
-            } else {
-                console.log(`Order ${orderId} marked as cancelled due to expired Polar session.`);
-            }
-        }
     }
-    // Add more event types as needed (e.g., 'charge.refunded')
+    // Add more event types as needed (e.g., 'order.refunded')
 
     res.status(200).send('Webhook processed.');
   } catch (error) {
