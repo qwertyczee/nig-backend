@@ -118,22 +118,7 @@ declare module 'express-serve-static-core' {
   }
 }
 
-export const handler = serverless(app, {
-    binary: ['image/*'], // Example if you need to handle binary responses, adjust as needed
-    request: (req: Request, event: any, context: any) => {
-        // These logs will show what serverless-http receives from Vercel
-        console.log('LOG: serverless-http request hook: Original event.path:', event.path);
-        console.log('LOG: serverless-http request hook: Original event.httpMethod:', event.httpMethod);
-        // console.log('LOG: serverless-http request hook: Full event received:', JSON.stringify(event, null, 2)); // Can be very verbose
-        // console.log('LOG: serverless-http request hook: Full context received:', JSON.stringify(context, null, 2)); // Can be very verbose
-        
-        // You can modify req here before it hits Express, or just use for logging
-        req.event = event; // Make event available on req object
-        req.context = context; // Make context available on req object
-    },
-    response: (res: any, event: any, context: any) => {
-        console.log('LOG: serverless-http response hook: Status code being sent:', res.statusCode);
-        // console.log('LOG: serverless-http response hook: Headers being sent:', JSON.stringify(res.headers, null, 2));
-    }
-});
-console.log('LOG: index.ts: Handler exported successfully.');
+const vercelHandler = serverless(app);
+export default vercelHandler;
+
+console.log('LOG: index.ts: Handler (default export) prepared successfully.');
