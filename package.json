@@ -2,11 +2,11 @@
       "name": "eshop-backend",
       "version": "1.0.0",
       "description": "Backend for the e-shop application",
-      "main": "dist/index.js",
+      "main": "build/index.js",
       "scripts": {
             "build": "tsc && cp -R src/views dist/views",
             "dev": "nodemon src/index.ts",
-            "start": "node dist/index.js"
+            "start": "node build/index.js"
       },
       "engines": {
             "node": "20.x"
