@@ -10,7 +10,7 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "Access-Control-Allow-Origin",   "value": ["https://www.slavesonline.store", "http://www.slavesonline.store", "https://slavesonline.store", "http://slavesonline.store"] },
+        { "key": "Access-Control-Allow-Origin",   "value": ["https://www.slavesonline.store", "http://www.slavesonline.store", "https://slavesonline.store", "http://slavesonline.store", "https://api.slavesonline.store"] },
         { "key": "Access-Control-Allow-Credentials","value": "true" },
         { "key": "Access-Control-Allow-Methods",   "value": "GET,POST,PUT,DELETE,PATCH,OPTIONS" },
         { "key": "Access-Control-Allow-Headers",   "value": "Content-Type, Authorization, Accept, Origin, X-Requested-With" },
