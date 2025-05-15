@@ -51,9 +51,15 @@ const getProductById = async (req, res) => {
 };
 
 const createProduct = async (req, res) => {
+  // === KONTROLNÍ LOG: Začátek funkce createProduct ===
+  console.log('LOG: productController.ts: createProduct - FUNKCE ZAVOLÁNA.');
+  console.log('LOG: productController.ts: createProduct - Request body:', JSON.stringify(req.body, null, 2));
+  // =====================================================
+
   const { name, description, price, category, image_url, in_stock } = req.body;
 
   if (!name || price === undefined || parseFloat(price) < 0) {
+    console.error('LOG: productController.ts: createProduct - Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
     return res.status(400).json({ message: 'Name and a non-negative price are required.' });
   }
 
@@ -70,6 +76,7 @@ const createProduct = async (req, res) => {
 
   try {
     // 1. Create product in Supabase
+    console.log('LOG: productController.ts: createProduct - Pokus o vytvoření produktu v Supabase. Jméno:', productDataForSupabase.name);
     const { data, error: supabaseError } = await supabase
       .from('products')
       .insert([productDataForSupabase])
@@ -77,66 +84,73 @@ const createProduct = async (req, res) => {
       .single();
 
     if (supabaseError) {
-      console.error('Error creating product in Supabase:', supabaseError.message);
+      console.error('LOG: productController.ts: createProduct - Chyba při vytváření produktu v Supabase:', supabaseError.message);
       return res.status(500).json({ message: 'Error creating product in database', error: supabaseError.message });
     }
     newSupabaseProduct = data;
-    console.log('Product created in Supabase:', newSupabaseProduct.id);
+    console.log('LOG: productController.ts: createProduct - Produkt vytvořen v Supabase. ID:', newSupabaseProduct.id);
 
     // 2. Create product/price in Polar
     const polarOrganizationId = process.env.POLAR_ORGANIZATION_ID;
     if (!polarOrganizationId) {
-      console.warn('POLAR_ORGANIZATION_ID not set. Skipping Polar product creation. Product will not be purchasable via Polar.');
-      // Return the Supabase product without Polar ID
+      console.warn(`LOG: productController.ts: createProduct - POLAR_ORGANIZATION_ID není nastaveno. Přeskakuji vytváření produktu v Polar pro Supabase produkt ID: ${newSupabaseProduct.id}`);
       return res.status(201).json(newSupabaseProduct);
     }
     if (!polar) {
-        console.error('Polar SDK instance not available. Skipping Polar product creation.');
+        console.error(`LOG: productController.ts: createProduct - Instance Polar SDK není dostupná. Přeskakuji vytváření produktu v Polar pro Supabase produkt ID: ${newSupabaseProduct.id}`);
         return res.status(201).json(newSupabaseProduct);
     }
 
-    const priceInCents = Math.round(parseFloat(price) * 100); // Ensure price is in cents
+    const priceInCents = Math.round(parseFloat(price) * 100);
 
-    console.log(`Attempting to create Polar product for: ${name}, Price: ${priceInCents} cents`);
+    console.log(`LOG: productController.ts: createProduct - === VYTVÁŘENÍ PRODUKTU NA POLAR ===`);
+    console.log(`LOG: productController.ts: createProduct - Pokus o vytvoření Polar produktu pro Supabase produkt ID: ${newSupabaseProduct.id}, Jméno: ${newSupabaseProduct.name}, Cena: ${priceInCents} centů`);
 
     const polarProductPayload = {
       name: newSupabaseProduct.name,
-      description: newSupabaseProduct.description || undefined, // Optional
+      description: newSupabaseProduct.description || undefined,
       organization_id: polarOrganizationId,
+      type: 'individual',
       prices: [
         {
-          // This structure aligns with ProductPriceFixedCreate
-          price_currency: 'usd', // TODO: Make this configurable or derive from product
+          price_currency: 'usd',
           price_amount: priceInCents,
         },
       ],
-      // recurring_interval is omitted for one-time products
     };
     
+    console.log('LOG: productController.ts: createProduct - Volání polar.products.create s payloadem:', JSON.stringify(polarProductPayload, null, 2));
     const polarResponse = await polar.products.create(polarProductPayload);
 
     if (!polarResponse || !polarResponse.ok) {
-        const errorDetail = polarResponse ? JSON.stringify(polarResponse.error || polarResponse) : 'Unknown Polar SDK error';
-        console.error('Error creating product/price in Polar:', errorDetail);
-        // Rollback Supabase product creation
+        const errorDetail = polarResponse ? JSON.stringify(polarResponse.error || polarResponse) : 'Neznámá chyba Polar SDK';
+        console.error(`LOG: productController.ts: createProduct - !!! CHYBA PŘI VYTVÁŘENÍ PRODUKTU/CENY V POLAR pro Supabase produkt ID ${newSupabaseProduct.id}:`, errorDetail);
+        console.log(`LOG: productController.ts: createProduct - Pokus o rollback vytvoření produktu v Supabase pro ID: ${newSupabaseProduct.id} kvůli chybě Polar.`);
         await supabase.from('products').delete().eq('id', newSupabaseProduct.id);
-        console.log('Rolled back Supabase product creation for ID:', newSupabaseProduct.id);
+        console.log(`LOG: productController.ts: createProduct - Rollback DOKONČEN pro Supabase produkt ID: ${newSupabaseProduct.id}`);
         return res.status(502).json({ message: 'Failed to create product in payment provider. Database changes rolled back.', error: errorDetail });
     }
 
     const createdPolarProduct = polarResponse.value;
-    if (!createdPolarProduct.prices || createdPolarProduct.prices.length === 0 || !createdPolarProduct.prices[0].id) {
-      console.error('Polar product created, but price ID is missing:', JSON.stringify(createdPolarProduct));
-      // Rollback Supabase product creation as we can't link it
+    console.log('LOG: productController.ts: createProduct - === PRODUKT NA POLAR ÚSPĚŠNĚ VYTVOŘEN (nebo odpověď přijata) ===');
+    console.log('LOG: productController.ts: createProduct - Surová hodnota odpovědi od Polar:', JSON.stringify(createdPolarProduct, null, 2));
+
+    if (!createdPolarProduct || !createdPolarProduct.id || !createdPolarProduct.prices || createdPolarProduct.prices.length === 0 || !createdPolarProduct.prices[0].id) {
+      console.error(`LOG: productController.ts: createProduct - !!! Produkt v Polar byl vytvořen pro Supabase produkt ID ${newSupabaseProduct.id}, ale chybí ID produktu Polar nebo ID ceny. Polar odpověď:`, JSON.stringify(createdPolarProduct));
+      console.log(`LOG: productController.ts: createProduct - Pokus o rollback vytvoření produktu v Supabase pro ID: ${newSupabaseProduct.id} kvůli chybějícímu Polar price ID.`);
       await supabase.from('products').delete().eq('id', newSupabaseProduct.id);
-      console.log('Rolled back Supabase product creation due to missing Polar price ID for product ID:', newSupabaseProduct.id);
+      console.log(`LOG: productController.ts: createProduct - Rollback DOKONČEN (kvůli chybějícímu Polar price ID) pro produkt ID: ${newSupabaseProduct.id}`);
       return res.status(502).json({ message: 'Product created in payment provider, but price details are missing. Database changes rolled back.' });
     }
 
     const polarPriceId = createdPolarProduct.prices[0].id;
-    console.log(`Polar product and price created. Polar Product ID: ${createdPolarProduct.id}, Polar Price ID: ${polarPriceId}`);
+    const polarProductId = createdPolarProduct.id; // Získání ID produktu Polar
+    console.log(`LOG: productController.ts: createProduct - POLAR PRODUKT A CENA ÚSPĚŠNĚ VYTVOŘENY pro Supabase produkt ID ${newSupabaseProduct.id}.`);
+    console.log(`LOG: productController.ts: createProduct -   >> Polar Product ID: ${polarProductId}`);
+    console.log(`LOG: productController.ts: createProduct -   >> Polar Price ID: ${polarPriceId}`);
 
     // 3. Update Supabase product with Polar Price ID
+    console.log(`LOG: productController.ts: createProduct - Pokus o aktualizaci Supabase produktu ID ${newSupabaseProduct.id} s Polar Price ID: ${polarPriceId}`);
     const { data: updatedSupabaseProduct, error: updateError } = await supabase
       .from('products')
       .update({ polar_price_id: polarPriceId })
@@ -145,34 +159,30 @@ const createProduct = async (req, res) => {
       .single();
 
     if (updateError) {
-      console.error(`Failed to update Supabase product ${newSupabaseProduct.id} with Polar price ID ${polarPriceId}:`, updateError.message);
-      // Product exists in Supabase & Polar, but link failed. Critical inconsistency.
-      // For now, return the original Supabase product with a warning about the missing link.
-      // A more robust system might queue this for retry or manual admin intervention.
+      console.error(`LOG: productController.ts: createProduct - !!! NEPODAŘILO SE aktualizovat Supabase produkt ${newSupabaseProduct.id} s Polar Price ID ${polarPriceId}:`, updateError.message);
       return res.status(201).json({
-        ...newSupabaseProduct,
-        warning: `Product created, and Polar price created (${polarPriceId}), but failed to link them in the database. Please check manually.`
+        ...newSupabaseProduct, // Vraťte stav produktu před pokusem o aktualizaci
+        polar_product_id: polarProductId, // Zahrňte ID produktu Polar pro referenci
+        polar_price_id: polarPriceId,     // Zahrňte ID ceny Polar pro referenci
+        warning: `Produkt byl vytvořen v Supabase (ID: ${newSupabaseProduct.id}) a v Polar (Produkt ID: ${polarProductId}, Cena ID: ${polarPriceId}), ale nepodařilo se propojit Polar Price ID v databázi. Prosím, zkontrolujte manuálně.`
       });
     }
 
-    console.log('Supabase product updated with Polar Price ID:', updatedSupabaseProduct.id);
+    console.log(`LOG: productController.ts: createProduct - Supabase produkt ID ${updatedSupabaseProduct.id} ÚSPĚŠNĚ aktualizován s Polar Price ID: ${polarPriceId}.`);
     res.status(201).json(updatedSupabaseProduct);
 
   } catch (error) {
-    console.error('Overall error in createProduct:', error.message, error.stack);
-    // If newSupabaseProduct was created but something failed afterwards (and not rolled back yet)
-    // This is a generic catch-all; specific rollbacks should happen closer to the failure point.
+    console.error('LOG: productController.ts: createProduct - === CELKOVÁ CHYBA V createProduct ===:', error.message, error.stack);
     if (newSupabaseProduct && newSupabaseProduct.id && !res.headersSent) {
-        // Check if a response has already been sent to avoid crashing
-        // This is a last resort cleanup attempt.
         try {
             const { data: existing } = await supabase.from('products').select('id, polar_price_id').eq('id', newSupabaseProduct.id).single();
-            if (existing && !existing.polar_price_id) { // Only delete if it wasn't fully processed with Polar
-                 console.warn(`Generic error handler: Attempting to rollback Supabase product ${newSupabaseProduct.id} due to unhandled error in createProduct.`);
+            if (existing && !existing.polar_price_id) {
+                 console.warn(`LOG: productController.ts: createProduct - Generický error handler: Pokus o rollback Supabase produktu ${newSupabaseProduct.id} kvůli neošetřené chybě.`);
                  await supabase.from('products').delete().eq('id', newSupabaseProduct.id);
+                 console.log(`LOG: productController.ts: createProduct - Generický error handler: Rollback DOKONČEN pro Supabase produkt ${newSupabaseProduct.id}.`);
             }
         } catch (rollbackError) {
-            console.error(`Generic error handler: Failed to rollback Supabase product ${newSupabaseProduct.id}:`, rollbackError.message);
+            console.error(`LOG: productController.ts: createProduct - Generický error handler: NEPODAŘILO SE provést rollback Supabase produktu ${newSupabaseProduct.id}:`, rollbackError.message);
         }
     }
     if (!res.headersSent) {

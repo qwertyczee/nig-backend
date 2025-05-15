@@ -15,7 +15,7 @@ if (!polarWebhookSecret) {
 }
 
 const polar = new Polar({
-  server: 'sandbox',
+  //server: 'sandbox',
   accessToken: polarSecretKey, // Use secret key for server-side operations
 });
 
