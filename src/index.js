@@ -1,117 +1,202 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const path = require('path');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
 const session = require('express-session');
-const serverless = require('serverless-http'); // ← import serverless-http
+
+// Import Supabase client (not initDb)
+const { supabase } = require('./config/db.js');
 
 // Import routes
 const productRoutes = require('./routes/productRoutes.js');
 const orderRoutes = require('./routes/orderRoutes.js');
 const webhookRoutes = require('./routes/webhookRoutes.js');
 const adminRoutes = require('./routes/adminRoutes.js');
-// initDb is no longer called here to prevent blocking cold starts.
-// const { initDb } = require('./config/db.js'); // supabase client is still imported by controllers directly
 
-console.log('LOG: index.ts: Top-level script execution start. NODE_ENV:', process.env.NODE_ENV);
-
-// Load .env (only for local development—Vercel injects env vars in prod)
+// Load .env
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
-console.log('LOG: index.ts: dotenv.config executed.');
-console.log('LOG: index.ts: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
-console.log('LOG: index.ts: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
-console.log('LOG: index.ts: VERCEL_URL (from Vercel):', process.env.VERCEL_URL);
+console.log('LOG: index.js: dotenv.config executed.');
+console.log('LOG: index.js: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
+console.log('LOG: index.js: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
 
-
-const app = express();
-const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-if-not-set-in-env';
-console.log('LOG: index.ts: Express app initialized.');
-
-// Logging middleware - VERY FIRST middleware in the chain
-app.use((req, res, next) => {
-  console.log(`LOG: index.ts: REQUEST RECEIVED: ${req.method} ${req.originalUrl} (req.path: ${req.path})`);
-  console.log('LOG: index.ts: Request Headers:', JSON.stringify(req.headers, null, 2));
-  // Log session details if available
-  if (req.session) {
-    console.log('LOG: index.ts: Request Session ID:', req.sessionID);
-    console.log('LOG: index.ts: Request Session Data:', JSON.stringify(req.session, null, 2));
-  } else {
-    console.log('LOG: index.ts: No session attached to request yet.');
-  }
-  next();
+// --- Unhandled Rejection & Uncaught Exception Handlers ---
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // In a real app, use a proper logger: logger.error(...)
+});
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // In a real app, use a proper logger: logger.error(...)
 });
 
-// Basic middleware
-app.use(express.urlencoded({ extended: true }));
-console.log('LOG: index.ts: express.urlencoded middleware added.');
+const PORT = process.env.PORT || 3001; // Changed default from 8080 to 3001 as 8080 is common for frontend dev
+const app = express();
+app.set('trust proxy', 1); // Important if behind a proxy like Vercel
 
-// Special raw body parser for specific webhook route
-// IMPORTANT: This must come BEFORE global express.json() if it's for a sub-path of /api
-// and other /api paths need express.json(). Order matters.
-app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
-console.log('LOG: index.ts: express.raw for /api/webhooks/polar added.');
+// --- Parsers ---
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(cookieParser());
 
-app.use(express.json());
-console.log('LOG: index.ts: express.json middleware added.');
+// --- CORS Configuration ---
+// Using a simpler CORS setup for now, can be expanded like the example if needed.
+// The example's whitelist approach is good for production.
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'; // Default for local dev
+const whitelist = [FRONTEND_URL, 'http://localhost:5173']; // Added common Vite dev port
+if (process.env.VERCEL_URL) { // Automatically add Vercel preview URLs
+    whitelist.push(`https://${process.env.VERCEL_URL}`);
+}
 
+
+const corsOptions = {
+    credentials: true,
+    methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
+    allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Accept',
+        'Origin',
+        'X-Requested-With'
+    ],
+    maxAge: 86400, // 1 day
+    origin: (incomingOrigin, callback) => {
+        console.log('[CORS] incoming origin:', incomingOrigin);
+        if (!incomingOrigin || whitelist.includes(incomingOrigin)) {
+            return callback(null, true);
+        }
+        const msg = `Origin ${incomingOrigin} not in whitelist. Allowed: ${whitelist.join(', ')}`;
+        console.warn('[CORS]', msg);
+        callback(new Error(msg)); // Pass error to callback
+    }
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Pre-flight requests
+
+// --- Session Middleware (for admin panel) ---
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-if-not-set-in-env-for-dev';
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
-  saveUninitialized: true, // Set to false if you don't want sessions for unauthenticated users
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Should be true in production (Vercel)
-    httpOnly: true, 
+  saveUninitialized: true,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
     maxAge: 86400000, // 1 day
-    sameSite: 'lax' // Recommended for CSRF protection
+    sameSite: 'lax'
   }
 }));
-console.log('LOG: index.ts: express-session middleware added. Secure cookie:', process.env.NODE_ENV === 'production');
+console.log('LOG: index.js: express-session middleware added. Secure cookie:', process.env.NODE_ENV === 'production');
 
-// Initialize DB - Removed initDb() call to prevent blocking cold starts.
-// The Supabase client is initialized in db.js and used directly by controllers.
-console.log('LOG: index.ts: Supabase client is initialized in db.js and will be used by controllers.');
 
-// Health check
-app.get('/api', (req, res) => {
-  console.log('LOG: index.ts: /api health check route hit.');
-  res.status(200).send('E-shop API is running! Health check successful. Timestamp: ' + new Date().toISOString());
-});
-console.log('LOG: index.ts: /api health check route defined.');
-
-// Mount routes
-app.use('/api/products', productRoutes);
-console.log('LOG: index.ts: /api/products routes mounted.');
-app.use('/api/orders', orderRoutes);
-console.log('LOG: index.ts: /api/orders routes mounted.');
-app.use('/api/webhooks', webhookRoutes);
-console.log('LOG: index.ts: /api/webhooks routes mounted.');
-app.use('/admin', adminRoutes); // Note: This is not under /api
-console.log('LOG: index.ts: /admin routes mounted.');
-
-// Catch-all for 404s originating from Express (if no routes matched)
-// This should be placed AFTER all your route definitions
+// --- Logging Middleware (Simplified) ---
 app.use((req, res, next) => {
-  console.log(`LOG: index.ts: EXPRESS 404: No route matched for ${req.method} ${req.originalUrl}`);
-  res.status(404).send(`Express server couldn't find the route: ${req.method} ${req.originalUrl}`);
+  console.log(`LOG: REQUEST: ${req.method} ${req.originalUrl}`);
+  next();
 });
 
-// Global Error handler - This should be the LAST middleware
+// --- Database Connection Check Middleware (Supabase specific) ---
+let isDbConnected = false; // Naive flag, Supabase client handles connections.
+const dbCheckMiddleware = async (req, res, next) => {
+    try {
+        // Simple check: try to get user. More robust checks could query a small table.
+        // Supabase client manages its connection pool, so an explicit connect/disconnect per request isn't typical.
+        // This check is more about ensuring the client can communicate.
+        const { data, error } = await supabase.auth.getUser().catch(err => ({ data: null, error: err })); // Catch potential promise rejection
+
+        if (error && error.message !== 'Auth session missing!') { // "Auth session missing" is normal if no user logged in
+            console.error('Supabase connection/auth check error (middleware):', error.message);
+            // Allow /api health check to pass even if DB has issues for more granular health reporting
+            if (req.originalUrl.startsWith('/api/health')) {
+                return next();
+            }
+            isDbConnected = false;
+            return res.status(503).json({ status: 'error', message: 'Service temporarily unavailable (DB Communication Issue)' });
+        }
+        isDbConnected = true; // If no critical error, assume communication is possible
+        next();
+    } catch (error) {
+        console.error('Database connection middleware unexpected error:', error.message);
+        isDbConnected = false;
+        // Allow /api health check to pass
+        if (req.originalUrl.startsWith('/api/health')) {
+            return next();
+        }
+        next(error); // Pass to global error handler
+    }
+};
+
+// --- Health Check Route ---
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'API is running', 
+    timestamp: new Date().toISOString(),
+    databaseConnected: isDbConnected // Reflects the last check
+  });
+});
+
+// --- API Routes ---
+// Special raw body parser for Polar webhooks - place before routes that use it
+app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
+
+// Apply DB check middleware to routes that need DB access.
+// Webhooks might need DB access to update order status, so they get it.
+// Product and order routes definitely need it.
+app.use('/api/products', dbCheckMiddleware, productRoutes);
+app.use('/api/orders', dbCheckMiddleware, orderRoutes);
+app.use('/api/webhooks', dbCheckMiddleware, webhookRoutes);
+
+// Admin routes are separate and use session auth, might also need DB.
+app.use('/admin', dbCheckMiddleware, adminRoutes);
+
+
+// --- Error Handling Middleware ---
+// 404 Handler (Not Found)
+app.use((req, res, next) => {
+  res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+});
+
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('LOG: index.ts: GLOBAL ERROR HANDLER CAUGHT ERROR:');
-  console.error('LOG: index.ts: Error Message:', err.message);
-  console.error('LOG: index.ts: Error Stack:', err.stack);
-  // Avoid sending stack trace in production for security reasons
-  if (process.env.NODE_ENV === 'production') {
-    res.status(500).send('Internal Server Error');
-  } else {
-    res.status(500).send(`Something broke! ${err.message}`);
-  }
+  console.error('GLOBAL ERROR HANDLER:', err.message);
+  console.error(err.stack);
+  const statusCode = err.statusCode || 500;
+  const message = err.message || 'Internal Server Error';
+  res.status(statusCode).json({ message, ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }) });
 });
-console.log('LOG: index.ts: Global error handler added.');
-
-console.log('LOG: index.ts: Preparing to export handler with serverless(app).');
 
 
-const vercelHandler = serverless(app);
-module.exports = vercelHandler;
+// --- Server Startup ---
+// For Vercel, we export the app. Vercel handles the listening part.
+// For local development, we can add app.listen.
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+        // Perform a startup DB check for local dev convenience
+        (async () => {
+            try {
+                const { data, error } = await supabase.auth.getUser().catch(e => ({ data: null, error: e }));
+                if (error && error.message !== 'Auth session missing!') {
+                    console.warn('Local Dev: Initial Supabase connection check failed/warned:', error.message);
+                } else {
+                    console.log('Local Dev: Initial Supabase connection check successful (or no auth error).');
+                }
+            } catch(e) {
+                 console.error('Local Dev: Supabase startup check CRITICAL error:', e.message);
+            }
+        })();
+    });
+}
 
-console.log('LOG: index.ts: Handler (default export) prepared successfully.');
+// --- Graceful Shutdown (Primarily for local dev, Vercel handles its own lifecycle) ---
+process.on('SIGTERM', async () => {
+    console.log('SIGTERM received. Shutting down gracefully (local dev).');
+    // Supabase client doesn't have an explicit disconnect method like Prisma.
+    // Connections are managed by the pool.
+    // If there were other resources to clean up, do it here.
+    console.log('No specific DB disconnect needed for Supabase client.');
+    process.exit(0);
+});
+
+module.exports = app; // Export the app for Vercel
