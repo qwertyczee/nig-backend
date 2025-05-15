@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import path from 'path'; // Added for sendFile
 // For a real app, you'd fetch admin users from a database and use bcrypt for passwords
 import bcrypt from 'bcryptjs';
 import { supabase } from '../config/db'; // Ensure supabase is imported
@@ -10,19 +11,12 @@ declare module 'express-session' {
   }
 }
 
-// --- !!! THIS IS FOR DEMONSTRATION ONLY - DO NOT USE IN PRODUCTION !!! ---
-// --- !!! Store hashed passwords and fetch users from a database.   !!! ---
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'kunzak.maty@gmail.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123456'; // Store a HASHED password in .env
-// --- !!! END OF WARNING !!! ---
-
-
 export const getLoginPage = (req: Request, res: Response) => {
   // If already logged in, redirect to dashboard
   if (req.session.user?.isAdmin) {
     return res.redirect('/admin/dashboard');
   }
-  res.render('admin/login', { error: null });
+  res.sendFile(path.join(__dirname, '../views/admin/login.html'));
 };
 
 export const postLogin = async (req: Request, res: Response) => {
@@ -39,9 +33,9 @@ export const postLogin = async (req: Request, res: Response) => {
       console.error('[Admin Login] Supabase signInWithPassword error:', signInError.message);
       // Differentiate between invalid credentials and other errors if needed
       if (signInError.message.toLowerCase().includes('invalid login credentials')) {
-        return res.render('admin/login', { error: 'Invalid email or password.' });
+        return res.redirect('/admin/login?error=Invalid+email+or+password.');
       }
-      return res.render('admin/login', { error: 'Login failed. Please try again.' });
+      return res.redirect('/admin/login?error=Login+failed.+Please+try+again.');
     }
 
     if (data.user) {
@@ -63,7 +57,7 @@ export const postLogin = async (req: Request, res: Response) => {
       req.session.save(err => {
         if (err) {
           console.error('[Admin Login] Session save error:', err);
-          return res.render('admin/login', { error: 'Login failed to save session, please try again.' });
+          return res.redirect('/admin/login?error=Login+failed+to+save+session,+please+try+again.');
         }
         console.log('[Admin Login] Session saved. Redirecting to /admin/dashboard. Session ID:', req.sessionID);
         console.log('[Admin Login] Session user data:', req.session.user);
@@ -72,11 +66,11 @@ export const postLogin = async (req: Request, res: Response) => {
     } else {
       // This case should ideally be caught by signInError, but as a fallback:
       console.log('[Admin Login] Supabase signInWithPassword returned no user and no error.');
-      res.render('admin/login', { error: 'Login failed. Please try again.' });
+      res.redirect('/admin/login?error=Login+failed.+Please+try+again.');
     }
   } catch (e: any) {
     console.error('[Admin Login] Unexpected error during Supabase Auth signInWithPassword:', e.message);
-    res.render('admin/login', { error: 'An unexpected error occurred. Please try again.' });
+    res.redirect('/admin/login?error=An+unexpected+error+occurred.+Please+try+again.');
   }
 };
 

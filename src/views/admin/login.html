@@ -18,9 +18,7 @@
 <body>
     <div class="login-container">
         <h2>Admin Login</h2>
-        <% if (typeof error !== 'undefined' && error) { %>
-            <p class="error-message"><%= error %></p>
-        <% } %>
+        <p class="error-message" id="errorMessage"></p>
         <form action="/admin/login" method="POST">
             <div>
                 <label for="email">Email:</label>
@@ -33,5 +31,15 @@
             <button type="submit">Login</button>
         </form>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const errorMessageElement = document.getElementById('errorMessage');
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            if (error) {
+                errorMessageElement.textContent = decodeURIComponent(error.replace(/\+/g, ' '));
+            }
+        });
+    </script>
 </body>
 </html>

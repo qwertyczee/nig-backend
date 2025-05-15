@@ -43,11 +43,6 @@ app.use(session({
   }
 }));
 
-
-// View engine setup
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Create a 'views' directory in 'src'
-
 // Initialize DB connection
 initDb().then((connected) => {
   if (connected) {

@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
       price: number;
       category?: string;
       image_url?: string;
+      polar_price_id?: string; // Added based on DB migration
       in_stock?: boolean;
       created_at?: string;
       updated_at?: string;

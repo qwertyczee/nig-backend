@@ -1,4 +1,4 @@
-import { Product } from './productTypes'; // Assuming you have a Product type
+import { Product } from '../controllers/productController';
 
 export type OrderStatus =
   | 'awaiting_payment'
