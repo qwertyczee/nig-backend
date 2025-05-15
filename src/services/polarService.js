@@ -181,6 +181,7 @@ const verifyPolarWebhookSignature = (
 };
 
 module.exports = {
+    polar,
     createPolarCheckoutSession,
     verifyPolarWebhookSignature
 };
