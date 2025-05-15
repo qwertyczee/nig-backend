@@ -2,55 +2,138 @@ import express, { Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import session from 'express-session';
-import serverless from 'serverless-http';      // ← import serverless-http
+import serverless from 'serverless-http'; // ← import serverless-http
 
+// Import routes
 import productRoutes from './routes/productRoutes';
 import orderRoutes from './routes/orderRoutes';
 import webhookRoutes from './routes/webhookRoutes';
 import adminRoutes from './routes/adminRoutes';
 import { initDb } from './config/db';
 
+console.log('LOG: index.ts: Top-level script execution start. NODE_ENV:', process.env.NODE_ENV);
+
 // Load .env (only for local development—Vercel injects env vars in prod)
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
+console.log('LOG: index.ts: dotenv.config executed.');
+console.log('LOG: index.ts: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
+console.log('LOG: index.ts: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
+console.log('LOG: index.ts: VERCEL_URL (from Vercel):', process.env.VERCEL_URL);
+
 
 const app = express();
-const SESSION_SECRET = process.env.SESSION_SECRET || 'changeme-in-vercel-ui';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-if-not-set-in-env';
+console.log('LOG: index.ts: Express app initialized.');
+
+// Logging middleware - VERY FIRST middleware in the chain
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`LOG: index.ts: REQUEST RECEIVED: ${req.method} ${req.originalUrl} (req.path: ${req.path})`);
+  console.log('LOG: index.ts: Request Headers:', JSON.stringify(req.headers, null, 2));
+  // Log session details if available
+  if (req.session) {
+    console.log('LOG: index.ts: Request Session ID:', req.sessionID);
+    console.log('LOG: index.ts: Request Session Data:', JSON.stringify(req.session, null, 2));
+  } else {
+    console.log('LOG: index.ts: No session attached to request yet.');
+  }
+  next();
+});
 
 // Basic middleware
 app.use(express.urlencoded({ extended: true }));
+console.log('LOG: index.ts: express.urlencoded middleware added.');
+
+// Special raw body parser for specific webhook route
+// IMPORTANT: This must come BEFORE global express.json() if it's for a sub-path of /api
+// and other /api paths need express.json(). Order matters.
 app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
+console.log('LOG: index.ts: express.raw for /api/webhooks/polar added.');
+
 app.use(express.json());
+console.log('LOG: index.ts: express.json middleware added.');
+
 app.use(session({
   secret: SESSION_SECRET,
   resave: false,
-  saveUninitialized: true,
-  cookie: { secure: process.env.NODE_ENV === 'production', httpOnly: true, maxAge: 86400000 }
+  saveUninitialized: true, // Set to false if you don't want sessions for unauthenticated users
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // Should be true in production (Vercel)
+    httpOnly: true, 
+    maxAge: 86400000, // 1 day
+    sameSite: 'lax' // Recommended for CSRF protection
+  }
 }));
+console.log('LOG: index.ts: express-session middleware added. Secure cookie:', process.env.NODE_ENV === 'production');
 
 // Initialize DB
 initDb()
-  .then(ok => console.log(ok ? '✔️ DB connected' : '❌ DB failed'))
-  .catch(err => console.error('DB init error:', err));
+  .then(ok => console.log(ok ? '✔️ LOG: index.ts: DB connection attempt completed.' : '❌ LOG: index.ts: DB connection attempt failed.'))
+  .catch(err => console.error('LOG: index.ts: DB init CRITICAL error:', err));
 
 // Health check
 app.get('/api', (req: Request, res: Response) => {
-  res.send('E-shop API is running!');
+  console.log('LOG: index.ts: /api health check route hit.');
+  res.status(200).send('E-shop API is running! Health check successful. Timestamp: ' + new Date().toISOString());
 });
+console.log('LOG: index.ts: /api health check route defined.');
 
 // Mount routes
 app.use('/api/products', productRoutes);
+console.log('LOG: index.ts: /api/products routes mounted.');
 app.use('/api/orders', orderRoutes);
+console.log('LOG: index.ts: /api/orders routes mounted.');
 app.use('/api/webhooks', webhookRoutes);
-app.use('/admin', adminRoutes);
+console.log('LOG: index.ts: /api/webhooks routes mounted.');
+app.use('/admin', adminRoutes); // Note: This is not under /api
+console.log('LOG: index.ts: /admin routes mounted.');
 
-// Error handler
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+// Catch-all for 404s originating from Express (if no routes matched)
+// This should be placed AFTER all your route definitions
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`LOG: index.ts: EXPRESS 404: No route matched for ${req.method} ${req.originalUrl}`);
+  res.status(404).send(`Express server couldn't find the route: ${req.method} ${req.originalUrl}`);
 });
 
-/* app.listen(port, () => {
-  console.log(`Backend server is running on http://localhost:${port}`);
-}); */
+// Global Error handler - This should be the LAST middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('LOG: index.ts: GLOBAL ERROR HANDLER CAUGHT ERROR:');
+  console.error('LOG: index.ts: Error Message:', err.message);
+  console.error('LOG: index.ts: Error Stack:', err.stack);
+  // Avoid sending stack trace in production for security reasons
+  if (process.env.NODE_ENV === 'production') {
+    res.status(500).send('Internal Server Error');
+  } else {
+    res.status(500).send(`Something broke! ${err.message}`);
+  }
+});
+console.log('LOG: index.ts: Global error handler added.');
 
-export const handler = serverless(app);
+console.log('LOG: index.ts: Preparing to export handler with serverless(app).');
+
+// Extend the Request interface for serverless-http context if you need it
+declare module 'express-serve-static-core' {
+  interface Request {
+    event?: any;
+    context?: any;
+  }
+}
+
+export const handler = serverless(app, {
+    binary: ['image/*'], // Example if you need to handle binary responses, adjust as needed
+    request: (req: Request, event: any, context: any) => {
+        // These logs will show what serverless-http receives from Vercel
+        console.log('LOG: serverless-http request hook: Original event.path:', event.path);
+        console.log('LOG: serverless-http request hook: Original event.httpMethod:', event.httpMethod);
+        // console.log('LOG: serverless-http request hook: Full event received:', JSON.stringify(event, null, 2)); // Can be very verbose
+        // console.log('LOG: serverless-http request hook: Full context received:', JSON.stringify(context, null, 2)); // Can be very verbose
+        
+        // You can modify req here before it hits Express, or just use for logging
+        req.event = event; // Make event available on req object
+        req.context = context; // Make context available on req object
+    },
+    response: (res: any, event: any, context: any) => {
+        console.log('LOG: serverless-http response hook: Status code being sent:', res.statusCode);
+        // console.log('LOG: serverless-http response hook: Headers being sent:', JSON.stringify(res.headers, null, 2));
+    }
+});
+console.log('LOG: index.ts: Handler exported successfully.');

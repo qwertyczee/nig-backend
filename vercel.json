@@ -2,12 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "dist/index.js",
+      "src": "src/index.ts",
       "use": "@vercel/node",
       "config": { "includeFiles": ["dist/**"] }
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/dist/index.js" }
+    { "source": "/api/(.*)", "destination": "/src/index.ts" },
+    { "source": "/admin/(.*)", "destination": "/src/index.ts" },
+    { "source": "/admin", "destination": "/src/index.ts" }
   ]
 }
