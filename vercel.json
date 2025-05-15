@@ -4,12 +4,12 @@
     {
       "src": "dist/index.js",
       "use": "@vercel/node",
-      "config": { "includeFiles": ["dist/**"] }
+      "config": { 
+        "includeFiles": ["dist/**", "dist/views/**"] 
+      }
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/dist/index.js" },
-    { "source": "/admin/(.*)", "destination": "/dist/index.js" },
-    { "source": "/admin", "destination": "/dist/index.js" }
+    { "source": "/(.*)", "destination": "/dist/index.js" }
   ]
 }
