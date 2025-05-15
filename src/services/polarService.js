@@ -1,6 +1,6 @@
-import { Polar } from '@polar-sh/sdk';
-import dotenv from 'dotenv';
-import path from 'path';
+const { Polar } = require('@polar-sh/sdk');
+const dotenv = require('dotenv');
+const path = require('path');
 
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
@@ -24,7 +24,7 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'https://nig-frontend.vercel.ap
 /**
  * Creates a checkout session with Polar.sh using the SDK.
  */
-export const createPolarCheckoutSession = async (
+const createPolarCheckoutSession = async (
   orderId, // Your internal order ID
   items,
   customerEmail,
@@ -114,7 +114,7 @@ export const createPolarCheckoutSession = async (
   }
 };
 
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 /**
  * Verifies a webhook signature from Polar.sh.
@@ -124,7 +124,7 @@ import crypto from 'crypto';
  * - How the signature is constructed (e.g., if it includes timestamps or other elements).
  * - The encoding of the signature (e.g., hex, base64).
  */
-export const verifyPolarWebhookSignature = (
+const verifyPolarWebhookSignature = (
   rawBody, // IMPORTANT: This MUST be the raw, unparsed request body.
   signatureHeader, // The signature string from the request header.
   webhookSecret // Your POLAR_WEBHOOK_SECRET from environment variables.
@@ -178,4 +178,9 @@ export const verifyPolarWebhookSignature = (
     console.error('PolarService: Error during webhook signature verification:', error.message);
     return false;
   }
+};
+
+module.exports = {
+    createPolarCheckoutSession,
+    verifyPolarWebhookSignature
 };

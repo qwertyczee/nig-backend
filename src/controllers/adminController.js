@@ -1,10 +1,10 @@
-import { Request, Response } from 'express';
-import path from 'path'; // Added for sendFile
+const { Request, Response } = require('express');
+const path = require('path'); // Added for sendFile
 // For a real app, you'd fetch admin users from a database and use bcrypt for passwords
-import bcrypt from 'bcryptjs';
-import { supabase } from '../config/db'; // Ensure supabase is imported
+const bcrypt = require('bcryptjs');
+const { supabase } = require('../config/db'); // Ensure supabase is imported
 
-export const getLoginPage = (req, res) => {
+const getLoginPage = (req, res) => {
   // If already logged in, redirect to dashboard
   if (req.session.user?.isAdmin) {
     return res.redirect('/admin/dashboard');
@@ -12,7 +12,7 @@ export const getLoginPage = (req, res) => {
   res.sendFile(path.join(__dirname, '../views/admin/login.html'));
 };
 
-export const postLogin = async (req, res) => {
+const postLogin = async (req, res) => {
   const { email, password } = req.body;
   console.log(`[Admin Login] Attempting Supabase Auth signInWithPassword for email: ${email}`);
 
@@ -67,7 +67,7 @@ export const postLogin = async (req, res) => {
   }
 };
 
-export const getDashboardPage = (req, res) => {
+const getDashboardPage = (req, res) => {
   // This page should be protected by middleware (see adminRoutes.ts)
   res.send(`
     <h1>Admin Dashboard</h1>
@@ -80,7 +80,7 @@ export const getDashboardPage = (req, res) => {
     // res.render('admin/dashboard', { user: req.session.user });
 };
 
-export const logoutAdmin = (req, res) => {
+const logoutAdmin = (req, res) => {
   req.session.destroy(err => {
     if (err) {
       console.error('Session destruction error:', err);
@@ -93,14 +93,14 @@ export const logoutAdmin = (req, res) => {
 };
 
 // Placeholder for product management - will be expanded
-export const getAdminProductsPage = (req, res) => {
+const getAdminProductsPage = (req, res) => {
     res.send('<h1>Manage Products (Admin)</h1><p><a href="/admin/dashboard">Back to Dashboard</a></p>');
     // Later, fetch products and render a view:
     // const products = await fetchProductsFromDb();
     // res.render('admin/products', { products });
 };
 
-export const getNewProductForm = (req, res) => {
+const getNewProductForm = (req, res) => {
     res.send(`
         <h1>Add New Product (Admin)</h1>
         <form action="/admin/products" method="POST">
@@ -118,7 +118,7 @@ export const getNewProductForm = (req, res) => {
     // res.render('admin/new-product-form', { error: null, productData: {} });
 };
 
-export const postAdminCreateProduct = async (req, res) => {
+const postAdminCreateProduct = async (req, res) => {
     try {
         const { name, description, price, category, image_url, in_stock } = req.body;
 
@@ -157,4 +157,14 @@ export const postAdminCreateProduct = async (req, res) => {
         console.error('Admin: Unexpected error creating product:', error.message);
         res.redirect(`/admin/products/new?error=Unexpected+error`);
     }
+};
+
+module.exports = {
+    getLoginPage,
+    postLogin,
+    getDashboardPage,
+    logoutAdmin,
+    getAdminProductsPage,
+    getNewProductForm,
+    postAdminCreateProduct
 };

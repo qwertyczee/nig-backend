@@ -1,8 +1,8 @@
-import { Request, Response } from 'express';
-import { supabase } from '../config/db';
-import { createPolarCheckoutSession } from '../services/polarService';
+const { Request, Response } = require('express');
+const { supabase } = require('../config/db');
+const { createPolarCheckoutSession } = require('../services/polarService');
 
-export const createOrder = async (req, res) => {
+const createOrder = async (req, res) => {
   // user_id will come from req.user populated by authMiddleware
   // Explicitly type req.body to include customer_email, as it's used for Polar
   const body = req.body;
@@ -129,7 +129,6 @@ export const createOrder = async (req, res) => {
     const { error: itemsError } = await supabase
       .from('order_items')
       .insert(itemsToInsert);
-
     if (itemsError) {
       console.error('Error creating order items:', itemsError.message);
       // Attempt to "rollback" by deleting the order. This is not a true transaction.
@@ -179,7 +178,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
-export const getMyOrders = async (req, res) => {
+const getMyOrders = async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ message: 'User not authenticated.' });
@@ -216,7 +215,7 @@ export const getMyOrders = async (req, res) => {
   }
 };
 
-export const getOrderById = async (req, res) => {
+const getOrderById = async (req, res) => {
   const { id } = req.params;
   const userId = req.user?.id; 
 
@@ -254,7 +253,7 @@ export const getOrderById = async (req, res) => {
   }
 };
 
-export const cancelMyOrder = async (req, res) => {
+const cancelMyOrder = async (req, res) => {
     const { id: orderId } = req.params;
     const userId = req.user?.id;
 
@@ -325,4 +324,11 @@ export const cancelMyOrder = async (req, res) => {
         console.error('Error cancelling order:', error.message);
         res.status(500).json({ message: 'Error cancelling order', error: error.message });
     }
+};
+
+module.exports = {
+    createOrder,
+    getMyOrders,
+    getOrderById,
+    cancelMyOrder
 };

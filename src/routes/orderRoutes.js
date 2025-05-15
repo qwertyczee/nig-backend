@@ -1,11 +1,11 @@
-import { Router } from 'express';
-import {
+const { Router } = require('express');
+const {
 	createOrder,
 	getMyOrders,
 	getOrderById,
 	cancelMyOrder
-} from '../controllers/orderController';
-import { protect, admin } from '../middleware/authMiddleware'; // Example of how you might import
+} = require('../controllers/orderController');
+const { protect, admin } = require('../middleware/authMiddleware'); // Example of how you might import
 
 const router = Router();
 
@@ -22,4 +22,4 @@ router.patch('/:id/cancel', protect, cancelMyOrder); // Keep protect for cancell
 // router.get('/admin/all', protect, admin, getAllOrdersForAdmin);
 // router.put('/:id/admin/status', protect, admin, updateOrderStatusByAdmin);
 
-export default router;
+module.exports = router;

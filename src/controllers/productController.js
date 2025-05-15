@@ -1,9 +1,9 @@
-import { Request, Response } from 'express';
-import { supabase } from '../config/db'; // Import Supabase client
+const { Request, Response } = require('express');
+const { supabase } = require('../config/db'); // Import Supabase client
 
 console.log('LOG: productController.ts: Controller file loaded.');
 
-export const getAllProducts = async (req, res) => {
+const getAllProducts = async (req, res) => {
   console.log('LOG: productController.ts: getAllProducts controller function CALLED.');
   try {
     const { data, error } = await supabase
@@ -23,7 +23,7 @@ export const getAllProducts = async (req, res) => {
   }
 };
 
-export const getProductById = async (req, res) => {
+const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
     const { data, error } = await supabase
@@ -49,7 +49,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
-export const createProduct = async (req, res) => {
+const createProduct = async (req, res) => {
   try {
     const { name, description, price, category, image_url, in_stock } = req.body;
 
@@ -81,7 +81,7 @@ export const createProduct = async (req, res) => {
   }
 };
 
-export const updateProduct = async (req, res) => {
+const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body; // Use Partial as not all fields might be updated
@@ -122,7 +122,7 @@ export const updateProduct = async (req, res) => {
   }
 };
 
-export const deleteProduct = async (req, res) => {
+const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const { error, count } = await supabase
@@ -141,4 +141,12 @@ export const deleteProduct = async (req, res) => {
     console.error('Error deleting product:', error.message);
     res.status(500).json({ message: 'Error deleting product', error: error.message });
   }
+};
+
+module.exports = {
+    getAllProducts,
+    getProductById,
+    createProduct,
+    updateProduct,
+    deleteProduct
 };

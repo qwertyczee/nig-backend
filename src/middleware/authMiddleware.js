@@ -1,7 +1,7 @@
-import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken'; // Using jsonwebtoken for standard JWT operations
-import dotenv from 'dotenv';
-import path from 'path';
+const { Request, Response, NextFunction } = require('express');
+const jwt = require('jsonwebtoken'); // Using jsonwebtoken for standard JWT operations
+const dotenv = require('dotenv');
+const path = require('path');
 
 // Load .env from backend directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -16,7 +16,7 @@ if (!SUPABASE_JWT_SECRET) {
   // For this placeholder, we'll allow it to proceed but log a warning.
 }
 
-export const protect = (req, res, next) => {
+const protect = (req, res, next) => {
   let token;
   if (
     req.headers.authorization &&
@@ -59,10 +59,15 @@ export const protect = (req, res, next) => {
   }
 };
 
-export const admin = (req, res, next) => {
+const admin = (req, res, next) => {
   if (req.user && (req.user.role === 'admin' || req.user.role === 'service_role')) { // service_role is Supabase's super admin
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as an admin' });
   }
+};
+
+module.exports = {
+    protect,
+    admin
 };

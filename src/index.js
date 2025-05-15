@@ -1,15 +1,15 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import path from 'path';
-import session from 'express-session';
-import serverless from 'serverless-http'; // ← import serverless-http
+const express = require('express');
+const dotenv = require('dotenv');
+const path = require('path');
+const session = require('express-session');
+const serverless = require('serverless-http'); // ← import serverless-http
 
 // Import routes
-import productRoutes from './routes/productRoutes.js';
-import orderRoutes from './routes/orderRoutes.js';
-import webhookRoutes from './routes/webhookRoutes.js';
-import adminRoutes from './routes/adminRoutes.js';
-import { initDb } from './config/db.js';
+const productRoutes = require('./routes/productRoutes.js');
+const orderRoutes = require('./routes/orderRoutes.js');
+const webhookRoutes = require('./routes/webhookRoutes.js');
+const adminRoutes = require('./routes/adminRoutes.js');
+const { initDb } = require('./config/db.js');
 
 console.log('LOG: index.ts: Top-level script execution start. NODE_ENV:', process.env.NODE_ENV);
 
@@ -112,6 +112,6 @@ console.log('LOG: index.ts: Preparing to export handler with serverless(app).');
 
 
 const vercelHandler = serverless(app);
-export default vercelHandler;
+module.exports = vercelHandler;
 
 console.log('LOG: index.ts: Handler (default export) prepared successfully.');

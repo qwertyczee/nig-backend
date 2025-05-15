@@ -1,5 +1,5 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import { 
+const { Router, Request, Response, NextFunction } = require('express');
+const { 
     getLoginPage, 
     postLogin, 
     getDashboardPage, 
@@ -7,8 +7,8 @@ import {
     getAdminProductsPage,
     getNewProductForm,
     postAdminCreateProduct // This will use the productController.createProduct
-} from '../controllers/adminController';
-import { createProduct } from '../controllers/productController'; // Import the actual createProduct
+} = require('../controllers/adminController');
+const { createProduct } = require('../controllers/productController'); // Import the actual createProduct
 
 const router = Router();
 
@@ -66,4 +66,4 @@ router.post('/products', isAdminAuthenticated, postAdminCreateProduct);
 // call a service function that `productController.createProduct` also uses,
 // so the core logic is shared and response type (JSON vs HTML redirect) is handled by the controller.
 
-export default router;
+module.exports = router;

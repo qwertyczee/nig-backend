@@ -1,12 +1,12 @@
-import { Request, Response } from 'express';
-import { supabase } from '../config/db';
-import { verifyPolarWebhookSignature } from '../services/polarService'; // Import the verification function
+const { Request, Response } = require('express');
+const { supabase } = require('../config/db');
+const { verifyPolarWebhookSignature } = require('../services/polarService'); // Import the verification function
 
 // Note: The Polar SDK instance might not be needed here if webhooks are just events
 // and don't require further SDK calls for verification (depends on Polar's design).
 // const polar = new Polar(); // Removed as verifyPolarWebhookSignature is standalone
 
-export const handlePolarWebhook = async (req, res) => {
+const handlePolarWebhook = async (req, res) => {
   const signatureHeader = req.headers['polar-signature']; // Adjust if Polar uses a different header
   const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 
@@ -105,4 +105,8 @@ export const handlePolarWebhook = async (req, res) => {
     console.error('Error processing Polar webhook event:', error.message, error.stack);
     res.status(500).send('Internal server error while processing webhook.');
   }
+};
+
+module.exports = {
+    handlePolarWebhook
 };

@@ -1,6 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import dotenv from 'dotenv';
-import path from 'path';
+const { createClient } = require('@supabase/supabase-js');
+const dotenv = require('dotenv');
+const path = require('path');
 
 // Load .env from backend directory, relative to this file (backend/src/config -> backend/.env)
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
@@ -16,10 +16,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Supabase URL or Anon Key is not defined. Check your .env file in the backend directory and its loading path.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Renamed testSupabaseConnection to initDb for consistency with index.ts
-export async function initDb() {
+async function initDb() {
   try {
     const { data, error } = await supabase.from('products').select('id').limit(1);
     if (error) {
@@ -47,3 +47,8 @@ export async function initDb() {
     return false;
   }
 }
+
+module.exports = {
+    supabase,
+    initDb
+};

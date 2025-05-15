@@ -1,12 +1,12 @@
-import { Router, Request, Response, NextFunction } from 'express';
-import {
+const { Router, Request, Response, NextFunction } = require('express');
+const {
 	getAllProducts,
 	getProductById,
 	createProduct,
 	updateProduct,
 	deleteProduct
-} from '../controllers/productController';
-import { protect, admin } from '../middleware/authMiddleware';
+} = require('../controllers/productController');
+const { protect, admin } = require('../middleware/authMiddleware');
 
 const router = Router();
 console.log('LOG: productRoutes.ts: Router file loaded and initialized.');
@@ -47,4 +47,4 @@ router.delete('/:id', protect, (req, res, next) => {
 }, deleteProduct);
 console.log('LOG: productRoutes.ts: DELETE /:id route defined.');
 
-export default router;
+module.exports = router;
