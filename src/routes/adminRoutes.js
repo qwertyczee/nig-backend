@@ -13,7 +13,7 @@ import { createProduct } from '../controllers/productController'; // Import the 
 const router = Router();
 
 // Middleware to check if user is admin and logged in
-const isAdminAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+const isAdminAuthenticated = (req, res, next) => {
   console.log(`[Auth Middleware] Checking auth for path: ${req.path}`);
   console.log('[Auth Middleware] Session ID:', req.sessionID);
   console.log('[Auth Middleware] Session user data:', req.session.user);

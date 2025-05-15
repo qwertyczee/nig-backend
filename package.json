@@ -2,11 +2,11 @@
       "name": "eshop-backend",
       "version": "1.0.0",
       "description": "Backend for the e-shop application",
-      "main": "dist/index.js",
+      "main": "src/index.js",
       "scripts": {
-            "build": "tsc && cp -R src/views dist/views",
-            "dev": "nodemon src/index.ts",
-            "start": "node dist/index.js"
+            "dev": "nodemon src/index.js",
+            "start": "node src/index.js",
+            "build": "npm install"
       },
       "engines": {
             "node": "20.x"
@@ -27,13 +27,6 @@
             "serverless-http": "^3.2.0"
       },
       "devDependencies": {
-            "@types/express": "^4.17.17",
-            "@types/express-session": "^1.18.1",
-            "@types/jsonwebtoken": "^9.0.5",
-            "@types/node": "^20.8.9",
-            "@types/pg": "^8.10.9",
-            "nodemon": "^3.0.1",
-            "ts-node": "^10.9.1",
-            "typescript": "^5.2.2"
+            "nodemon": "^3.0.1"
       }
 }

@@ -1,14 +1,13 @@
 import { Request, Response } from 'express';
 import { supabase } from '../config/db';
 import { verifyPolarWebhookSignature } from '../services/polarService'; // Import the verification function
-import { OrderStatus } from '../types/orderTypes';
 
 // Note: The Polar SDK instance might not be needed here if webhooks are just events
 // and don't require further SDK calls for verification (depends on Polar's design).
 // const polar = new Polar(); // Removed as verifyPolarWebhookSignature is standalone
 
-export const handlePolarWebhook = async (req: Request, res: Response) => {
-  const signatureHeader = req.headers['polar-signature'] as string; // Adjust if Polar uses a different header
+export const handlePolarWebhook = async (req, res) => {
+  const signatureHeader = req.headers['polar-signature']; // Adjust if Polar uses a different header
   const webhookSecret = process.env.POLAR_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
@@ -32,7 +31,7 @@ export const handlePolarWebhook = async (req: Request, res: Response) => {
   let event;
   try {
     event = JSON.parse(rawBody.toString('utf8'));
-  } catch (e: any) {
+  } catch (e) {
     console.error('Error parsing webhook JSON payload:', e.message);
     return res.status(400).send('Webhook error: Invalid JSON payload.');
   }
@@ -52,7 +51,7 @@ export const handlePolarWebhook = async (req: Request, res: Response) => {
         const { error } = await supabase
           .from('orders')
           .update({
-            status: 'processing' as OrderStatus, // Or 'completed', 'paid', etc.
+            status: 'processing', // Or 'completed', 'paid', etc.
             payment_intent_id: polarChargeId, // Update with actual charge/payment ID from Polar
             // You might add a specific 'polar_charge_id' column if 'payment_intent_id' is used for session ID before payment.
           })
@@ -70,7 +69,7 @@ export const handlePolarWebhook = async (req: Request, res: Response) => {
          console.log(`Processing failed payment for order: ${orderId}`);
          const { error } = await supabase
           .from('orders')
-          .update({ status: 'payment_failed' as OrderStatus })
+          .update({ status: 'payment_failed' })
           .eq('id', orderId)
           .eq('status', 'awaiting_payment');
         if (error) {
@@ -89,7 +88,7 @@ export const handlePolarWebhook = async (req: Request, res: Response) => {
             // Optionally update order status to 'cancelled' or 'payment_failed'
             const { error } = await supabase
                 .from('orders')
-                .update({ status: 'cancelled' as OrderStatus }) // Or 'payment_failed'
+                .update({ status: 'cancelled' }) // Or 'payment_failed'
                 .eq('id', orderId)
                 .eq('status', 'awaiting_payment');
             if (error) {
@@ -102,7 +101,7 @@ export const handlePolarWebhook = async (req: Request, res: Response) => {
     // Add more event types as needed (e.g., 'charge.refunded')
 
     res.status(200).send('Webhook processed.');
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error processing Polar webhook event:', error.message, error.stack);
     res.status(500).send('Internal server error while processing webhook.');
   }

@@ -4,14 +4,7 @@ import path from 'path'; // Added for sendFile
 import bcrypt from 'bcryptjs';
 import { supabase } from '../config/db'; // Ensure supabase is imported
 
-// Extend Express session to include user info
-declare module 'express-session' {
-  interface SessionData {
-    user?: { id: string; email: string; isAdmin: boolean };
-  }
-}
-
-export const getLoginPage = (req: Request, res: Response) => {
+export const getLoginPage = (req, res) => {
   // If already logged in, redirect to dashboard
   if (req.session.user?.isAdmin) {
     return res.redirect('/admin/dashboard');
@@ -19,7 +12,7 @@ export const getLoginPage = (req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '../views/admin/login.html'));
 };
 
-export const postLogin = async (req: Request, res: Response) => {
+export const postLogin = async (req, res) => {
   const { email, password } = req.body;
   console.log(`[Admin Login] Attempting Supabase Auth signInWithPassword for email: ${email}`);
 
@@ -68,13 +61,13 @@ export const postLogin = async (req: Request, res: Response) => {
       console.log('[Admin Login] Supabase signInWithPassword returned no user and no error.');
       res.redirect('/admin/login?error=Login+failed.+Please+try+again.');
     }
-  } catch (e: any) {
+  } catch (e) {
     console.error('[Admin Login] Unexpected error during Supabase Auth signInWithPassword:', e.message);
     res.redirect('/admin/login?error=An+unexpected+error+occurred.+Please+try+again.');
   }
 };
 
-export const getDashboardPage = (req: Request, res: Response) => {
+export const getDashboardPage = (req, res) => {
   // This page should be protected by middleware (see adminRoutes.ts)
   res.send(`
     <h1>Admin Dashboard</h1>
@@ -87,7 +80,7 @@ export const getDashboardPage = (req: Request, res: Response) => {
     // res.render('admin/dashboard', { user: req.session.user });
 };
 
-export const logoutAdmin = (req: Request, res: Response) => {
+export const logoutAdmin = (req, res) => {
   req.session.destroy(err => {
     if (err) {
       console.error('Session destruction error:', err);
@@ -100,14 +93,14 @@ export const logoutAdmin = (req: Request, res: Response) => {
 };
 
 // Placeholder for product management - will be expanded
-export const getAdminProductsPage = (req: Request, res: Response) => {
+export const getAdminProductsPage = (req, res) => {
     res.send('<h1>Manage Products (Admin)</h1><p><a href="/admin/dashboard">Back to Dashboard</a></p>');
     // Later, fetch products and render a view:
     // const products = await fetchProductsFromDb();
     // res.render('admin/products', { products });
 };
 
-export const getNewProductForm = (req: Request, res: Response) => {
+export const getNewProductForm = (req, res) => {
     res.send(`
         <h1>Add New Product (Admin)</h1>
         <form action="/admin/products" method="POST">
@@ -125,9 +118,7 @@ export const getNewProductForm = (req: Request, res: Response) => {
     // res.render('admin/new-product-form', { error: null, productData: {} });
 };
 
-import { Product as ProductType } from '../controllers/productController'; // Assuming Product type is exported or defined there
-
-export const postAdminCreateProduct = async (req: Request, res: Response) => {
+export const postAdminCreateProduct = async (req, res) => {
     try {
         const { name, description, price, category, image_url, in_stock } = req.body;
 
@@ -138,7 +129,7 @@ export const postAdminCreateProduct = async (req: Request, res: Response) => {
             return res.redirect('/admin/products/new?error=Name+and+valid+price+are+required');
         }
         
-        const newProductData: Omit<ProductType, 'id' | 'created_at' | 'updated_at'> = {
+        const newProductData = {
             name,
             description: description || null, // Handle optional fields
             price: parseFloat(price),
@@ -162,7 +153,7 @@ export const postAdminCreateProduct = async (req: Request, res: Response) => {
         // Redirect to admin products list (which we haven't fully built yet) or dashboard
         res.redirect('/admin/dashboard?message=Product+created+successfully');
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('Admin: Unexpected error creating product:', error.message);
         res.redirect(`/admin/products/new?error=Unexpected+error`);
     }
