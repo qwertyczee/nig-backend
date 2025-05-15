@@ -43,7 +43,7 @@ app.use(cookieParser());
 // Using a simpler CORS setup for now, can be expanded like the example if needed.
 // The example's whitelist approach is good for production.
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000'; // Default for local dev
-const whitelist = [FRONTEND_URL, 'http://localhost:5173']; // Added common Vite dev port
+const whitelist = [FRONTEND_URL, 'http://localhost:5173', 'https://www.slavesonline.store', 'http://www.slavesonline.store', 'https://slavesonline.store', 'http://slavesonline.store']; // Added common Vite dev port
 if (process.env.VERCEL_URL) { // Automatically add Vercel preview URLs
     whitelist.push(`https://${process.env.VERCEL_URL}`);
 }
