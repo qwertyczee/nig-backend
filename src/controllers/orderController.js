@@ -37,8 +37,28 @@ const createOrder = async (req, res) => {
 
     const billingAddress = body.billing_address;
 
+    // 1. Nejprve vytvoř objednávku v DB (status awaiting_payment)
+    const { data: newOrder, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id: userId,
+        total_amount: totalPrice,
+        shipping_address: body.shipping_address,
+        billing_address: body.billing_address || body.shipping_address,
+        status: 'awaiting_payment',
+        payment_provider: 'lemonsqueezy',
+        payment_intent_id: null,
+      })
+      .select()
+      .single();
+
+    if (orderError || !newOrder) {
+      return res.status(500).json({ message: 'Failed to create order.', error: orderError?.message });
+    }
+
+    // 2. Použij order_id jako identifikátor pro LemonSqueezy
     const user = {
-      id: userId || 'guest',
+      id: newOrder.id,
       email: customerEmail,
       phone: billingAddress?.phone || '',
       name: billingAddress?.full_name || '',
@@ -59,25 +79,6 @@ const createOrder = async (req, res) => {
       discountCode: user.discountCode,
       totalPriceInCents 
     });
-
-    // Create order in DB
-    const { data: newOrder, error: orderError } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId,
-        total_amount: totalPrice,
-        shipping_address: body.shipping_address,
-        billing_address: body.billing_address || body.shipping_address,
-        status: 'awaiting_payment',
-        payment_provider: 'lemonsqueezy',
-        payment_intent_id: null,
-      })
-      .select()
-      .single();
-
-    if (orderError || !newOrder) {
-      return res.status(500).json({ message: 'Failed to create order.', error: orderError?.message });
-    }
 
     res.status(201).json({ ...newOrder, checkoutUrl });
   } catch (error) {

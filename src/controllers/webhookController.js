@@ -22,26 +22,24 @@ const handleLemonSqueezyWebhook = async (req, res) => {
     // Only process successful payment (order_created)
     if (event.meta && event.meta.event_name === 'order_created') {
       const orderData = event.data;
-      const internalUserId = event.meta.custom_data?.user_id;
+      const orderId = event.meta.custom_data?.user_id;
       const customerEmail = orderData?.attributes?.user_email;
       // Update order status in DB
-      if (internalUserId) {
+      if (orderId) {
         await supabase
           .from('orders')
           .update({ status: 'processing', payment_intent_id: orderData.id })
-          .eq('user_id', internalUserId)
+          .eq('id', orderId)
           .eq('status', 'awaiting_payment');
       }
       // Send email with product images
       if (customerEmail) {
-        // Find the order by user_id and status=processing, get its items and product images
+        // Najdi objednávku podle order_id
         const { data: order, error: orderError } = await supabase
           .from('orders')
           .select(`id, order_items (quantity, products (name, image_url))`)
-          .eq('user_id', internalUserId)
+          .eq('id', orderId)
           .eq('status', 'processing')
-          .order('created_at', { ascending: false })
-          .limit(1)
           .single();
         if (orderError || !order) {
           console.error('Could not fetch order for email:', orderError?.message);
@@ -68,7 +66,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
           }
         }
       } else {
-        console.log(`[EMAIL] Payment successful for user: ${internalUserId}, but email not found in webhook payload`);
+        console.log(`[EMAIL] Payment successful for order: ${orderId}, but email not found in webhook payload`);
       }
     }
     res.status(200).send('Webhook processed.');
