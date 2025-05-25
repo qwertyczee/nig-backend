@@ -18,7 +18,11 @@
 <body>
     <div class="login-container">
         <h2>Admin Login</h2>
-        <p class="error-message" id="errorMessage"></p>
+        <p class="error-message" id="errorMessage">
+            <% if (error) { %>
+                <%= error %>
+            <% } %>
+        </p>
         <form action="/admin/login" method="POST">
             <div>
                 <label for="email">Email:</label>
@@ -31,15 +35,5 @@
             <button type="submit">Login</button>
         </form>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const errorMessageElement = document.getElementById('errorMessage');
-            const urlParams = new URLSearchParams(window.location.search);
-            const error = urlParams.get('error');
-            if (error) {
-                errorMessageElement.textContent = decodeURIComponent(error.replace(/\+/g, ' '));
-            }
-        });
-    </script>
 </body>
 </html>

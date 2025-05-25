@@ -61,6 +61,12 @@ const handleLemonSqueezyWebhook = async (req, res) => {
               html
             });
             console.log(`[EMAIL] Sent to ${customerEmail}`);
+
+            await supabase
+              .from('orders')
+              .update({ status: 'shipped' })
+              .eq('id', orderId)
+              .eq('status', 'awaiting_payment');
           } catch (mailErr) {
             console.error('Error sending email via Resend:', mailErr);
           }

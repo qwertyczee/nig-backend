@@ -3,8 +3,8 @@ const { supabase } = require('../config/db');
 const polarApiKey = process.env.POLAR_SECRET_KEY;
 
 if (!polarApiKey) {
-    console.error('[Admin Controller] postAdminCreateProduct: POLAR_SECRET_KEY není nastaveno.');
-    throw new Error('POLAR_SECRET_KEY is not set.');
+    console.warn('[Admin Controller] POLAR_SECRET_KEY is not set. Some functionalities might be limited.');
+    // It's a warning, not a hard error, as product creation might still work without Polar integration for now.
 }
 
 const getLoginPage = (req, res) => {
@@ -12,7 +12,8 @@ const getLoginPage = (req, res) => {
   if (req.session.user?.isAdmin) {
     return res.redirect('/admin/dashboard');
   }
-  res.sendFile(path.join(__dirname, '../views/admin/login.html'));
+  const error = req.query.error ? decodeURIComponent(req.query.error.replace(/\+/g, ' ')) : null;
+  res.render('admin/login', { error });
 };
 
 const postLogin = async (req, res) => {
@@ -70,17 +71,46 @@ const postLogin = async (req, res) => {
   }
 };
 
-const getDashboardPage = (req, res) => {
-  // This page should be protected by middleware (see adminRoutes.ts)
-  res.send(`
-    <h1>Admin Dashboard</h1>
-    <p>Welcome, ${req.session.user?.email}!</p>
-    <p><a href="/admin/logout">Logout</a></p>
-    <p><a href="/admin/products/new">Add New Product</a></p>
-    <p><a href="/admin/products">Manage Products</a></p> 
-    `); 
-    // In a real app, render an EJS template: 
-    // res.render('admin/dashboard', { user: req.session.user });
+const getDashboardPage = async (req, res) => {
+  try {
+    // Fetch data for dashboard (replace with actual database queries)
+    const { count: totalProducts, error: productsError } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: totalOrders, error: ordersError } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
+
+    const { data: salesData, error: salesError } = await supabase
+      .from('orders')
+      .select('total_amount');
+
+    let totalSales = 0;
+    if (salesData) {
+        totalSales = salesData.reduce((sum, order) => sum + order.total_amount, 0);
+    }
+
+    const { count: totalCustomers, error: customersError } = await supabase
+      .from('users') // Assuming you have a 'users' table or similar for customers
+      .select('*', { count: 'exact', head: true });
+
+    if (productsError) console.error('Error fetching total products:', productsError.message);
+    if (ordersError) console.error('Error fetching total orders:', ordersError.message);
+    if (salesError) console.error('Error fetching total sales:', salesError.message);
+    if (customersError) console.error('Error fetching total customers:', customersError.message);
+
+    res.render('admin/dashboard', {
+      totalProducts: totalProducts || 0,
+      newOrders: totalOrders || 0, // For simplicity, using totalOrders as new orders for now
+      totalSales: totalSales || 0,
+      totalCustomers: totalCustomers || 0,
+      user: req.session.user // Pass user data to the template
+    });
+  } catch (error) {
+    console.error('Error rendering dashboard:', error);
+    res.status(500).send('Internal Server Error');
+  }
 };
 
 const logoutAdmin = (req, res) => {
@@ -96,11 +126,53 @@ const logoutAdmin = (req, res) => {
 };
 
 // Placeholder for product management - will be expanded
-const getAdminProductsPage = (req, res) => {
-    res.send('<h1>Manage Products (Admin)</h1><p><a href="/admin/dashboard">Back to Dashboard</a></p>');
-    // Later, fetch products and render a view:
-    // const products = await fetchProductsFromDb();
-    // res.render('admin/products', { products });
+const getAdminProductsPage = async (req, res) => {
+    try {
+        const { data: products, error } = await supabase
+            .from('products')
+            .select('*');
+
+        if (error) {
+            console.error('Error fetching products for admin:', error.message);
+            return res.status(500).send('Error fetching products.');
+        }
+
+        res.render('admin/products', { products });
+    } catch (error) {
+        console.error('Error in getAdminProductsPage:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+const getAdminOrdersPage = async (req, res) => {
+    try {
+        const { data: orders, error } = await supabase
+            .from('orders')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching orders for admin:', error.message);
+            return res.status(500).send('Error fetching orders.');
+        }
+
+        res.render('admin/orders', { orders });
+    } catch (error) {
+        console.error('Error in getAdminOrdersPage:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+const getAdminSettingsPage = (req, res) => {
+    // For now, provide static placeholder data for settings.
+    // In a real application, these would be fetched from a database or configuration.
+    const settings = {
+        siteName: 'My E-commerce Store',
+        adminEmail: req.session.user?.email || 'admin@example.com',
+        stripeApiKey: 'sk_test_********************', // Masked for security
+        lemonsqueezyApiKey: 'ls_test_********************' // Masked for security
+    };
+    res.render('admin/settings', { settings });
 };
 
 const getNewProductForm = (req, res) => {
@@ -168,6 +240,72 @@ const postAdminCreateProduct = async (req, res) => {
     }
 };
 
+const getEditProductForm = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: product, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) {
+            console.error('Error fetching product for edit:', error.message);
+            return res.status(404).send('Product not found.');
+        }
+
+        res.render('admin/edit_product', { product, error: null });
+    } catch (error) {
+        console.error('Error in getEditProductForm:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+const postAdminUpdateProduct = async (req, res) => {
+    console.log('[Admin Controller] postAdminUpdateProduct: FUNCTION CALLED.');
+    console.log('[Admin Controller] postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
+    const { id } = req.params;
+    const { name, description, price, category, image_url, in_stock } = req.body;
+
+    if (!name || price === undefined || parseFloat(price) < 0) {
+        console.error('[Admin Controller] postAdminUpdateProduct: Error: Name and non-negative price are required.');
+        // Redirect back to edit page with error and pre-filled data
+        return res.redirect(`/admin/products/edit/${id}?error=${encodeURIComponent('Name and a non-negative price are required')}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
+    }
+
+    const isInStock = in_stock === 'true' || in_stock === 'on' || false;
+
+    const productDataForUpdate = {
+        name,
+        description: description || null,
+        price: parseFloat(price),
+        category: category || null,
+        image_url: image_url || null,
+        in_stock: isInStock,
+    };
+
+    try {
+        const { data, error: supabaseError } = await supabase
+            .from('products')
+            .update(productDataForUpdate)
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (supabaseError) {
+            console.error('[Admin Controller] postAdminUpdateProduct: Error updating product in Supabase:', supabaseError.message);
+            return res.redirect(`/admin/products/edit/${id}?error=${encodeURIComponent('DB Error: ' + supabaseError.message)}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
+        }
+        console.log('[Admin Controller] postAdminUpdateProduct: Product updated in Supabase. ID:', data.id);
+        res.redirect('/admin/products?message=Product+updated+successfully');
+    } catch (error) {
+        console.error('[Admin Controller] postAdminUpdateProduct: === GENERAL ERROR IN postAdminUpdateProduct ===:', error.message, error.stack);
+        if (!res.headersSent) {
+            res.redirect(`/admin/products/edit/${id}?error=${encodeURIComponent('Unexpected error: ' + error.message)}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
+        }
+    }
+};
+
 module.exports = {
     getLoginPage,
     postLogin,
@@ -175,5 +313,9 @@ module.exports = {
     logoutAdmin,
     getAdminProductsPage,
     getNewProductForm,
-    postAdminCreateProduct
+    postAdminCreateProduct,
+    getAdminOrdersPage,
+    getAdminSettingsPage,
+    getEditProductForm,
+    postAdminUpdateProduct
 };

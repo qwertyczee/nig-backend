@@ -1,14 +1,17 @@
-const { Router, Request, Response, NextFunction } = require('express');
+const { Router } = require('express');
 const { 
-    getLoginPage, 
-    postLogin, 
-    getDashboardPage, 
+    getLoginPage,
+    postLogin,
+    getDashboardPage,
     logoutAdmin,
     getAdminProductsPage,
     getNewProductForm,
-    postAdminCreateProduct // This will use the productController.createProduct
+    postAdminCreateProduct,
+    getAdminOrdersPage,
+    getAdminSettingsPage,
+    getEditProductForm,
+    postAdminUpdateProduct
 } = require('../controllers/adminController');
-const { createProduct } = require('../controllers/productController'); // Import the actual createProduct
 
 const router = Router();
 
@@ -38,6 +41,14 @@ router.get('/dashboard', isAdminAuthenticated, getDashboardPage);
 // Product Management (Admin)
 router.get('/products', isAdminAuthenticated, getAdminProductsPage); // View all products (admin view)
 router.get('/products/new', isAdminAuthenticated, getNewProductForm); // Form to add new product
+router.get('/products/edit/:id', isAdminAuthenticated, getEditProductForm); // Form to edit existing product
+router.post('/products/edit/:id', isAdminAuthenticated, postAdminUpdateProduct); // Handle product update
+
+// Order Management (Admin)
+router.get('/orders', isAdminAuthenticated, getAdminOrdersPage);
+
+// Settings Management (Admin)
+router.get('/settings', isAdminAuthenticated, getAdminSettingsPage);
 
 // Use the existing API controller for creating product, but ensure it's protected by admin auth.
 // The `isAdminAuthenticated` middleware handles the session-based auth for the admin panel.

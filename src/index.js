@@ -4,6 +4,7 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const session = require('express-session');
+const ejs = require('ejs'); // Import EJS
 
 // Import Supabase client (not initDb)
 const { supabase } = require('./config/db.js');
@@ -32,6 +33,11 @@ process.on('uncaughtException', (error) => {
 
 const PORT = process.env.PORT || 3001; // Changed default from 8080 to 3001 as 8080 is common for frontend dev
 const app = express();
+
+// Set EJS as the view engine
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views')); // Specify the views directory
+
 app.set('trust proxy', 1); // Important if behind a proxy like Vercel
 
 // --- Parsers ---
@@ -82,7 +88,7 @@ app.use(session({
   cookie: {
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 86400000, // 1 day
+    maxAge: 604800000, // 7 days (7 * 24 * 60 * 60 * 1000)
     sameSite: 'lax'
   }
 }));
