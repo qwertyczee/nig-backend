@@ -8,13 +8,11 @@
             "start": "node src/index.js",
             "build": "npm install"
       },
-      "engines": {
-            "node": "20.x"
-      },
       "keywords": [],
       "author": "",
       "license": "ISC",
       "dependencies": {
+            "@lemonsqueezy/lemonsqueezy.js": "^4.0.0",
             "@polar-sh/sdk": "^0.32.13",
             "@supabase/supabase-js": "^2.49.4",
             "@types/bcryptjs": "^2.4.6",

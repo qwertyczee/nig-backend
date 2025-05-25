@@ -3,7 +3,8 @@ const {
 	createOrder,
 	getMyOrders,
 	getOrderById,
-	cancelMyOrder
+	cancelMyOrder,
+	getOrderBySessionToken // Import the new controller function
 } = require('../controllers/orderController');
 const { protect, admin } = require('../middleware/authMiddleware'); // Example of how you might import
 
@@ -17,6 +18,9 @@ router.post('/', createOrder); // Removed 'protect' middleware for guest checkou
 router.get('/', protect, getMyOrders); // Keep protect for viewing user's own orders
 router.get('/:id', protect, getOrderById); // Keep protect for viewing specific order (RLS handles ownership)
 router.patch('/:id/cancel', protect, cancelMyOrder); // Keep protect for cancelling (RLS handles ownership)
+
+// Route to get order details by customer session token (from Polar)
+router.get('/by-session/:customerSessionToken', getOrderBySessionToken); // This route is public but relies on the unguessable token
 
 // Example Admin routes (you would uncomment and use 'admin' middleware)
 // router.get('/admin/all', protect, admin, getAllOrdersForAdmin);

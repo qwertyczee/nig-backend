@@ -1,179 +1,86 @@
 const { Request, Response } = require('express');
 const { supabase } = require('../config/db');
-const { createPolarCheckoutSession } = require('../services/polarService');
+const { createLemonSqueezyCheckout } = require('../services/lemonsqueezyService');
 
 const createOrder = async (req, res) => {
-  // user_id will come from req.user populated by authMiddleware
-  // Explicitly type req.body to include customer_email, as it's used for Polar
   const body = req.body;
-  const orderInput = body;
-  // For guest checkout, userId can be null.
-  // req.user might not exist if 'protect' middleware is removed for this route.
   const userId = req.user?.id || null;
-
-  // User authentication check is removed as guests can order.
-
-  if (!orderInput.items || orderInput.items.length === 0 || !orderInput.shipping_address) {
-    return res.status(400).json({ message: 'Missing required fields: items and shipping_address are required.' });
+  if (!body.shipping_address) {
+    return res.status(400).json({ message: 'Missing required field: shipping_address.' });
   }
-
-  // Extract email for Polar. Ensure it's provided by the frontend via customer_email.
-  const customerEmail = orderInput.customer_email;
+  const customerEmail = body.customer_email;
   if (!customerEmail) {
     return res.status(400).json({ message: 'Customer email (customer_email) is required for payment processing.' });
   }
-
   try {
-    let calculatedTotalAmount = 0;
-    // Store polar_price_id and quantity for Polar, and other details for DB
-    // Store polar_price_id and quantity for Polar, and other details for DB
-    const orderItemsData = [];
+    // Get all products from the cart
+    const { data: cartItems, error: cartError } = await supabase
+      .from('products')
+      .select('id, price')
+      .in('id', body.items.map(item => item.product_id));
 
-    // 1. Validate items and calculate total amount
-    for (const item of orderInput.items) {
-      if (item.quantity <= 0) {
-        return res.status(400).json({ message: `Invalid quantity for product ${item.product_id}. Quantity must be positive.` });
-      }
-      const { data: product, error: productError } = await supabase
-        .from('products')
-        .select('id, price, name, in_stock, polar_price_id') // Fetch polar_price_id
-        .eq('id', item.product_id)
-        .single();
-
-      if (productError || !product) {
-        return res.status(404).json({ message: `Product with ID ${item.product_id} not found or error fetching it.` });
-      }
-      if (!product.polar_price_id) {
-        // This product is not configured for sale via Polar
-        return res.status(400).json({ message: `Product ${product.name} (ID: ${product.id}) is not configured for Polar payments (missing polar_price_id).` });
-      }
-      if (!product.in_stock) {
-        return res.status(400).json({ message: `Product ${product.name} is out of stock.` });
-      }
-      // TODO: Implement inventory check if quantity exceeds available stock
-
-      calculatedTotalAmount += product.price * item.quantity;
-      orderItemsData.push({
-        polarPriceId: product.polar_price_id,
-        quantity: item.quantity,
-        dbProductId: product.id,
-        price_at_purchase: product.price,
-        name: product.name,
-      });
-    }
-    
-    // Billing address for Polar from shipping address
-    // Ensure shipping_address has country and postal_code
-    const shippingAddress = orderInput.shipping_address;
-    if (!shippingAddress.country) {
-        return res.status(400).json({ message: 'Shipping address country is required for payment processing.' });
+    if (cartError) {
+      throw new Error('Failed to fetch products from cart');
     }
 
-    let countryCodeForPolar = shippingAddress.country;
-    if (shippingAddress.country.toLowerCase() === 'česká republika' || shippingAddress.country.toLowerCase() === 'czech republic') {
-        countryCodeForPolar = 'CZ';
-    }
-    // Add more mappings if other country names are used and need conversion to alpha-2
+    // Calculate total price
+    let totalPrice = 0;
+    body.items.forEach(cartItem => {
+      const product = cartItems.find(p => p.id === cartItem.product_id);
+      if (product) {
+        totalPrice += product.price * cartItem.quantity;
+      }
+    });
 
-    const billingAddressForPolar = {
-        country: countryCodeForPolar,
-        postal_code: shippingAddress.postal_code,
-        // line1: shippingAddress.street, // Example if Polar needs more fields
-        // city: shippingAddress.city,     // Example
+    // Convert to cents for LemonSqueezy
+    const totalPriceInCents = Math.round(totalPrice * 100);
+
+    const billingAddress = body.billing_address;
+
+    const user = {
+      id: userId || 'guest',
+      email: customerEmail,
+      phone: billingAddress?.phone || '',
+      name: billingAddress?.full_name || '',
+      taxNumber: body.tax_number || '',
+      discountCode: body.discount_code || '',
     };
 
-    // Use a temporary order identifier for Polar metadata, or a pre-generated UUID for idempotency if needed.
-    const tempOrderIdForPolar = `order_${Date.now()}_${userId || 'guest'}`;
+    const address = {
+      country: billingAddress?.country || '',
+      postalCode: billingAddress?.postal_code || '',
+      city: billingAddress?.city || '',
+      street: billingAddress?.street || '',
+    };
 
-    // 2. Create Checkout Session with Polar
-    const itemsForPolarPayload = orderItemsData.map(p => ({ priceId: p.polarPriceId, quantity: p.quantity }));
-    console.log('DEBUG: Items being sent to Polar createPolarCheckoutSession:', JSON.stringify(itemsForPolarPayload, null, 2));
+    const checkoutUrl = await createLemonSqueezyCheckout({ 
+      user, 
+      address,
+      discountCode: user.discountCode,
+      totalPriceInCents 
+    });
 
-    const polarSessionInfo = await createPolarCheckoutSession(
-        tempOrderIdForPolar,
-        itemsForPolarPayload, // Corrected: Use orderItemsData and p.polarPriceId
-        customerEmail,
-        billingAddressForPolar
-    );
-
-    // 3. Create the order in your database
+    // Create order in DB
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: userId,
-        total_amount: calculatedTotalAmount,
-        shipping_address: orderInput.shipping_address,
-        billing_address: orderInput.billing_address || orderInput.shipping_address,
+        total_amount: totalPrice,
+        shipping_address: body.shipping_address,
+        billing_address: body.billing_address || body.shipping_address,
         status: 'awaiting_payment',
-        payment_provider: 'polar',
-        payment_intent_id: polarSessionInfo.polarSessionId,
+        payment_provider: 'lemonsqueezy',
+        payment_intent_id: null,
       })
       .select()
       .single();
 
     if (orderError || !newOrder) {
-      console.error('Error creating order in DB:', orderError?.message);
-      return res.status(500).json({ message: 'Failed to create order after payment intent.', error: orderError?.message });
+      return res.status(500).json({ message: 'Failed to create order.', error: orderError?.message });
     }
 
-    // 4. Create order items
-    const itemsToInsert = orderItemsData.map(item => ({ // Corrected: Use orderItemsData
-      product_id: item.dbProductId, // Corrected: Use item.dbProductId for your database
-      quantity: item.quantity,
-      price_at_purchase: item.price_at_purchase,
-      // name: item.name, // The 'order_items' table in migration 002 does not have a 'name' column.
-                         // If you added it later, uncomment this. For now, assuming it's not there.
-      order_id: newOrder.id,
-    }));
-
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(itemsToInsert);
-    if (itemsError) {
-      console.error('Error creating order items:', itemsError.message);
-      // Attempt to "rollback" by deleting the order. This is not a true transaction.
-      // A database function (RPC) or more robust error handling (e.g., marking order as 'payment_failed' or 'system_error') would be better.
-      // Also, consider cancelling the payment intent with Polar.
-      await supabase.from('orders').delete().eq('id', newOrder.id);
-      return res.status(500).json({ message: 'Failed to create order items, order rolled back.', error: itemsError.message });
-    }
-
-    // 5. Fetch the complete order with items to return
-    // The 'newOrder' object from the insert doesn't include joined relations like order_items.
-    const { data: completeOrder, error: fetchError } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
-          *,
-          products (id, name, image_url)
-        )
-      `)
-      .eq('id', newOrder.id)
-      .single();
-    
-    if (fetchError || !completeOrder) {
-        console.error('Error fetching complete order after creation:', fetchError?.message);
-        // Order and items were created, but fetching the full details failed.
-        // Return the core order data and the checkout URL.
-        return res.status(201).json({
-            ...newOrder,
-            order_items: itemsToInsert,
-            checkoutUrl: polarSessionInfo.checkoutUrl // Add checkoutUrl to the response
-        });
-    }
-
-    // Add checkoutUrl to the successful response
-    res.status(201).json({
-        ...completeOrder,
-        checkoutUrl: polarSessionInfo.checkoutUrl
-    });
-
+    res.status(201).json({ ...newOrder, checkoutUrl });
   } catch (error) {
-    console.error('Unexpected error creating order:', error.message);
-    if (error.message.includes('payment intent')) { // Check if error came from polarService
-        return res.status(502).json({ message: 'Payment provider error.', error: error.message });
-    }
     res.status(500).json({ message: 'An unexpected error occurred during order creation.', error: error.message });
   }
 };
@@ -324,11 +231,47 @@ const cancelMyOrder = async (req, res) => {
         console.error('Error cancelling order:', error.message);
         res.status(500).json({ message: 'Error cancelling order', error: error.message });
     }
-};
-
-module.exports = {
-    createOrder,
-    getMyOrders,
-    getOrderById,
-    cancelMyOrder
-};
+  };
+  
+  const getOrderBySessionToken = async (req, res) => {
+    const { customerSessionToken } = req.params;
+  
+    if (!customerSessionToken) {
+      return res.status(400).json({ message: 'Customer session token is required.' });
+    }
+  
+    try {
+      const orderDetails = await getPolarOrderDetailsBySessionToken(customerSessionToken);
+  
+      if (!orderDetails) {
+        // This could mean the session was not found, or it was found but had no relevant order data.
+        // The service layer might return null for a 404 or if the data structure isn't as expected.
+        return res.status(404).json({ message: 'Order details not found for the provided session token.' });
+      }
+  
+      // Potentially, you might want to look up your internal order using metadata from `orderDetails`
+      // if Polar's response doesn't directly contain everything you need for the frontend.
+      // For example, if `orderDetails.metadata.internal_order_id` exists:
+      // const internalOrder = await supabase.from('orders').select('*').eq('id', orderDetails.metadata.internal_order_id).single();
+      // Then combine `orderDetails` with `internalOrder` as needed.
+  
+      // For now, returning the direct response from Polar service.
+      res.json(orderDetails);
+  
+    } catch (error) {
+      console.error(`Error fetching order details by session token ${customerSessionToken}:`, error.message);
+      // Check for specific error types if the service layer throws them (e.g., configuration error)
+      if (error.message.includes('Polar integration is not configured')) {
+          return res.status(503).json({ message: 'Payment service is currently unavailable.', error: error.message });
+      }
+      res.status(500).json({ message: 'Failed to retrieve order details.', error: error.message });
+    }
+  };
+  
+  module.exports = {
+      createOrder,
+      getMyOrders,
+      getOrderById,
+      cancelMyOrder,
+      getOrderBySessionToken // Add the new controller function
+  };

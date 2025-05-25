@@ -1,8 +1,5 @@
-const { Request, Response } = require('express');
-const path = require('path'); // Added for sendFile
-const { supabase } = require('../config/db'); // Ensure supabase is imported
-const { polar } = require('../services/polarService'); // Import Polar SDK instance
-const axios = require('axios');
+const path = require('path');
+const { supabase } = require('../config/db');
 const polarApiKey = process.env.POLAR_SECRET_KEY;
 
 if (!polarApiKey) {
@@ -148,10 +145,8 @@ const postAdminCreateProduct = async (req, res) => {
         in_stock: isInStock,
     };
 
-    let newSupabaseProduct;
-
     try {
-        // 1. Create product in Supabase
+        // Only create product in Supabase, do not create in Polar
         console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Jméno:', productDataForSupabase.name);
         const { data, error: supabaseError } = await supabase
             .from('products')
@@ -163,109 +158,10 @@ const postAdminCreateProduct = async (req, res) => {
             console.error('[Admin Controller] postAdminCreateProduct: Chyba při vytváření produktu v Supabase:', supabaseError.message);
             return res.redirect(`/admin/products/new?error=${encodeURIComponent('DB Error: ' + supabaseError.message)}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
         }
-        newSupabaseProduct = data;
-        console.log('[Admin Controller] postAdminCreateProduct: Produkt vytvořen v Supabase. ID:', newSupabaseProduct.id);
-
-        // 2. Create product/price in Polar
-        const polarOrganizationId = process.env.POLAR_ORGANIZATION_ID;
-        if (!polarOrganizationId) {
-            console.warn(`[Admin Controller] postAdminCreateProduct: POLAR_ORGANIZATION_ID není nastaveno. Produkt ${newSupabaseProduct.id} nebude vytvořen v Polar.`);
-            return res.redirect(`/admin/dashboard?message=${encodeURIComponent(`Product '${newSupabaseProduct.name}' created in DB, but POLAR_ORGANIZATION_ID not set. Not created in Polar.`)}`);
-        }
-        if (!polar) {
-            console.error(`[Admin Controller] postAdminCreateProduct: Instance Polar SDK není dostupná. Produkt ${newSupabaseProduct.id} nebude vytvořen v Polar.`);
-            return res.redirect(`/admin/dashboard?message=${encodeURIComponent(`Product '${newSupabaseProduct.name}' created in DB, but Polar SDK not available. Not created in Polar.`)}`);
-        }
-
-        const priceInCents = Math.round(parseFloat(price) * 100);
-        console.log(`[Admin Controller] postAdminCreateProduct: === VYTVÁŘENÍ PRODUKTU NA POLAR ===`);
-        console.log(`[Admin Controller] postAdminCreateProduct: Pokus o vytvoření Polar produktu pro Supabase produkt ID: ${newSupabaseProduct.id}, Jméno: ${newSupabaseProduct.name}, Cena: ${priceInCents} centů`);
-
-        const polarProductPayload = {
-            name: newSupabaseProduct.name,
-            description: newSupabaseProduct.description || undefined,
-            prices: [
-              { 
-                price_currency: 'usd', 
-                price_amount: priceInCents,
-                amount_type: "fixed"
-              }
-            ],
-            recurring_interval: null,
-        };
-        
-        let createdPolarProduct;
-        try {
-            console.log('[Admin Controller] postAdminCreateProduct: Volání Polar API přes Axios s payloadem:', JSON.stringify(polarProductPayload, null, 2));
-
-            const polarApiUrl = 'https://api.polar.sh/v1/products';
-
-            const response = await axios.post(polarApiUrl, polarProductPayload, {
-                headers: {
-                    'Authorization': `Bearer ${polarApiKey}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            createdPolarProduct = response.data; // Get the response data
-
-            console.log('[Admin Controller] postAdminCreateProduct: === PRODUKT NA POLAR ÚSPĚŠNĚ VYTVOŘEN ===');
-            console.log('[Admin Controller] postAdminCreateProduct: Surová hodnota odpovědi od Polar:', JSON.stringify(createdPolarProduct, null, 2));
-
-            // Validate the structure of the successful response
-            if (!createdPolarProduct || !createdPolarProduct.id || !createdPolarProduct.prices || createdPolarProduct.prices.length === 0 || !createdPolarProduct.prices[0].id) {
-                console.error(`[Admin Controller] postAdminCreateProduct: !!! Produkt v Polar byl zdánlivě vytvořen pro Supabase produkt ID ${newSupabaseProduct.id}, ale chybí ID produktu Polar nebo ID ceny. Polar odpověď:`, JSON.stringify(createdPolarProduct));
-                // Consider this a failure scenario, attempt rollback
-                throw new Error('Polar product created but key details (product/price ID) missing in response.');
-            }
-
-        } catch (polarError) {
-            // This block now catches errors from axios.post() OR the validation error thrown above
-            const errorDetail = polarError.response ? `Status: ${polarError.response.status}, Data: ${JSON.stringify(polarError.response.data)}` : polarError.message; // More detailed error for axios
-            console.error(`[Admin Controller] postAdminCreateProduct: !!! CHYBA PŘI VYTVÁŘENÍ/VALIDACI PRODUKTU V POLAR pro Supabase produkt ID ${newSupabaseProduct.id}:`, errorDetail, polarError.stack ? `\nStack: ${polarError.stack}` : '');
-            
-            console.log(`[Admin Controller] postAdminCreateProduct: Pokus o rollback vytvoření produktu v Supabase pro ID: ${newSupabaseProduct.id} kvůli chybě Polar.`);
-            await supabase.from('products').delete().eq('id', newSupabaseProduct.id);
-            console.log(`[Admin Controller] postAdminCreateProduct: Rollback DOKONČEN pro Supabase produkt ID: ${newSupabaseProduct.id}`);
-            return res.redirect(`/admin/products/new?error=${encodeURIComponent('Failed to create product in payment provider: ' + errorDetail)}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
-        }
-
-        // If we reach here, createdPolarProduct is valid and contains the necessary IDs
-
-        const polarPriceId = createdPolarProduct.prices[0].id;
-        const polarProductId = createdPolarProduct.id;
-        console.log(`[Admin Controller] postAdminCreateProduct: POLAR PRODUKT A CENA ÚSPĚŠNĚ VYTVOŘENY pro Supabase produkt ID ${newSupabaseProduct.id}.`);
-        console.log(`[Admin Controller] postAdminCreateProduct:   >> Polar Product ID: ${polarProductId}`);
-        console.log(`[Admin Controller] postAdminCreateProduct:   >> Polar Price ID: ${polarPriceId}`);
-
-        console.log(`[Admin Controller] postAdminCreateProduct: Pokus o aktualizaci Supabase produktu ID ${newSupabaseProduct.id} s Polar Price ID: ${polarPriceId}`);
-        const { error: updateError } = await supabase
-            .from('products')
-            .update({ polar_price_id: polarPriceId })
-            .eq('id', newSupabaseProduct.id);
-
-        if (updateError) {
-            console.error(`[Admin Controller] postAdminCreateProduct: !!! NEPODAŘILO SE aktualizovat Supabase produkt ${newSupabaseProduct.id} s Polar Price ID ${polarPriceId}:`, updateError.message);
-            return res.redirect(`/admin/dashboard?message=${encodeURIComponent(`Product '${newSupabaseProduct.name}' created (DB ID: ${newSupabaseProduct.id}, Polar ID: ${polarProductId}), BUT FAILED to link Polar Price ID. Check manually!`)}`);
-        }
-
-        console.log(`[Admin Controller] postAdminCreateProduct: Supabase produkt ID ${newSupabaseProduct.id} ÚSPĚŠNĚ aktualizován s Polar Price ID: ${polarPriceId}.`);
-        res.redirect('/admin/dashboard?message=Product+created+successfully+and+linked+with+Polar');
-
+        console.log('[Admin Controller] postAdminCreateProduct: Produkt vytvořen v Supabase. ID:', data.id);
+        res.redirect('/admin/dashboard?message=Product+created+successfully');
     } catch (error) {
         console.error('[Admin Controller] postAdminCreateProduct: === CELKOVÁ CHYBA V postAdminCreateProduct ===:', error.message, error.stack);
-        if (newSupabaseProduct && newSupabaseProduct.id && !res.headersSent) {
-            try {
-                const { data: existing } = await supabase.from('products').select('id, polar_price_id').eq('id', newSupabaseProduct.id).single();
-                if (existing && !existing.polar_price_id) {
-                    console.warn(`[Admin Controller] postAdminCreateProduct: Generický error handler: Pokus o rollback Supabase produktu ${newSupabaseProduct.id} kvůli neošetřené chybě.`);
-                    await supabase.from('products').delete().eq('id', newSupabaseProduct.id);
-                    console.log(`[Admin Controller] postAdminCreateProduct: Generický error handler: Rollback DOKONČEN pro Supabase produkt ${newSupabaseProduct.id}.`);
-                }
-            } catch (rollbackError) {
-                console.error(`[Admin Controller] postAdminCreateProduct: Generický error handler: NEPODAŘILO SE provést rollback Supabase produktu ${newSupabaseProduct.id}:`, rollbackError.message);
-            }
-        }
         if (!res.headersSent) {
             res.redirect(`/admin/products/new?error=${encodeURIComponent('Unexpected error: ' + error.message)}&name=${encodeURIComponent(name || '')}&price=${encodeURIComponent(price || '')}&description=${encodeURIComponent(description || '')}&image_url=${encodeURIComponent(image_url || '')}&category=${encodeURIComponent(category || '')}`);
         }
