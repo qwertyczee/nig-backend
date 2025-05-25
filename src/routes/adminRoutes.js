@@ -10,7 +10,8 @@ const {
     getAdminOrdersPage,
     getAdminSettingsPage,
     getEditProductForm,
-    postAdminUpdateProduct
+    postAdminUpdateProduct,
+    getAdminOrderDetail
 } = require('../controllers/adminController');
 
 const router = Router();
@@ -46,6 +47,7 @@ router.post('/products/edit/:id', isAdminAuthenticated, postAdminUpdateProduct);
 
 // Order Management (Admin)
 router.get('/orders', isAdminAuthenticated, getAdminOrdersPage);
+router.get('/orders/:id', getAdminOrderDetail);
 
 // Settings Management (Admin)
 router.get('/settings', isAdminAuthenticated, getAdminSettingsPage);

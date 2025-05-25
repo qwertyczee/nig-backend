@@ -146,17 +146,40 @@ const getAdminProductsPage = async (req, res) => {
 
 const getAdminOrdersPage = async (req, res) => {
     try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = 10;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+
+        // Get total count
+        const { count, error: countError } = await supabase
+            .from('orders')
+            .select('*', { count: 'exact', head: true });
+
+        if (countError) {
+            console.error('Error fetching order count:', countError.message);
+            return res.status(500).send('Error fetching order count.');
+        }
+
+        // Get paginated orders
         const { data: orders, error } = await supabase
             .from('orders')
             .select('*')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .range(from, to);
 
         if (error) {
             console.error('Error fetching orders for admin:', error.message);
             return res.status(500).send('Error fetching orders.');
         }
 
-        res.render('admin/orders', { orders });
+        const totalPages = Math.ceil(count / limit);
+
+        res.render('admin/orders', {
+            orders,
+            totalPages,
+            currentPage: page
+        });
     } catch (error) {
         console.error('Error in getAdminOrdersPage:', error);
         res.status(500).send('Internal Server Error');
@@ -176,23 +199,15 @@ const getAdminSettingsPage = (req, res) => {
 };
 
 const getNewProductForm = (req, res) => {
-    // Extract query params for pre-filling the form on error
     const { error, name, price, description, image_url, category } = req.query;
-    res.send(`
-        <h1>Add New Product (Admin)</h1>
-        ${error ? `<p style="color: red;">Error: ${decodeURIComponent(error)}</p>` : ''}
-        <form action="/admin/products" method="POST">
-            <div><label>Name: <input type="text" name="name" value="${name || ''}" required></label></div>
-            <div><label>Price: <input type="number" name="price" step="0.01" value="${price || ''}" required></label></div>
-            <div><label>Description: <textarea name="description">${description || ''}</textarea></label></div>
-            <div><label>Image URL: <input type="text" name="image_url" value="${image_url || ''}"></label></div>
-            <div><label>Category: <input type="text" name="category" value="${category || ''}"></label></div>
-            <div><label>In Stock: <input type="checkbox" name="in_stock_form" value="true" checked></label></div> 
-            <button type="submit">Add Product</button>
-        </form>
-        <p><a href="/admin/dashboard">Back to Dashboard</a></p>
-        <p><a href="/admin/products">Manage Products</a></p>
-    `);
+    res.render('admin/new_product', {
+        error,
+        name,
+        price,
+        description,
+        image_url,
+        category
+    });
 };
 
 const postAdminCreateProduct = async (req, res) => {
@@ -306,7 +321,27 @@ const postAdminUpdateProduct = async (req, res) => {
     }
 };
 
-module.exports = {
+// Detail objednávky
+const getAdminOrderDetail = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data: order, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !order) {
+            return res.status(404).send('Order not found');
+        }
+
+        res.render('admin/order_detail', { order });
+    } catch (err) {
+        res.status(500).send('Internal Server Error');
+    }
+};
+
+module.exports = {  
     getLoginPage,
     postLogin,
     getDashboardPage,
@@ -317,5 +352,6 @@ module.exports = {
     getAdminOrdersPage,
     getAdminSettingsPage,
     getEditProductForm,
-    postAdminUpdateProduct
+    postAdminUpdateProduct,
+    getAdminOrderDetail
 };

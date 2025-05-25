@@ -113,6 +113,10 @@
         .logout-btn:hover {
             background-color: #c0392b;
         }
+        .pagination a.active-page {
+            font-weight: bold;
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -147,10 +151,19 @@
                     <td><%= order.customer_email || 'Guest' %></td>
                     <td><%= order.total_amount.toFixed(2) %> Kč</td>
                     <td><%= order.status %></td>
-                    <td><%= new Date(order.created_at).toLocaleDateString() %></td>
+                    <td><%= new Date(order.created_at).toLocaleString() %></td>
                     <td class="actions">
-                        <button class="view-btn">View Details</button>
-                        <button class="status-btn">Update Status</button>
+                        <a href="/admin/orders/<%= order.id %>" class="view-btn">View Details</a>
+                        <form action="/admin/orders/<%= order.id %>/status" method="POST" style="display:inline;">
+                            <select name="status">
+                                <option value="pending" <%= order.status === 'pending' ? 'selected' : '' %>>Pending</option>
+                                <option value="processing" <%= order.status === 'processing' ? 'selected' : '' %>>Processing</option>
+                                <option value="shipped" <%= order.status === 'shipped' ? 'selected' : '' %>>Shipped</option>
+                                <option value="delivered" <%= order.status === 'delivered' ? 'selected' : '' %>>Delivered</option>
+                                <option value="cancelled" <%= order.status === 'cancelled' ? 'selected' : '' %>>Cancelled</option>
+                            </select>
+                            <button type="submit" class="status-btn">Update Status</button>
+                        </form>
                     </td>
                 </tr>
                 <% }); %>
@@ -161,6 +174,22 @@
                 <% } %>
             </tbody>
         </table>
+
+        <% if (totalPages > 1) { %>
+        <div class="pagination" style="margin-top: 20px; text-align: center;">
+            <% if (currentPage > 1) { %>
+            <a href="/admin/orders?page=<%= currentPage - 1 %>">Previous</a>
+            <% } %>
+
+            <% for (let i = 1; i <= totalPages; i++) { %>
+                <a href="/admin/orders?page=<%= i %>" class="<%= i === currentPage ? 'active-page' : '' %>" style="margin: 0 5px;"><%= i %></a>
+            <% } %>
+
+            <% if (currentPage < totalPages) { %>
+            <a href="/admin/orders?page=<%= currentPage + 1 %>">Next</a>
+            <% } %>
+        </div>
+        <% } %>
     </div>
 </body>
 </html>
