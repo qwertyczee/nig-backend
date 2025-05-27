@@ -1,9 +1,8 @@
-const { Router, Request, Response, NextFunction } = require('express');
+const { Router } = require('express');
 const {
 	getAllProducts,
 	getProductById
 } = require('../controllers/productController');
-const { protect, admin } = require('../middleware/authMiddleware');
 
 const router = Router();
 

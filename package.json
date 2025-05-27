@@ -2,10 +2,10 @@
       "name": "eshop-backend",
       "version": "1.0.0",
       "description": "Backend for the e-shop application",
-      "main": "src/index.js",
+      "main": "index.js",
       "scripts": {
-            "dev": "nodemon src/index.js",
-            "start": "node src/index.js",
+            "dev": "nodemon index.js",
+            "start": "node index.js",
             "build": "npm install"
       },
       "keywords": [],

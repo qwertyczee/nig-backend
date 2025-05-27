@@ -69,8 +69,6 @@ router.post('/login', postLogin);
 // Logout route
 router.get('/logout', logoutAdmin);
 
-// Protected admin routes (require login)
-// router.get('/dashboard', isAdminAuthenticated, getDashboardPage); // Old EJS route
 router.get('/dashboard', isAdminAuthenticated, (req, res) => {
     res.sendFile('dashboard.html', { root: path.join(__dirname, '../views/admin') });
 });
@@ -79,9 +77,9 @@ router.get('/dashboard', isAdminAuthenticated, (req, res) => {
 router.get('/dashboard-stats', isAdminAuthenticated, getDashboardStatsApi);
 
 // Product Management (Admin)
-router.get('/products', isAdminAuthenticated, getAdminProductsPage); // View all products (admin view)
-router.get('/products/new', isAdminAuthenticated, getNewProductForm); // Form to add new product
-router.get('/products/edit/:id', isAdminAuthenticated, getEditProductForm); // Form to edit existing product
+router.get('/products', isAdminAuthenticated, getAdminProductsPage);
+router.get('/products/new', isAdminAuthenticated, getNewProductForm);
+router.get('/products/edit/:id', isAdminAuthenticated, getEditProductForm);
 
 // Modify routes to use multer middleware for file uploads
 router.post('/products', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }]), postAdminCreateProduct); // Handle product creation with file uploads
@@ -98,4 +96,4 @@ router.get('/orders-data', isAdminAuthenticated, getAdminOrdersApi);
 router.get('/products-data/:id', isAdminAuthenticated, getAdminProductByIdApi);
 
 // Export isAdminAuthenticated middleware
-module.exports = { router, isAdminAuthenticated };
+module.exports = router;

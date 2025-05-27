@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/index.js",
+      "src": "index.js",
       "use": "@vercel/node"
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/src/index.js" }
+    { "source": "/(.*)", "destination": "/index.js" }
   ],
   "env": {
     "NODE_ENV": "production",

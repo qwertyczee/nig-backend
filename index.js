@@ -6,17 +6,15 @@ const cors = require('cors');
 
 // Import Supabase client (not initDb)
 const { supabase } = require('./config/db.js');
-const { ourFileRouter } = require("./config/uploadthing.js");
 
 // Import routes
 const productRoutes = require('./routes/productRoutes.js');
 const orderRoutes = require('./routes/orderRoutes.js');
 const webhookRoutes = require('./routes/webhookRoutes.js');
-// Import admin routes and the upload handler
-const { router: adminRoutes, isAdminAuthenticated } = require('./routes/adminRoutes.js');
+const adminRoutes = require('./routes/adminRoutes.js');
 
 // Load .env
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+dotenv.config();
 console.log('LOG: index.js: dotenv.config executed.');
 console.log('LOG: index.js: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
 console.log('LOG: index.js: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
@@ -81,8 +79,8 @@ app.options('*', cors(corsOptions)); // Pre-flight requests
 
 // --- Logging Middleware (Simplified) ---
 app.use((req, res, next) => {
-  console.log(`LOG: REQUEST: ${req.method} ${req.originalUrl}`);
-  next();
+    console.log(`LOG: REQUEST: ${req.method} ${req.originalUrl}`);
+    next();
 });
 
 // --- Database Connection Check Middleware (Supabase specific) ---
@@ -118,12 +116,12 @@ const dbCheckMiddleware = async (req, res, next) => {
 
 // --- Health Check Route ---
 app.get('/api/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    message: 'API is running', 
-    timestamp: new Date().toISOString(),
-    databaseConnected: isDbConnected // Reflects the last check
-  });
+    res.status(200).json({ 
+        status: 'ok', 
+        message: 'API is running', 
+        timestamp: new Date().toISOString(),
+        databaseConnected: isDbConnected // Reflects the last check
+    });
 });
 
 // --- API Routes ---
@@ -135,7 +133,7 @@ app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
 // Product and order routes definitely need it.
 
 // Admin routes are separate and use session auth, might also need DB.
-app.use('/api/admin', /* dbCheckMiddleware, */ adminRoutes);
+app.use('/api/admin', dbCheckMiddleware, adminRoutes);
 
 app.use('/api/products', dbCheckMiddleware, productRoutes);
 app.use('/api/orders', dbCheckMiddleware, orderRoutes);
