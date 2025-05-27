@@ -1,5 +1,5 @@
 const express = require('express');
-const dotenv = require('dotenv');
+require('dotenv').config();
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
@@ -14,7 +14,6 @@ const webhookRoutes = require('./routes/webhookRoutes.js');
 const adminRoutes = require('./routes/adminRoutes.js');
 
 // Load .env
-dotenv.config();
 console.log('LOG: index.js: dotenv.config executed.');
 console.log('LOG: index.js: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
 console.log('LOG: index.js: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
@@ -143,16 +142,16 @@ app.use('/api/webhooks', dbCheckMiddleware, webhookRoutes);
 // --- Error Handling Middleware ---
 // 404 Handler (Not Found)
 app.use((req, res, next) => {
-  res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
+    res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
 // Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('GLOBAL ERROR HANDLER:', err.message);
-  console.error(err.stack);
-  const statusCode = err.statusCode || 500;
-  const message = err.message || 'Internal Server Error';
-  res.status(statusCode).json({ message, ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }) });
+    console.error('GLOBAL ERROR HANDLER:', err.message);
+    console.error(err.stack);
+    const statusCode = err.statusCode || 500;
+    const message = err.message || 'Internal Server Error';
+    res.status(statusCode).json({ message, ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }) });
 });
 
 
@@ -172,7 +171,7 @@ if (process.env.NODE_ENV !== 'production') {
                     console.log('Local Dev: Initial Supabase connection check successful (or no auth error).');
                 }
             } catch(e) {
-                 console.error('Local Dev: Supabase startup check CRITICAL error:', e.message);
+                console.error('Local Dev: Supabase startup check CRITICAL error:', e.message);
             }
         })();
     });

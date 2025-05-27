@@ -1,5 +1,6 @@
 const { createUploadthing } = require("uploadthing/server");
 const { UTApi, UTFile } = require("uploadthing/server");
+require('dotenv').config();
 
 // Inicializace UploadThing helperu
 const f = createUploadthing({
@@ -48,7 +49,7 @@ const ourFileRouter = {
 
 // Export instance UTApi, která bude používat konfiguraci z env proměnných
 // (UPLOADTHING_SECRET, UPLOADTHING_APP_ID)
-const utapi = new UTApi({ token: process.env.UPLOADTHING_SECRET });
+const utapi = new UTApi({});
 
 module.exports = {
     ourFileRouter, // Export routeru pro případný API handler

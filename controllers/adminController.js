@@ -179,50 +179,70 @@ const postAdminCreateProduct = async (req, res) => {
     try {
         // Upload main image to UploadThing if provided, using UTFile
         if (mainImageMulterFile) {
-            console.log('[Admin Controller] Uploading main image...', mainImageMulterFile.originalname);
-            // Create a UTFile instance from the multer buffer and originalname
-            const mainImageUTFile = new UTFile(
-                mainImageMulterFile.buffer,
-                mainImageMulterFile.originalname,
-                // Optional: specify content type if available from multer, though buffer might lose it
-                { type: mainImageMulterFile.mimetype } // Pass mimetype
-            );
-            // Pass the single file in an array to uploadFiles
-            const mainImageUploadResult = await utapi.uploadFiles([mainImageUTFile], { key: 'productImages' }); // Specify the productImages route
+            console.log(`Processing main image for upload: ${mainImageMulterFile.originalname}`);
+            // Simulate reading from a buffer as if it were a temporary file
+            const fileBuffer = mainImageMulterFile.buffer;
+            const tempScreenshotFilename = mainImageMulterFile.originalname;
 
-            // Check if the upload was successful and get the URL from the first element
-            if (mainImageUploadResult && mainImageUploadResult.length > 0 && mainImageUploadResult[0].data?.ufsUrl) {
-                // Extract the URL from the data object (use data.url or data.ufsUrl)
-                main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
-                // Note: UploadThing recommends using .data.ufsUrl in v9+.
-                console.log('[Admin Controller] Main image uploaded. URL:', main_image_url);
-            } else {
-                console.error('[Admin Controller] Failed to upload main image.', mainImageUploadResult?.[0]?.error || mainImageUploadResult);
-                return res.status(500).json({ error: 'Failed to upload main image.' });
+            const fileForUpload = new UTFile([fileBuffer], tempScreenshotFilename, { type: mainImageMulterFile.mimetype });
+
+            console.log(`Uploading ${tempScreenshotFilename} to UploadThing...`);
+            const mainImageUploadResult = await utapi.uploadFiles([fileForUpload], { key: "productImages" }); // Specify the productImages route
+
+            console.log("Main image UploadThing Response:", JSON.stringify(mainImageUploadResult, null, 2));
+
+            if (!mainImageUploadResult || mainImageUploadResult.length === 0) {
+                throw new Error("Main image UploadThing returned an empty response array.");
             }
+            if (mainImageUploadResult[0].error) {
+                console.error("Main image UploadThing upload error:", mainImageUploadResult[0].error);
+                throw new Error(`Main image UploadThing error: ${mainImageUploadResult[0].error.message || "Unknown upload error"}`);
+            }
+            // Check for ufsUrl as recommended in newer UploadThing versions
+            if (!mainImageUploadResult[0].data || !mainImageUploadResult[0].data.ufsUrl) {
+                console.error("Main image UploadThing response missing data or ufsUrl:", mainImageUploadResult[0]);
+                throw new Error("Main image UploadThing response structure invalid (missing data.ufsUrl).");
+            }
+
+            // Extract the URL from the data object (use data.ufsUrl)
+            main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
+            console.log("[Admin Controller] Main image uploaded. URL:", main_image_url);
         }
 
         // Upload sub images to UploadThing if provided, using UTFile for each
         if (subImagesMulterFiles && subImagesMulterFiles.length > 0) {
             console.log('[Admin Controller] Uploading sub images...', subImagesMulterFiles.length);
-            
-            // Map multer files to UTFile instances
-            const subImageUTFiles = subImagesMulterFiles.map(file => new UTFile(file.buffer, file.originalname, { type: file.mimetype })); // Pass mimetype
+
+            // Map multer files to UTFile instances using buffers
+            const subImageUTFiles = subImagesMulterFiles.map(file => {
+                console.log(`Processing sub image for upload: ${file.originalname}`);
+                // Simulate reading from a buffer as if it were a temporary file
+                const fileBuffer = file.buffer;
+                const tempFilename = file.originalname;
+                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
+            });
 
             const subImagesUploadResult = await utapi.uploadFiles(subImageUTFiles, { key: 'productImages' }); // Specify the productImages route
 
-            // Check if all uploads were successful and get URLs (check data.url for each)
-            if (subImagesUploadResult && subImagesUploadResult.length === subImageUTFiles.length && subImagesUploadResult.every(file => file.data?.ufsUrl)) {
-                // Extract URLs from the data object for each file
-                const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
-                sub_image_urls.push(...urls);
-                console.log('[Admin Controller] Sub images uploaded. URLs:', sub_image_urls);
-            } else {
-                console.error('[Admin Controller] Failed to upload one or more sub images.', subImagesUploadResult);
-                // Find specific errors if available
-                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ');
-                return res.status(500).json({ error: 'Failed to upload one or more sub images. Details: ' + errors });
+            // Check if all uploads were successful and get URLs (check ufsUrl for each)
+            console.log("[Admin Controller] Sub images UploadThing Response:", JSON.stringify(subImagesUploadResult, null, 2));
+            if (!subImagesUploadResult || subImagesUploadResult.length !== subImageUTFiles.length) {
+                console.error("[Admin Controller] Sub image UploadThing returned incorrect number of responses or empty:", subImagesUploadResult);
+                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
+                throw new Error('Failed to upload one or more sub images. Details: ' + errors);
             }
+
+            const failedUploads = subImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
+            if (failedUploads.length > 0) {
+                console.error("[Admin Controller] Failed sub image uploads found:", failedUploads);
+                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
+                throw new Error('Failed to upload one or more sub images. Details: ' + errors);
+            }
+
+            // Extract URLs from the data object for each file
+            const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
+            sub_image_urls.push(...urls);
+            console.log('[Admin Controller] Sub images uploaded. URLs:', sub_image_urls);
         }
 
         // Handle likes array (assuming comma-separated string from frontend text input, or JSON from hidden input)
@@ -333,29 +353,39 @@ const postAdminUpdateProduct = async (req, res) => {
     try {
         // Upload new main image to UploadThing if provided, using UTFile
         if (mainImageMulterFile) {
-            console.log('[Admin Controller] Uploading new main image...', mainImageMulterFile.originalname);
-             // Create a UTFile instance
+            console.log(`Processing new main image for upload: ${mainImageMulterFile.originalname}`);
+             // Simulate reading from a buffer as if it were a temporary file
+            const fileBuffer = mainImageMulterFile.buffer;
+            const tempFilename = mainImageMulterFile.originalname;
+
             const mainImageUTFile = new UTFile(
-                mainImageMulterFile.buffer,
-                mainImageMulterFile.originalname,
+                [fileBuffer],
+                tempFilename,
                 { type: mainImageMulterFile.mimetype } // Pass mimetype
             );
             // Pass the single file in an array to uploadFiles
             const mainImageUploadResult = await utapi.uploadFiles([mainImageUTFile], { key: 'productImages' }); // Specify the productImages route
-            
+
             // Check if the upload was successful and get the URL from the first element
-            if (mainImageUploadResult && mainImageUploadResult.length > 0 && mainImageUploadResult[0].data?.ufsUrl) {
-                // Extract the URL from the data object (use data.url or data.ufsUrl)
-                new_main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
-                // Note: UploadThing recommends using .data.ufsUrl in v9+.
-                console.log('[Admin Controller] New main image uploaded. URL:', new_main_image_url);
-                // Optional: Delete the old main image if a new one was uploaded and replace was intended
-                // This requires getting the old URL from the database first before updating
-                // and then using utapi.deleteFiles(oldUrlKey); -- Requires storing/retrieving keys, not just URLs.
-            } else {
-                console.error('[Admin Controller] Failed to upload new main image.', mainImageUploadResult?.[0]?.error || mainImageUploadResult);
-                return res.status(500).json({ error: 'Failed to upload new main image.' });
+            console.log("[Admin Controller] New main image UploadThing Response:", JSON.stringify(mainImageUploadResult, null, 2));
+            if (!mainImageUploadResult || mainImageUploadResult.length === 0) {
+                throw new Error("New main image UploadThing returned an empty response array.");
             }
+            if (mainImageUploadResult[0].error) {
+                console.error("New main image UploadThing upload error:", mainImageUploadResult[0].error);
+                throw new Error(`New main image UploadThing error: ${mainImageUploadResult[0].error.message || 'Unknown upload error'}`);
+            }
+            if (!mainImageUploadResult[0].data || !mainImageUploadResult[0].data.ufsUrl) {
+                console.error("New main image UploadThing response missing data or ufsUrl:", mainImageUploadResult[0]);
+                throw new Error("New main image UploadThing response structure invalid (missing data.ufsUrl).");
+            }
+            
+            // Extract the URL from the data object (use data.url or data.ufsUrl)
+            new_main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
+            console.log('[Admin Controller] New main image uploaded. URL:', new_main_image_url);
+            // Optional: Delete the old main image if a new one was uploaded and replace was intended
+            // This requires getting the old URL from the database first before updating
+            // and then using utapi.deleteFiles(oldUrlKey); -- Requires storing/retrieving keys, not just URLs.
         } else if (main_image_url === '') {
             // If no new file uploaded and the main_image_url field was explicitly cleared on the frontend
             new_main_image_url = null;
@@ -367,22 +397,36 @@ const postAdminUpdateProduct = async (req, res) => {
         if (subImagesMulterFiles && subImagesMulterFiles.length > 0) {
             console.log('[Admin Controller] Uploading new sub images...', subImagesMulterFiles.length);
 
-            // Map multer files to UTFile instances
-            const subImageUTFiles = subImagesMulterFiles.map(file => new UTFile(file.buffer, file.originalname, { type: file.mimetype })); // Pass mimetype
+            // Map multer files to UTFile instances using buffers
+            const subImageUTFiles = subImagesMulterFiles.map(file => {
+                console.log(`Processing new sub image for upload: ${file.originalname}`);
+                // Simulate reading from a buffer as if it were a temporary file
+                const fileBuffer = file.buffer;
+                const tempFilename = file.originalname;
+                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
+            });
 
             const subImagesUploadResult = await utapi.uploadFiles(subImageUTFiles, { key: 'productImages' }); // Specify the productImages route
 
-            // Check if all uploads were successful and get URLs (check data.url for each)
-            if (subImagesUploadResult && subImagesUploadResult.length === subImageUTFiles.length && subImagesUploadResult.every(file => file.data?.ufsUrl)) {
-                // Extract URLs from the data object for each file
-                const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
-                new_sub_image_urls.push(...urls);
-                console.log('[Admin Controller] New sub images uploaded. URLs:', new_sub_image_urls);
-            } else {
-                console.error('[Admin Controller] Failed to upload one or more new sub images.', subImagesUploadResult);
-                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ');
-                return res.status(500).json({ error: 'Failed to upload one or more new sub images. Details: ' + errors });
+            // Check if all uploads were successful and get URLs (check ufsUrl for each)
+            console.log("[Admin Controller] New sub images UploadThing Response:", JSON.stringify(subImagesUploadResult, null, 2));
+            if (!subImagesUploadResult || subImagesUploadResult.length !== subImageUTFiles.length) {
+                console.error("[Admin Controller] New sub image UploadThing returned incorrect number of responses or empty:", subImagesUploadResult);
+                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
+                throw new Error('Failed to upload one or more new sub images. Details: ' + errors);
             }
+
+            const failedUploads = subImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
+            if (failedUploads.length > 0) {
+                console.error("[Admin Controller] Failed new sub image uploads found:", failedUploads);
+                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
+                throw new Error('Failed to upload one or more new sub images. Details: ' + errors);
+            }
+
+            // Extract URLs from the data object for each file
+            const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
+            new_sub_image_urls.push(...urls);
+            console.log('[Admin Controller] New sub images uploaded. URLs:', new_sub_image_urls);
         }
 
         // Combine existing (from hidden input) and new (uploaded) sub image URLs
@@ -437,7 +481,7 @@ const postAdminUpdateProduct = async (req, res) => {
     } catch (error) {
         console.error('[Admin Controller] postAdminUpdateProduct: === GENERAL ERROR IN postAdminUpdateProduct ===:', error.message, error.stack);
         if (!res.headersSent) {
-             res.status(500).json({ error: 'Unexpected error: ' + error.message });
+            res.status(500).json({ error: 'Unexpected error: ' + error.message });
         }
     }
 };
@@ -580,39 +624,82 @@ const getAdminProductByIdApi = async (req, res) => {
     }
 };
 
+const deleteAdminProduct = async (req, res) => {
+    console.log('[Admin Controller] deleteAdminProduct: FUNCTION CALLED.');
+    const { id } = req.params;
 
-// --- Database Connection Check Middleware (Supabase specific) ---
-let isDbConnected = false; // Naive flag, Supabase client handles connections.
-const dbCheckMiddleware = async (req, res, next) => {
+    if (!id) {
+        console.error('[Admin Controller] deleteAdminProduct: Error: Product ID is required.');
+        return res.status(400).json({ error: 'Product ID is required.' });
+    }
+
     try {
-        // Simple check: try to get user. More robust checks could query a small table.
-        // Supabase client manages its connection pool, so an explicit connect/disconnect per request isn't typical.
-        // This check is more about ensuring the client can communicate.
-        const { data, error } = await supabase.auth.getUser().catch(err => ({ data: null, error: err })); // Catch potential promise rejection
+        // First, retrieve the product to get image URLs
+        const { data: product, error: fetchError } = await supabase
+            .from('products')
+            .select('main_image_url, sub_image_urls')
+            .eq('id', id)
+            .single();
 
-        // Allow /api health check to pass even if DB has issues for more granular health reporting
-        if (req.originalUrl.startsWith('/api/health')) {
-            console.log('LOG: dbCheckMiddleware: Bypassing DB check for', req.originalUrl);
-            isDbConnected = true; // Assume connected for these routes for status reporting if needed
-            return next();
+        if (fetchError || !product) {
+            console.error(`[Admin Controller] deleteAdminProduct: Error fetching product ${id}:`, fetchError ? fetchError.message : 'Product not found.');
+            // If product not found or error fetching, respond accordingly, but don't halt deletion attempt
+            if (!product) {
+                return res.status(404).json({ error: 'Product not found.' });
+            }
+            // If there was a fetch error but product might exist (e.g., permission), proceed cautiously or return error.
+            // For now, let's return the error.
+            return res.status(500).json({ error: 'Database error fetching product for deletion.' });
         }
 
-        if (error && error.message !== 'Auth session missing!') { // "Auth session missing" is normal if no user logged in
-            console.error('Supabase connection/auth check error (middleware):', error.message);
-
-            isDbConnected = false;
-            return res.status(503).json({ status: 'error', message: 'Service temporarily unavailable (DB Communication Issue)' });
+        // Collect file keys/URLs to delete from UploadThing
+        const filesToDelete = [];
+        if (product.main_image_url) {
+            // Extract key from ufsUrl
+            const mainImageKey = product.main_image_url.split('/').pop();
+            if (mainImageKey) filesToDelete.push(mainImageKey);
         }
-        isDbConnected = true; // If no critical error, assume communication is possible
-        next();
+        if (product.sub_image_urls && Array.isArray(product.sub_image_urls)) {
+            product.sub_image_urls.forEach(url => {
+                const subImageKey = url.split('/').pop();
+                if (subImageKey) filesToDelete.push(subImageKey);
+            });
+        }
+
+        // Delete files from UploadThing if there are any
+        if (filesToDelete.length > 0) {
+            console.log('[Admin Controller] deleteAdminProduct: Attempting to delete files from UploadThing:', filesToDelete);
+            try {
+                 // deleteFiles takes an array of file keys or fileUrls
+                const deleteResult = await utapi.deleteFiles(filesToDelete);
+                console.log('[Admin Controller] deleteAdminProduct: UploadThing delete response:', JSON.stringify(deleteResult, null, 2));
+                // Note: utapi.deleteFiles may return success even if some files weren't found/deleted.
+                // You might want to check the response structure more thoroughly if needed.
+            } catch (uploadthingError) {
+                console.error('[Admin Controller] deleteAdminProduct: Error deleting files from UploadThing:', uploadthingError);
+                // Decide if you want to halt the database deletion if file deletion fails.
+                // For now, log the error but proceed with database deletion.
+            }
+        }
+
+        // Delete the product from the database
+        console.log(`[Admin Controller] deleteAdminProduct: Attempting to delete product ${id} from Supabase.`);
+        const { error: deleteError } = await supabase
+            .from('products')
+            .delete()
+            .eq('id', id);
+
+        if (deleteError) {
+            console.error(`[Admin Controller] deleteAdminProduct: Error deleting product ${id} from Supabase:`, deleteError.message);
+            return res.status(500).json({ error: 'Database error deleting product: ' + deleteError.message });
+        }
+
+        console.log(`[Admin Controller] deleteAdminProduct: Product ${id} deleted successfully.`);
+        res.json({ message: 'Product deleted successfully.' });
+
     } catch (error) {
-        console.error('Database connection middleware unexpected error:', error.message);
-        isDbConnected = false;
-        // Allow /api health check to pass
-        if (req.originalUrl.startsWith('/api/health')) {
-            return next();
-        }
-        next(error); // Pass to global error handler
+        console.error('[Admin Controller] deleteAdminProduct: === GENERAL ERROR IN deleteAdminProduct ===:', error.message, error.stack);
+        res.status(500).json({ error: 'An unexpected error occurred during product deletion.' });
     }
 };
 
@@ -630,5 +717,6 @@ module.exports = {
     getAdminOrderDetail,
     getDashboardStatsApi,
     getAdminOrdersApi,
-    getAdminProductByIdApi
+    getAdminProductByIdApi,
+    deleteAdminProduct
 };

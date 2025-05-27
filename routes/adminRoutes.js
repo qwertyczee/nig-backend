@@ -15,7 +15,8 @@ const {
     getAdminOrderDetail,
     getDashboardStatsApi,
     getAdminOrdersApi,
-    getAdminProductByIdApi
+    getAdminProductByIdApi,
+    deleteAdminProduct
 } = require('../controllers/adminController');
 const path = require('path');
 const { supabase, supabaseServiceRoleKey } = require('../config/db');
@@ -94,6 +95,9 @@ router.get('/orders-data', isAdminAuthenticated, getAdminOrdersApi);
 
 // ** New API route to fetch single product data by ID (JSON) **
 router.get('/products-data/:id', isAdminAuthenticated, getAdminProductByIdApi);
+
+// ** New API route to delete a product by ID (JSON response) **
+router.delete('/products/:id', isAdminAuthenticated, deleteAdminProduct);
 
 // Export isAdminAuthenticated middleware
 module.exports = router;
