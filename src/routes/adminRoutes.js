@@ -1,4 +1,6 @@
 const { Router } = require('express');
+const { createRouteHandler } = require("uploadthing/express");
+const { ourFileRouter } = require("../config/uploadthing");
 const { 
     getLoginPage,
     postLogin,
@@ -8,25 +10,56 @@ const {
     getNewProductForm,
     postAdminCreateProduct,
     getAdminOrdersPage,
-    getAdminSettingsPage,
     getEditProductForm,
     postAdminUpdateProduct,
-    getAdminOrderDetail
+    getAdminOrderDetail,
+    getDashboardStatsApi,
+    getAdminOrdersApi,
+    getAdminProductByIdApi
 } = require('../controllers/adminController');
+const path = require('path');
+const { supabase, supabaseServiceRoleKey } = require('../config/db');
+const { createClient } = require('@supabase/supabase-js');
+const multer = require('multer');
 
 const router = Router();
 
+// Create a Supabase client instance with the Service Role Key for admin operations
+const supabaseAdmin = createClient(process.env.SUPABASE_URL, supabaseServiceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+});
+
+// Configure multer for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
 // Middleware to check if user is admin and logged in
-const isAdminAuthenticated = (req, res, next) => {
-  console.log(`[Auth Middleware] Checking auth for path: ${req.path}`);
-  console.log('[Auth Middleware] Session ID:', req.sessionID);
-  console.log('[Auth Middleware] Session user data:', req.session.user);
-  if (req.session.user?.isAdmin) {
-    console.log('[Auth Middleware] User IS admin. Proceeding.');
-    return next();
+const isAdminAuthenticated = async (req, res, next) => { 
+  const userId = req.cookies.admin_auth; 
+
+  if (!userId) {
+    console.log('[Auth Middleware] No admin_auth cookie found. Redirecting to login.');
+    return res.redirect('/api/admin/login');
   }
-  console.log('[Auth Middleware] User IS NOT admin or no session. Redirecting to /admin/login.');
-  res.redirect('/admin/login');
+
+  try {
+    // Validate user ID against Supabase Auth users using the admin client
+    const { data: user, error } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+    if (error || !user) {
+      console.error('[Auth Middleware] Supabase Auth user validation failed:', error ? error.message : 'User not found in Supabase Auth');
+      res.clearCookie('admin_auth');
+      return res.redirect('/api/admin/login');
+    }
+
+    console.log('[Auth Middleware] User found in Supabase Auth:', user.user.id);
+    req.user = { id: user.user.id, email: user.user.email }; 
+    next();
+
+  } catch (e) {
+    console.error('[Auth Middleware] Unexpected error during validation:', e.message);
+    res.clearCookie('admin_auth'); 
+    res.status(500).send('Authentication internal error.');
+  }
 };
 
 // Login routes
@@ -37,46 +70,32 @@ router.post('/login', postLogin);
 router.get('/logout', logoutAdmin);
 
 // Protected admin routes (require login)
-router.get('/dashboard', isAdminAuthenticated, getDashboardPage);
+// router.get('/dashboard', isAdminAuthenticated, getDashboardPage); // Old EJS route
+router.get('/dashboard', isAdminAuthenticated, (req, res) => {
+    res.sendFile('dashboard.html', { root: path.join(__dirname, '../views/admin') });
+});
+
+// New API route for dashboard stats (protected by admin auth)
+router.get('/dashboard-stats', isAdminAuthenticated, getDashboardStatsApi);
 
 // Product Management (Admin)
 router.get('/products', isAdminAuthenticated, getAdminProductsPage); // View all products (admin view)
 router.get('/products/new', isAdminAuthenticated, getNewProductForm); // Form to add new product
 router.get('/products/edit/:id', isAdminAuthenticated, getEditProductForm); // Form to edit existing product
-router.post('/products/edit/:id', isAdminAuthenticated, postAdminUpdateProduct); // Handle product update
+
+// Modify routes to use multer middleware for file uploads
+router.post('/products', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }]), postAdminCreateProduct); // Handle product creation with file uploads
+router.post('/products/edit/:id', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }]), postAdminUpdateProduct); // Handle product update with file uploads
 
 // Order Management (Admin)
 router.get('/orders', isAdminAuthenticated, getAdminOrdersPage);
 router.get('/orders/:id', getAdminOrderDetail);
 
-// Settings Management (Admin)
-router.get('/settings', isAdminAuthenticated, getAdminSettingsPage);
+// ** New API route to fetch order data (JSON) **
+router.get('/orders-data', isAdminAuthenticated, getAdminOrdersApi);
 
-// Use the existing API controller for creating product, but ensure it's protected by admin auth.
-// The `isAdminAuthenticated` middleware handles the session-based auth for the admin panel.
-// The `createProduct` from `productController` expects a JSON body and responds with JSON.
-// For a form post, we might need an adapter or a different controller if we want HTML response.
-// However, the `postAdminCreateProduct` in `adminController` is a placeholder.
-// Let's make the form POST to the API endpoint, but this requires the admin to have a "token"
-// or for the API endpoint to also check session. This is getting complex.
+// ** New API route to fetch single product data by ID (JSON) **
+router.get('/products-data/:id', isAdminAuthenticated, getAdminProductByIdApi);
 
-// Simpler approach for now: The admin form POSTs to an admin-specific route,
-// which then calls the logic from productController or a shared service.
-// The `postAdminCreateProduct` in `adminController` is designed for this,
-// but it currently just redirects. Let's make it call the actual `createProduct` logic.
-
-// For a server-rendered form, we want the POST to be handled by a controller
-// that then renders a page or redirects, not just returns JSON.
-// We will use `createProduct` from `productController` but adapt the response in `adminController`.
-
-// Let's refine `postAdminCreateProduct` in adminController.ts to call `createProduct`
-// and handle the redirect/response for an HTML context.
-// The route below will use the placeholder `postAdminCreateProduct` from `adminController`
-// We will then update `adminController.ts` to properly call the product creation logic.
-router.post('/products', isAdminAuthenticated, postAdminCreateProduct); 
-// This is a temporary setup for `postAdminCreateProduct`.
-// A better way would be to have `postAdminCreateProduct` in `adminController`
-// call a service function that `productController.createProduct` also uses,
-// so the core logic is shared and response type (JSON vs HTML redirect) is handled by the controller.
-
-module.exports = router;
+// Export isAdminAuthenticated middleware
+module.exports = { router, isAdminAuthenticated };

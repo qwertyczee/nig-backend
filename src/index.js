@@ -3,17 +3,17 @@ const dotenv = require('dotenv');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
-const session = require('express-session');
-const ejs = require('ejs'); // Import EJS
 
 // Import Supabase client (not initDb)
 const { supabase } = require('./config/db.js');
+const { ourFileRouter } = require("./config/uploadthing.js");
 
 // Import routes
 const productRoutes = require('./routes/productRoutes.js');
 const orderRoutes = require('./routes/orderRoutes.js');
 const webhookRoutes = require('./routes/webhookRoutes.js');
-const adminRoutes = require('./routes/adminRoutes.js');
+// Import admin routes and the upload handler
+const { router: adminRoutes, isAdminAuthenticated } = require('./routes/adminRoutes.js');
 
 // Load .env
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -79,22 +79,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Pre-flight requests
 
-// --- Session Middleware (for admin panel) ---
-const SESSION_SECRET = process.env.SESSION_SECRET || 'fallback-secret-if-not-set-in-env-for-dev';
-app.use(session({
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: true,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 604800000, // 7 days (7 * 24 * 60 * 60 * 1000)
-    sameSite: 'lax'
-  }
-}));
-console.log('LOG: index.js: express-session middleware added. Secure cookie:', process.env.NODE_ENV === 'production');
-
-
 // --- Logging Middleware (Simplified) ---
 app.use((req, res, next) => {
   console.log(`LOG: REQUEST: ${req.method} ${req.originalUrl}`);
@@ -149,12 +133,13 @@ app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
 // Apply DB check middleware to routes that need DB access.
 // Webhooks might need DB access to update order status, so they get it.
 // Product and order routes definitely need it.
+
+// Admin routes are separate and use session auth, might also need DB.
+app.use('/api/admin', /* dbCheckMiddleware, */ adminRoutes);
+
 app.use('/api/products', dbCheckMiddleware, productRoutes);
 app.use('/api/orders', dbCheckMiddleware, orderRoutes);
 app.use('/api/webhooks', dbCheckMiddleware, webhookRoutes);
-
-// Admin routes are separate and use session auth, might also need DB.
-app.use('/admin', dbCheckMiddleware, adminRoutes);
 
 
 // --- Error Handling Middleware ---

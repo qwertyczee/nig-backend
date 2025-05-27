@@ -104,12 +104,11 @@
     <div class="sidebar">
         <h2>Admin Panel</h2>
         <ul>
-            <li><a href="/admin/dashboard" class="active">Dashboard</a></li>
-            <li><a href="/admin/products">Products</a></li>
-            <li><a href="/admin/orders">Orders</a></li>
-            <li><a href="/admin/settings">Settings</a></li>
+            <li><a href="/api/admin/dashboard" class="active">Dashboard</a></li>
+            <li><a href="/api/admin/products">Products</a></li>
+            <li><a href="/api/admin/orders">Orders</a></li>
         </ul>
-        <a href="/admin/logout" class="logout-btn">Logout</a>
+        <a href="/api/admin/logout" class="logout-btn">Logout</a>
     </div>
     <div class="main-content">
         <h1>Dashboard Overview</h1>
@@ -117,15 +116,15 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <h3>Total Products</h3>
-                <p><%= totalProducts %></p>
+                <p id="total-products">Loading...</p>
             </div>
             <div class="stat-card">
-                <h3>New Orders</h3>
-                <p><%= newOrders %></p>
+                <h3>Total Orders</h3>
+                <p id="total-orders">Loading...</p>
             </div>
             <div class="stat-card">
                 <h3>Total Sales</h3>
-                <p><%= totalSales.toFixed(2) %> Kč</p>
+                <p id="total-sales">Loading...</p>
             </div>
         </div>
 
@@ -134,5 +133,30 @@
             <p>Placeholder for recent activities, e.g., latest orders, product updates.</p>
         </section> -->
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('/api/admin/dashboard-stats');
+                const data = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('total-products').textContent = data.totalProducts;
+                    document.getElementById('total-orders').textContent = data.totalOrders;
+                    document.getElementById('total-sales').textContent = `${data.totalSales.toFixed(2)} Kč`;
+                } else {
+                    console.error('Failed to fetch dashboard stats:', data.error);
+                    document.getElementById('total-products').textContent = 'Error';
+                    document.getElementById('total-orders').textContent = 'Error';
+                    document.getElementById('total-sales').textContent = 'Error';
+                }
+            } catch (error) {
+                console.error('Error fetching dashboard stats:', error);
+                document.getElementById('total-products').textContent = 'Error';
+                document.getElementById('total-orders').textContent = 'Error';
+                document.getElementById('total-sales').textContent = 'Error';
+            }
+        });
+    </script>
 </body>
-</html>
+</html> 

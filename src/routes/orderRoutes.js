@@ -23,7 +23,7 @@ router.patch('/:id/cancel', protect, cancelMyOrder); // Keep protect for cancell
 router.get('/by-session/:customerSessionToken', getOrderBySessionToken); // This route is public but relies on the unguessable token
 
 // Example Admin routes (you would uncomment and use 'admin' middleware)
-// router.get('/admin/all', protect, admin, getAllOrdersForAdmin);
-// router.put('/:id/admin/status', protect, admin, updateOrderStatusByAdmin);
+// router.get('/api/admin/all', protect, admin, getAllOrdersForAdmin);
+// router.put('/:id/api/admin/status', protect, admin, updateOrderStatusByAdmin);
 
 module.exports = router;

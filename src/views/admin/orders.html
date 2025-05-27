@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Orders</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            min-height: 100vh;
+            color: #333;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #283747;
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ecf0f1;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li {
+            margin-bottom: 15px;
+        }
+        .sidebar ul li a {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar ul li a:hover, .sidebar ul li a.active {
+            background-color: #34495e;
+            color: white;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            margin: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .main-content h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .order-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .order-table th, .order-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .order-table th {
+            background-color: #f8f8f8;
+            font-weight: bold;
+            color: #555;
+        }
+        .order-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .order-table tr:hover {
+            background-color: #f1f1f1;
+        }
+        .actions a {
+            padding: 8px 12px;
+            margin-right: 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9em;
+            text-decoration: none;
+            color: white;
+            display: inline-block;
+            background-color: #007bff;
+        }
+         .actions a:hover {
+            background-color: #0056b3;
+        }
+        .pagination {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .pagination button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background-color: #fff;
+            cursor: pointer;
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: auto; /* Pushes the logout button to the bottom */
+            transition: background-color 0.3s ease;
+        }
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="/api/admin/dashboard">Dashboard</a></li>
+            <li><a href="/api/admin/products">Products</a></li>
+            <li><a href="/api/admin/orders" class="active">Orders</a></li>
+        </ul>
+        <a href="/api/admin/logout" class="logout-btn">Logout</a>
+    </div>
+    <div class="main-content">
+        <h1>Order Management</h1>
+
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Customer Email</th>
+                    <th>Total Amount</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="order-list">
+                <!-- Orders will be loaded here by JavaScript -->
+                <tr><td colspan="6">Loading orders...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="prev-page">Previous</button>
+            <span>Page <span id="current-page">1</span> of <span id="total-pages">?</span></span>
+            <button id="next-page">Next</button>
+        </div>
+    </div>
+
+    <script>
+        const orderListBody = document.getElementById('order-list');
+        const currentPageSpan = document.getElementById('current-page');
+        const totalPagesSpan = document.getElementById('total-pages');
+        const prevPageButton = document.getElementById('prev-page');
+        const nextPageButton = document.getElementById('next-page');
+
+        let currentPage = 1;
+        const limit = 10;
+
+        async function fetchOrders(page) {
+            orderListBody.innerHTML = '<tr><td colspan="6">Loading orders...</td></tr>';
+            try {
+                const response = await fetch(`/api/admin/orders-data?page=${page}&limit=${limit}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    renderOrders(data.orders);
+                    updatePagination(data.totalPages, page);
+                } else {
+                    console.error('Failed to fetch orders:', data.error);
+                    orderListBody.innerHTML = '<tr><td colspan="6">Error loading orders.</td></tr>';
+                    totalPagesSpan.textContent = '?';
+                    prevPageButton.disabled = true;
+                    nextPageButton.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+                orderListBody.innerHTML = '<tr><td colspan="6">Error loading orders.</td></tr>';
+                totalPagesSpan.textContent = '?';
+                prevPageButton.disabled = true;
+                nextPageButton.disabled = true;
+            }
+        }
+
+        function renderOrders(orders) {
+            orderListBody.innerHTML = ''; // Clear loading message or previous results
+            if (orders.length === 0) {
+                orderListBody.innerHTML = '<tr><td colspan="6">No orders found.</td></tr>';
+                return;
+            }
+
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                const orderDate = new Date(order.created_at).toLocaleDateString();
+                row.innerHTML = `
+                    <td>${order.id}</td>
+                    <td>${order.customer_email || 'N/A'}</td>
+                    <td>${order.total_amount.toFixed(2)} Kč</td>
+                    <td>${order.status}</td>
+                    <td>${orderDate}</td>
+                    <td class="actions">
+                        <a href="/api/admin/orders/${order.id}">View</a>
+                    </td>
+                `;
+                orderListBody.appendChild(row);
+            });
+        }
+
+        function updatePagination(totalPages, currentPage) {
+            currentPageSpan.textContent = currentPage;
+            totalPagesSpan.textContent = totalPages;
+
+            prevPageButton.disabled = currentPage === 1;
+            nextPageButton.disabled = currentPage === totalPages || totalPages === 0;
+        }
+
+        // Event Listeners for Pagination
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                fetchOrders(currentPage);
+            }
+        });
+
+        nextPageButton.addEventListener('click', () => {
+            if (currentPage < parseInt(totalPagesSpan.textContent)) {
+                currentPage++;
+                fetchOrders(currentPage);
+            }
+        });
+
+        // Initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchOrders(currentPage);
+        });
+    </script>
+</body>
+</html> 

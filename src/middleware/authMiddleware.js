@@ -1,4 +1,3 @@
-const { Request, Response, NextFunction } = require('express');
 const jwt = require('jsonwebtoken'); // Using jsonwebtoken for standard JWT operations
 const dotenv = require('dotenv');
 const path = require('path');

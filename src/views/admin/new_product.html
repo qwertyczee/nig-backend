@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add New Product</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            min-height: 100vh;
+            color: #333;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #283747;
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ecf0f1;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li {
+            margin-bottom: 15px;
+        }
+        .sidebar ul li a {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar ul li a:hover, .sidebar ul li a.active {
+            background-color: #34495e;
+            color: white;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 30px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            margin: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .main-content h1 {
+            color: #2c3e50;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .form-container {
+            background-color: #fdfdfd;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #555;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group textarea {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .form-group input[type="checkbox"] {
+            margin-right: 10px;
+        }
+        .form-actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+        }
+        .form-actions button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        .form-actions .save-btn {
+            background-color: #007bff;
+            color: white;
+        }
+        .form-actions .save-btn:hover {
+            background-color: #0056b3;
+        }
+        .form-actions .cancel-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .form-actions .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+         .success-message {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .logout-btn {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: auto;
+            transition: background-color 0.3s ease;
+        }
+        .logout-btn:hover {
+            background-color: #c0392b;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="/api/admin/dashboard">Dashboard</a></li>
+            <li><a href="/api/admin/products" class="active">Products</a></li>
+            <li><a href="/api/admin/orders">Orders</a></li>
+        </ul>
+        <a href="/api/admin/logout" class="logout-btn">Logout</a>
+    </div>
+    <div class="main-content">
+        <h1>Add New Product</h1>
+        <div id="message-area"></div>
+        <div class="form-container">
+            <form id="new-product-form" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="price">Price:</label>
+                    <input type="number" id="price" name="price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="main_image_upload">Upload Main Image:</label>
+                    <input type="file" id="main_image_upload" accept="image/*" name="main_image">
+                    <input type="hidden" id="main_image_url" name="main_image_url">
+                    <div id="main_image_preview" style="margin-top:10px;"></div>
+                </div>
+              
+                <div class="form-group">
+                    <label for="sub_image_upload">Upload Sub Images:</label>
+                    <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images">
+                    <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
+                    <div id="sub_image_preview" style="margin-top:10px;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="likes_input">Likes (comma-separated):</label>
+                    <input type="text" id="likes_input">
+                    <input type="hidden" id="likes" name="likes" value="[]">
+                </div>
+                <div class="form-group">
+                    <label for="is_18_plus">18+ Section:</label>
+                    <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true">
+                </div>
+                <div class="form-group">
+                    <label for="mail_content">Mail Content:</label>
+                    <textarea id="mail_content" name="mail_content"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <input type="text" id="category" name="category">
+                </div>
+                <div class="form-group">
+                    <label for="in_stock">In Stock:</label>
+                    <input type="checkbox" id="in_stock" name="in_stock" value="true" checked>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="save-btn">Add Product</button>
+                    <a href="/api/admin/products" class="cancel-btn">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('new-product-form');
+        const msgArea = document.getElementById('message-area');
+        const mainImageUploadInput = document.getElementById('main_image_upload');
+        const subImageUploadInput = document.getElementById('sub_image_upload');
+        const mainImagePreviewDiv = document.getElementById('main_image_preview');
+        const subImagePreviewDiv = document.getElementById('sub_image_preview');
+        const mainImageUrlInput = document.getElementById('main_image_url');
+        const subImageUrlsHiddenInput = document.getElementById('sub_image_urls');
+
+        function displayImagePreview(file, previewContainer) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.maxWidth = '100px';
+                img.style.margin = '5px';
+                previewContainer.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        mainImageUploadInput.addEventListener('change', e => {
+            mainImagePreviewDiv.innerHTML = '';
+          const file = e.target.files[0];
+            if (file) {
+                displayImagePreview(file, mainImagePreviewDiv);
+                mainImageUrlInput.value = '';
+            }
+        });
+
+        subImageUploadInput.addEventListener('change', e => {
+          const files = [...e.target.files];
+            files.forEach(file => {
+                displayImagePreview(file, subImagePreviewDiv);
+            });
+        });
+
+            const likesInput = document.getElementById('likes_input');
+            const likesHidden = document.getElementById('likes');
+        const subImageUrlsTextInput = document.getElementById('sub_image_urls_input');
+
+        if (subImageUrlsTextInput) {
+            subImageUrlsTextInput.addEventListener('input', (event) => {
+                const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
+                subImageUrlsHiddenInput.value = JSON.stringify(urls);
+            });
+        }
+
+            likesInput.addEventListener('input', (event) => {
+                const items = event.target.value.split(',').map(item => item.trim()).filter(item => item !== '');
+                likesHidden.value = JSON.stringify(items);
+            });
+
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            msgArea.innerHTML = '';
+
+            const formData = new FormData(form);
+
+            try {
+                const res = await fetch('/api/admin/products', {
+                        method: 'POST',
+                body: formData
+                });
+
+                const json = await res.json();
+
+                if (res.ok) {
+                    msgArea.innerHTML = '<p class="success-message">Product created successfully!</p>';
+                    form.reset();
+                    mainImagePreviewDiv.innerHTML = '';
+                    subImagePreviewDiv.innerHTML = '';
+                    likesHidden.value = '[]';
+                    if (subImageUrlsTextInput) subImageUrlsTextInput.value = '';
+                    subImageUrlsHiddenInput.value = '[]';
+                    likesInput.value = '';
+                    mainImageUrlInput.value = '';
+
+                    } else {
+                    msgArea.innerHTML = `<p class="error-message">Failed to create product: ${json.error || json.message || res.statusText}</p>`;
+                }
+            } catch (err) {
+                console.error('Error submitting form:', err);
+                msgArea.innerHTML = '<p class="error-message">An error occurred while creating the product.</p>';
+            }
+        });
+    </script>
+</body>
+</html> 

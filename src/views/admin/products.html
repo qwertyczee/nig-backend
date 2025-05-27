@@ -82,21 +82,22 @@
         .product-table tr:hover {
             background-color: #f1f1f1;
         }
-        .actions button {
+        .actions button, .actions a {
             padding: 8px 12px;
             margin-right: 5px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 0.9em;
+            text-decoration: none;
+            color: white;
+            display: inline-block;
         }
         .actions .edit-btn {
             background-color: #28a745;
-            color: white;
         }
         .actions .delete-btn {
             background-color: #dc3545;
-            color: white;
         }
         .add-product-btn {
             background-color: #007bff;
@@ -134,17 +135,16 @@
     <div class="sidebar">
         <h2>Admin Panel</h2>
         <ul>
-            <li><a href="/admin/dashboard">Dashboard</a></li>
-            <li><a href="/admin/products" class="active">Products</a></li>
-            <li><a href="/admin/orders">Orders</a></li>
-            <li><a href="/admin/settings">Settings</a></li>
+            <li><a href="/api/admin/dashboard">Dashboard</a></li>
+            <li><a href="/api/admin/products" class="active">Products</a></li>
+            <li><a href="/api/admin/orders">Orders</a></li>
         </ul>
-        <a href="/admin/logout" class="logout-btn">Logout</a>
+        <a href="/api/admin/logout" class="logout-btn">Logout</a>
     </div>
     <div class="main-content">
         <h1>Product Management</h1>
 
-        <a href="/admin/products/new" class="add-product-btn">Add New Product</a>
+        <a href="/api/admin/products/new" class="add-product-btn">Add New Product</a>
 
         <table class="product-table">
             <thead>
@@ -156,26 +156,61 @@
                     <th>Actions</th>
                 </tr>
             </thead>
-            <tbody>
-                <% products.forEach(product => { %>
-                <tr>
-                    <td><%= product.id %></td>
-                    <td><%= product.name %></td>
-                    <td><%= product.price.toFixed(2) %> Kč</td>
-                    <td><%= product.in_stock ? 'In Stock' : 'Out of Stock' %></td>
-                    <td class="actions">
-                        <a href="/admin/products/edit/<%= product.id %>" class="edit-btn">Edit</a>
-                        <button class="delete-btn">Delete</button>
-                    </td>
-                </tr>
-                <% }); %>
-                <% if (products.length === 0) { %>
-                <tr>
-                    <td colspan="5">No products found.</td>
-                </tr>
-                <% } %>
+            <tbody id="product-list">
+                <!-- Products will be loaded here by JavaScript -->
             </tbody>
         </table>
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const productListBody = document.getElementById('product-list');
+            
+            try {
+                const response = await fetch('/api/products');
+                const products = await response.json();
+
+                if (response.ok) {
+                    if (products.length === 0) {
+                        productListBody.innerHTML = '<tr><td colspan="5">No products found.</td></tr>';
+                    } else {
+                        products.forEach(product => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${product.id}</td>
+                                <td>${product.name}</td>
+                                <td>${product.price.toFixed(2)} Kč</td>
+                                <td>${product.in_stock ? 'In Stock' : 'Out of Stock'}</td>
+                                <td class="actions">
+                                    <a href="/api/admin/products/edit/${product.id}" class="edit-btn">Edit</a>
+                                    <button class="delete-btn" data-product-id="${product.id}">Delete</button>
+                                </td>
+                            `;
+                            productListBody.appendChild(row);
+                        });
+
+                        // Add event listeners for delete buttons (will implement delete logic later)
+                        productListBody.querySelectorAll('.delete-btn').forEach(button => {
+                            button.addEventListener('click', async (event) => {
+                                const productId = event.target.dataset.productId;
+                                if (confirm(`Are you sure you want to delete product ${productId}?`)) {
+                                    // Implement delete logic here
+                                    console.log(`Delete product with ID: ${productId}`);
+                                    // Example: await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+                                    // Refresh the list or remove the row on success
+                                }
+                            });
+                        });
+                    }
+                } else {
+                    console.error('Failed to fetch products:', products.error);
+                    productListBody.innerHTML = '<tr><td colspan="5">Error loading products.</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                productListBody.innerHTML = '<tr><td colspan="5">Error loading products.</td></tr>';
+            }
+        });
+    </script>
 </body>
-</html>
+</html> 

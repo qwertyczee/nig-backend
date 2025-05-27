@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Detail</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background-color: #f0f2f5;
+            display: flex;
+            min-height: 100vh;
+            color: #333;
+        }
+        .sidebar {
+            width: 250px;
+            background-color: #283747;
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #ecf0f1;
+        }
+        .sidebar ul {
+            list-style: none;
+            padding: 0;
+            flex-grow: 1;
+        }
+        .sidebar ul li {
+            margin-bottom: 15px;
+        }
+        .sidebar ul li a {
+            color: #bdc3c7;
+            text-decoration: none;
+            padding: 10px 15px;
+            display: block;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .sidebar ul li a:hover, .sidebar ul li a.active {
+            background-color: #34495e;
+            color: white;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 40px;
+            background-color: #fff;
+            border-radius: 8px;
+            margin: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.07);
+            max-width: 700px;
+        }
+        .order-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .order-header h1 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .order-info {
+            margin-bottom: 30px;
+        }
+        .order-info p {
+            margin: 10px 0;
+            font-size: 1.1em;
+        }
+        .order-status {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            color: #333;
+            font-weight: bold;
+            font-size: 1em;
+        }
+        .order-status.pending {
+            background-color: #f1c40f;
+        }
+        .order-status.delivered {
+            background-color: #2ecc71;
+            color: #fff;
+        }
+        .order-status.cancelled {
+            background-color: #e74c3c;
+            color: #fff;
+        }
+        .order-status.processing {
+            background-color: #3498db;
+            color: #fff;
+        }
+        .order-status.shipped {
+            background-color: #9b59b6;
+            color: #fff;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #007bff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .back-link:hover {
+            color: #0056b3;
+        }
+        #message-area {
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .error-message {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>Admin Panel</h2>
+        <ul>
+            <li><a href="/api/admin/dashboard">Dashboard</a></li>
+            <li><a href="/api/admin/products">Products</a></li>
+            <li><a href="/api/admin/orders" class="active">Orders</a></li>
+        </ul>
+        <a href="/api/admin/logout" class="logout-btn">Logout</a>
+    </div>
+    <div class="main-content">
+        <div id="message-area"></div>
+        <div class="order-header">
+            <h1 id="order-id">Loading Order...</h1>
+            <span id="order-status" class="order-status"></span>
+        </div>
+        <div class="order-info">
+            <p><strong>Customer Email:</strong> <span id="customer-email">Loading...</span></p>
+            <p><strong>Total Amount:</strong> <span id="total-amount">Loading...</span> Kč</p>
+            <p><strong>Created:</strong> <span id="created-at">Loading...</span></p>
+        </div>
+        <a href="/api/admin/orders" class="back-link">&larr; Back to Orders</a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const orderId = window.location.pathname.split('/').pop();
+            const messageArea = document.getElementById('message-area');
+            const orderIdElement = document.getElementById('order-id');
+            const orderStatusElement = document.getElementById('order-status');
+            const customerEmailElement = document.getElementById('customer-email');
+            const totalAmountElement = document.getElementById('total-amount');
+            const createdAtElement = document.getElementById('created-at');
+
+            if (!orderId || isNaN(orderId)) {
+                messageArea.innerHTML = '<p class="message error-message">Invalid Order ID provided.</p>';
+                orderIdElement.textContent = 'Error';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/orders/${orderId}`); // Using the existing route
+                const order = await response.json();
+
+                if (response.ok) {
+                    orderIdElement.textContent = `Order #${order.id}`;
+                    orderStatusElement.textContent = order.status.charAt(0).toUpperCase() + order.status.slice(1);
+                    orderStatusElement.className = `order-status ${order.status.toLowerCase()}`;
+                    customerEmailElement.textContent = order.customer_email || 'N/A';
+                    totalAmountElement.textContent = order.total_amount.toFixed(2);
+                    createdAtElement.textContent = new Date(order.created_at).toLocaleString();
+                } else {
+                    messageArea.innerHTML = `<p class="message error-message">Failed to load order: ${order.error || response.statusText}</p>`;
+                     orderIdElement.textContent = 'Error';
+                     orderStatusElement.textContent = 'Error';
+                     customerEmailElement.textContent = 'Error';
+                     totalAmountElement.textContent = 'Error';
+                     createdAtElement.textContent = 'Error';
+                }
+            } catch (error) {
+                console.error('Error fetching order details:', error);
+                 messageArea.innerHTML = '<p class="message error-message">An error occurred while fetching order details.</p>';
+                 orderIdElement.textContent = 'Error';
+                 orderStatusElement.textContent = 'Error';
+                 customerEmailElement.textContent = 'Error';
+                 totalAmountElement.textContent = 'Error';
+                 createdAtElement.textContent = 'Error';
+            }
+        });
+    </script>
+</body>
+</html> 
