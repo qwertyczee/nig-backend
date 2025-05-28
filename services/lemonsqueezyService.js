@@ -38,7 +38,7 @@ async function createLemonSqueezyCheckout({ user, address, discountCode, totalPr
                     product_options: {
                         name: 'Slavesonline',
                         description: 'Payment',
-                        redirect_url: 'https://www.slavesonline.store/success',
+                        redirect_url: 'https://www.slavesonline.store/order/success',
                     },
                     checkout_options: {
                         embed: true,

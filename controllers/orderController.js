@@ -1,4 +1,3 @@
-const { Request, Response } = require('express');
 const { supabase } = require('../config/db');
 const { createLemonSqueezyCheckout } = require('../services/lemonsqueezyService');
 
