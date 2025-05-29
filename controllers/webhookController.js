@@ -21,6 +21,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
   try {
     // Only process successful payment (order_created)
     if (event.meta && event.meta.event_name === 'order_created') {
+      console.log("Event Data: ", JSON.stringify(event, null, 2));
       const orderData = event.data;
       const orderId = event.meta.custom_data?.user_id;
       const customerEmail = orderData?.attributes?.user_email;
