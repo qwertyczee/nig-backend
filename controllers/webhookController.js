@@ -38,23 +38,19 @@ const handleLemonSqueezyWebhook = async (req, res) => {
         // Najdi objednávku podle order_id
         const { data: order, error: orderError } = await supabase
           .from('orders')
-          .select(`id, order_items (quantity, products (name, image_url))`)
+          .select(`id, order_items (quantity, products (name))`)
           .eq('id', orderId)
           .eq('status', 'processing')
           .single();
         if (orderError || !order) {
           console.error('Could not fetch order for email:', orderError?.message);
         } else {
-          // Build HTML with product images
+          // Build HTML with product names only
           let html = `<h2>Děkujeme za vaši objednávku!</h2><p>Zde jsou vaše zakoupené produkty:</p><div style="display:flex;flex-wrap:wrap;gap:16px;">`;
           for (const item of order.order_items) {
             const product = item.products;
             if (product) {
-              html += `<div style="text-align:center;">`;
-              if (product.image_url) {
-                html += `<img src="${product.image_url}" alt="${product.name}" style="max-width:300px;max-height:300px;display:block;margin-bottom:8px;"/>`;
-              }
-              html += `<div>${product.name}</div></div>`;
+              html += `<div style="text-align:center;"><div>${product.name}</div></div>`;
             }
           }
           html += '</div>';
