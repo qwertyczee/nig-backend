@@ -46,11 +46,15 @@ const handleLemonSqueezyWebhook = async (req, res) => {
           console.error('Could not fetch order for email:', orderError?.message);
         } else {
           // Build HTML with product images
-          let html = `<h2>Děkujeme za vaši objednávku!</h2><p>Zde jsou vaše zakoupené obrázky:</p><div style="display:flex;flex-wrap:wrap;gap:16px;">`;
+          let html = `<h2>Děkujeme za vaši objednávku!</h2><p>Zde jsou vaše zakoupené produkty:</p><div style="display:flex;flex-wrap:wrap;gap:16px;">`;
           for (const item of order.order_items) {
             const product = item.products;
-            if (product && product.image_url) {
-              html += `<div style="text-align:center;"><img src="${product.image_url}" alt="${product.name}" style="max-width:300px;max-height:300px;display:block;margin-bottom:8px;"/><div>${product.name}</div></div>`;
+            if (product) {
+              html += `<div style="text-align:center;">`;
+              if (product.image_url) {
+                html += `<img src="${product.image_url}" alt="${product.name}" style="max-width:300px;max-height:300px;display:block;margin-bottom:8px;"/>`;
+              }
+              html += `<div>${product.name}</div></div>`;
             }
           }
           html += '</div>';
