@@ -56,7 +56,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
           html += '</div>';
           try {
             await resend.emails.send({
-              from: 'Slavesonline <noreply@learbuddy.fun>',
+              from: 'Slavesonline <noreply@slavesonline.store>',
               to: customerEmail,
               subject: 'Děkujeme za vaši objednávku',
               html
