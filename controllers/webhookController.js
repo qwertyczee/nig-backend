@@ -15,6 +15,8 @@ const handleLemonSqueezyWebhook = async (req, res) => {
     return res.status(400).send('Webhook error: Invalid JSON payload.');
   }
 
+  console.log(event)
+
   try {
     if (event.meta && event.meta.event_name === 'order_created') {
       console.log(`[WEBHOOK_INFO] Processing 'order_created' event. Event ID: ${event.meta.event_id}`);
