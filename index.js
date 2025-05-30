@@ -3,6 +3,7 @@ require('dotenv').config();
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
+const { handlePrepareUpload } = require('./config/uploadthing.js')
 
 // Import Supabase client (not initDb)
 const { supabase } = require('./config/db.js');
@@ -126,11 +127,12 @@ app.get('/api/health', (req, res) => {
 
 // Admin routes are separate and use session auth, might also need DB.
 app.use('/api/admin', dbCheckMiddleware, adminRoutes);
-
+//app.use('/api/uploadthing', handlers)
 app.use('/api/products', dbCheckMiddleware, productRoutes);
 app.use('/api/orders', dbCheckMiddleware, orderRoutes);
 app.use('/api/webhooks', dbCheckMiddleware, webhookRoutes);
 
+app.use("/api/uploadthing", handlePrepareUpload);
 
 // --- Error Handling Middleware ---
 // 404 Handler (Not Found)

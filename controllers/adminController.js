@@ -61,9 +61,11 @@ const postAdminCreateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminCreateProduct: Request files:', req.files);
 
     const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
-    const mainImageMulterFile = req.files?.main_image?.[0];
-    const subImagesMulterFiles = req.files?.sub_images;
-    const receivedImagesMulterFiles = req.files?.received_images;
+    let { main_image_url, sub_image_urls, received_images_zip_url } = req.body;
+    
+    main_image_url = `https://rhcwjrafe0.ufs.sh/f/${main_image_url}`
+    sub_image_urls = sub_image_urls.map(url => `https://rhcwjrafe0.ufs.sh/f/${url}`)
+    received_images_zip_url = `https://rhcwjrafe0.ufs.sh/f/${received_images_zip_url}`
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminCreateProduct: Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
@@ -73,111 +75,7 @@ const postAdminCreateProduct = async (req, res) => {
     const isInStock = in_stock === 'true' || in_stock === 'on' || false;
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
-    let main_image_url = null;
-    const sub_image_urls = [];
-    const received_images_urls = [];
-
     try {
-        // Upload main image to UploadThing if provided, using UTFile
-        if (mainImageMulterFile) {
-            console.log(`Processing main image for upload: ${mainImageMulterFile.originalname}`);
-            // Simulate reading from a buffer as if it were a temporary file
-            const fileBuffer = mainImageMulterFile.buffer;
-            const tempScreenshotFilename = mainImageMulterFile.originalname;
-
-            const fileForUpload = new UTFile([fileBuffer], tempScreenshotFilename, { type: mainImageMulterFile.mimetype });
-
-            console.log(`Uploading ${tempScreenshotFilename} to UploadThing...`);
-            const mainImageUploadResult = await utapi.uploadFiles([fileForUpload], { key: "productImages" }); // Specify the productImages route
-
-            console.log("Main image UploadThing Response:", JSON.stringify(mainImageUploadResult, null, 2));
-
-            if (!mainImageUploadResult || mainImageUploadResult.length === 0) {
-                throw new Error("Main image UploadThing returned an empty response array.");
-            }
-            if (mainImageUploadResult[0].error) {
-                console.error("Main image UploadThing upload error:", mainImageUploadResult[0].error);
-                throw new Error(`Main image UploadThing error: ${mainImageUploadResult[0].error.message || "Unknown upload error"}`);
-            }
-            // Check for ufsUrl as recommended in newer UploadThing versions
-            if (!mainImageUploadResult[0].data || !mainImageUploadResult[0].data.ufsUrl) {
-                console.error("Main image UploadThing response missing data or ufsUrl:", mainImageUploadResult[0]);
-                throw new Error("Main image UploadThing response structure invalid (missing data.ufsUrl).");
-            }
-
-            // Extract the URL from the data object (use data.ufsUrl)
-            main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
-            console.log("[Admin Controller] Main image uploaded. URL:", main_image_url);
-        }
-
-        // Upload sub images to UploadThing if provided, using UTFile for each
-        if (subImagesMulterFiles && subImagesMulterFiles.length > 0) {
-            console.log('[Admin Controller] Uploading sub images...', subImagesMulterFiles.length);
-
-            // Map multer files to UTFile instances using buffers
-            const subImageUTFiles = subImagesMulterFiles.map(file => {
-                console.log(`Processing sub image for upload: ${file.originalname}`);
-                // Simulate reading from a buffer as if it were a temporary file
-                const fileBuffer = file.buffer;
-                const tempFilename = file.originalname;
-                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
-            });
-
-            const subImagesUploadResult = await utapi.uploadFiles(subImageUTFiles, { key: 'productImages' }); // Specify the productImages route
-
-            // Check if all uploads were successful and get URLs (check ufsUrl for each)
-            console.log("[Admin Controller] Sub images UploadThing Response:", JSON.stringify(subImagesUploadResult, null, 2));
-            if (!subImagesUploadResult || subImagesUploadResult.length !== subImageUTFiles.length) {
-                console.error("[Admin Controller] Sub image UploadThing returned incorrect number of responses or empty:", subImagesUploadResult);
-                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
-                throw new Error('Failed to upload one or more sub images. Details: ' + errors);
-            }
-
-            const failedUploads = subImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
-            if (failedUploads.length > 0) {
-                console.error("[Admin Controller] Failed sub image uploads found:", failedUploads);
-                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
-                throw new Error('Failed to upload one or more sub images. Details: ' + errors);
-            }
-
-            // Extract URLs from the data object for each file
-            const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
-            sub_image_urls.push(...urls);
-            console.log('[Admin Controller] Sub images uploaded. URLs:', sub_image_urls);
-        }
-
-        // Upload received images to UploadThing if provided, using UTFile for each
-        if (receivedImagesMulterFiles && receivedImagesMulterFiles.length > 0) {
-            console.log('[Admin Controller] Uploading received images...', receivedImagesMulterFiles.length);
-
-            const receivedImageUTFiles = receivedImagesMulterFiles.map(file => {
-                console.log(`Processing received image for upload: ${file.originalname}`);
-                const fileBuffer = file.buffer;
-                const tempFilename = file.originalname;
-                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
-            });
-
-            const receivedImagesUploadResult = await utapi.uploadFiles(receivedImageUTFiles, { key: 'productImages' });
-
-            console.log("[Admin Controller] Received images UploadThing Response:", JSON.stringify(receivedImagesUploadResult, null, 2));
-            if (!receivedImagesUploadResult || receivedImagesUploadResult.length !== receivedImageUTFiles.length) {
-                console.error("[Admin Controller] Received image UploadThing returned incorrect number of responses or empty:", receivedImagesUploadResult);
-                const errors = receivedImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
-                throw new Error('Failed to upload one or more received images. Details: ' + errors);
-            }
-
-            const failedUploads = receivedImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
-            if (failedUploads.length > 0) {
-                console.error("[Admin Controller] Failed received image uploads found:", failedUploads);
-                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
-                throw new Error('Failed to upload one or more received images. Details: ' + errors);
-            }
-
-            const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
-            received_images_urls.push(...urls);
-            console.log('[Admin Controller] Received images uploaded. URLs:', received_images_urls);
-        }
-
         // Process categories: combine selected checkboxes and new input
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
@@ -202,7 +100,7 @@ const postAdminCreateProduct = async (req, res) => {
             is_18_plus: is18Plus,
             in_stock: isInStock,
             received_text: received_text || null,
-            received_images_urls: received_images_urls,
+            received_images_zip_url: received_images_zip_url,
         };
 
         console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Data:', JSON.stringify(productDataForSupabase, null, 2));
@@ -552,24 +450,31 @@ const getAdminOrdersApi = async (req, res) => {
 const getAdminProductCategories = async (req, res) => {
     try {
         // Fetch distinct categories from the "products" table
-        const { data: categories, error } = await supabase
+        // Modify query to handle potential malformed data like empty string ""
+        // The .neq('category', '') filter should ideally handle this, but let's ensure robustness.
+        const { data: products, error } = await supabase
             .from('products')
-            .select('category', { distinct: true })
-            .not('category', 'is', null) // Exclude products with no category set
-            .neq('category', ''); // Exclude products with empty string category
+            .select('category'); // Fetch all categories first
 
         if (error) {
             console.error('Error fetching product categories from DB:', error.message);
             return res.status(500).json({ error: 'Failed to fetch product categories from database' });
         }
 
+        // Process categories in application code to filter out null/empty strings and get distinct values
+        const allCategories = products
+            .map(item => item.category)
+            .filter(category => category !== null && category !== '' && Array.isArray(category)); // Filter out null, empty strings, and non-arrays
+
+        // Flatten the array of arrays and get unique categories
+        const distinctCategories = Array.from(new Set(allCategories.flat()));
+
         // Format the categories for the frontend as an array of objects { id, name }
-        const formattedCategories = categories
-            .map(item => ({
-                id: item.category,
-                name: item.category.charAt(0).toUpperCase() + item.category.slice(1)
-            }))
-            .filter(category => category.id !== null && category.id !== ''); // Filter out any potential null/empty categories
+        const formattedCategories = distinctCategories
+            .map(category => ({
+                id: category,
+                name: category.charAt(0).toUpperCase() + category.slice(1)
+            }));
 
         res.json(formattedCategories);
     } catch (error) {

@@ -78,9 +78,9 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
             order_items (
                 quantity,
                 products (
-                name,
-                image_url,
-                description
+                    name,
+                    image_url,
+                    description
                 )
             )
         `)

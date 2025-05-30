@@ -454,6 +454,70 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-progress {
+            width: 100%;
+            height: 20px;
+            background: #f3f3f3;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .loading-content h3 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .loading-content p {
+            color: #666;
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
@@ -485,6 +549,18 @@
             </div>
 
             <div id="message-area"></div>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <h3>Nahrávání produktu...</h3>
+                    <p id="loading-status">Připravuji nahrávání...</p>
+                    <div class="loading-progress">
+                        <div id="loading-progress-bar" class="loading-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
 
             <div class="form-card">
                 <div class="form-header">
@@ -624,9 +700,15 @@
         </div>
     </main>
 
+    <!-- Add JSZip library for creating ZIP files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <script>
         const form = document.getElementById('new-product-form');
         const msgArea = document.getElementById('message-area');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const loadingStatus = document.getElementById('loading-status');
+        const loadingProgressBar = document.getElementById('loading-progress-bar');
         
         const mainImageUploadInput = document.getElementById('main_image_upload');
         const subImageUploadInput = document.getElementById('sub_image_upload');
@@ -638,6 +720,95 @@
         
         const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
         const newCategoryInput = document.getElementById('new_category_input');
+
+        // Progress tracking
+        let currentProgress = 0;
+        const totalSteps = 4; // main image, sub images, received images, create product
+
+        function updateProgress(step, message) {
+            currentProgress = step;
+            const percentage = (currentProgress / totalSteps) * 100;
+            loadingProgressBar.style.width = `${percentage}%`;
+            loadingStatus.textContent = message;
+        }
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+            updateProgress(0, 'Připravuji nahrávání...');
+        }
+
+        function hideLoading() {
+            loadingOverlay.style.display = 'none';
+            currentProgress = 0;
+            loadingProgressBar.style.width = '0%';
+        }
+
+        // Upload file to UploadThing
+        async function uploadToUploadThing(file) {
+            try {
+                // 1) Get presigned URL and fields from our server
+                const presignedResp = await fetch('/api/uploadthing', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fileName: file.name,
+                        fileType: file.type,
+                        fileSize: file.size,
+                        slug: 'imageUploader'
+                    })
+                });
+
+                if (!presignedResp.ok) {
+                    const errorText = await presignedResp.text();
+                    throw new Error(`Failed to get upload URL: ${presignedResp.status} ${errorText}`);
+                }
+
+                const uploadData = await presignedResp.json();
+                console.log('Upload data received:', uploadData);
+
+                // 2) Use the presigned URL directly without modification
+                const { url, fields, key } = uploadData;
+
+                // Create FormData for multipart upload
+                const formData = new FormData();
+                
+                // Add all fields first (if any)
+                if (fields) {
+                    Object.entries(fields).forEach(([key, value]) => {
+                        formData.append(key, value);
+                    });
+                }
+                
+                // Add the file last
+                formData.append('file', file);
+
+                // 3) Upload using POST with FormData (not PUT)
+                const uploadResp = fetch(url, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                console.log('Upload successful, key:', key);
+                return key;
+
+            } catch (error) {
+                console.error('Upload error:', error);
+                throw error;
+            }
+        }
+
+        // Create ZIP file from images
+        async function createZipFromImages(files) {
+            const zip = new JSZip();
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileName = `received_image_${i + 1}.${file.name.split('.').pop()}`;
+                zip.file(fileName, file);
+            }
+
+            return await zip.generateAsync({ type: 'blob' });
+        }
 
         function displayImagePreview(file, previewContainer) {
             const reader = new FileReader();
@@ -677,9 +848,9 @@
                 const categories = await response.json();
                 existingCategoriesCheckboxesDiv.innerHTML = '';
             
-            if (categories.length === 0) {
+                if (categories.length === 0) {
                     existingCategoriesCheckboxesDiv.innerHTML = '<p>Žádné existující kategorie nenalezeny.</p>';
-            } else {
+                } else {
                     categories.forEach(category => {
                         const categoryId = category.id;
                         const categoryName = category.name;
@@ -712,36 +883,96 @@
         form.addEventListener('submit', async e => {
             e.preventDefault();
             msgArea.innerHTML = '';
+            console.log('test')
 
-            const formData = new FormData(form);
-
+            // Get selected categories
             const selectedCategories = [];
             existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
                 selectedCategories.push(checkbox.value);
             });
+
+            console.log('test2')
 
             const newCategory = newCategoryInput.value.trim();
             if (newCategory) {
                 selectedCategories.push(newCategory);
             }
 
-            const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
+            console.log('test3')
 
-            formData.delete('category');
-            formData.delete('new_category_input');
+            const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
 
             if (finalCategories.length === 0) {
                 msgArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Prosím vyberte alespoň jednu kategorii nebo zadejte novou.</div>';
                 return;
             }
 
+            console.log('test4')
+
+            showLoading();
+
+            console.log('test5')
+
             try {
+                let mainImageUrl = '';
+                let subImageUrls = [];
+                let receivedImagesUrls = '';
+
+                // Step 1: Upload main image
+                updateProgress(1, 'Nahrávám hlavní obrázek...');
+                if (mainImageUploadInput.files.length > 0) {
+                    mainImageUrl = await uploadToUploadThing(mainImageUploadInput.files[0]);
+                }
+
+                console.log('test6')
+
+                // Step 2: Upload sub images
+                updateProgress(2, 'Nahrávám další obrázky...');
+                if (subImageUploadInput.files.length > 0) {
+                    const subImageFiles = Array.from(subImageUploadInput.files);
+                    for (const file of subImageFiles) {
+                        const url = await uploadToUploadThing(file);
+                        subImageUrls.push(url);
+                    }
+                }
+
+                // Step 3: Upload received images as ZIP
+                updateProgress(3, 'Nahrávám fotky obsahu balení...');
+                if (receivedImagesUploadInput.files.length > 0) {
+                    const receivedImageFiles = Array.from(receivedImagesUploadInput.files);
+                    const zipBlob = await createZipFromImages(receivedImageFiles);
+                    const zipFile = new File([zipBlob], 'images.zip', { type: 'application/zip' });
+                    receivedImagesUrls = await uploadToUploadThing(zipFile);
+                }
+
+                // Step 4: Create product
+                updateProgress(4, 'Vytvářím produkt...');
+
+                // Prepare form data without files
+                const productData = {
+                    name: document.getElementById('name').value,
+                    price: document.getElementById('price').value,
+                    description: document.getElementById('description').value,
+                    received_text: document.getElementById('received_text').value,
+                    is_18_plus: document.getElementById('is_18_plus').checked,
+                    in_stock: document.getElementById('in_stock').checked,
+                    categories: finalCategories,
+                    main_image_url: mainImageUrl,
+                    sub_image_urls: subImageUrls,
+                    received_images_urls: receivedImagesUrls
+                };
+
                 const res = await fetch('/api/admin/products', {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(productData)
                 });
 
                 const json = await res.json();
+
+                hideLoading();
 
                 if (res.ok) {
                     msgArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Produkt byl úspěšně vytvořen!</div>';
@@ -760,8 +991,9 @@
                     msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Nepodařilo se vytvořit produkt: ${json.error || json.message || res.statusText}</div>`;
                 }
             } catch (err) {
-                console.error('Chyba při odesílání formuláře:', err);
-                msgArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Došlo k chybě při vytváření produktu.</div>';
+                console.error('Chyba při vytváření produktu:', err);
+                hideLoading();
+                msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Došlo k chybě při vytváření produktu: ${err.message}</div>`;
             }
         });
 
