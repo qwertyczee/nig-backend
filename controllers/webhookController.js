@@ -9,7 +9,8 @@ const handleLemonSqueezyWebhook = async (req, res) => {
 
   let event;
   try {
-    event = req.body;
+    // Parse the raw body (Buffer) as JSON
+    event = JSON.parse(req.body.toString());
   } catch (e) {
     console.error('[WEBHOOK_PARSE_ERROR] Invalid JSON payload:', e);
     return res.status(400).send('Webhook error: Invalid JSON payload.');
