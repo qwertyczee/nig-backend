@@ -471,6 +471,219 @@
                 grid-template-columns: 1fr;
             }
         }
+
+        /* Add Loading Overlay Styles */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-progress {
+            width: 100%;
+            height: 20px;
+            background: #f3f3f3;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        .loading-progress-bar {
+            height: 100%;
+            background: #007bff;
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+
+        .loading-content h3 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
+        .loading-content p {
+            color: #666;
+            margin-bottom: 0;
+        }
+
+        .images-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            align-items: start;
+        }
+
+        .upload-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .current-images-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .current-images-header {
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .images-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 1rem;
+        }
+
+        .image-item {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .image-item.existing {
+            border-color: var(--success-color);
+        }
+
+        .image-item.new {
+            border-color: var(--warning-color);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 100px;
+            object-fit: cover;
+        }
+
+        .image-item .remove-btn {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-item:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .image-badge {
+            position: absolute;
+            bottom: 0.25rem;
+            left: 0.25rem;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .image-badge.existing {
+            background: var(--success-color);
+        }
+
+        .image-badge.new {
+            background: var(--warning-color);
+        }
+
+        .url-list {
+            background: var(--light-gray);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .url-list-header {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+        }
+
+        .url-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            word-break: break-all;
+        }
+
+        .url-text {
+            flex: 1;
+            margin-right: 0.5rem;
+            color: var(--medium-gray);
+        }
+
+        .url-remove {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .images-container {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -502,6 +715,18 @@
             </div>
 
             <div id="message-area"></div>
+
+            <!-- Loading Overlay -->
+            <div id="loading-overlay" class="loading-overlay" style="display: none;">
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <h3>Updating product...</h3>
+                    <p id="loading-status">Preparing upload...</p>
+                    <div class="loading-progress">
+                        <div id="loading-progress-bar" class="loading-progress-bar"></div>
+                    </div>
+                </div>
+            </div>
 
             <div class="form-card">
                 <div class="form-header">
@@ -537,10 +762,6 @@
                             </h3>
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label class="form-label" for="main_image_url">Main Image URL</label>
-                                    <input type="text" id="main_image_url" name="main_image_url" class="form-input">
-                                </div>
-                                <div class="form-group">
                                     <label class="form-label" for="main_image_upload">Upload Main Image</label>
                                     <div class="file-input-wrapper">
                                         <input type="file" id="main_image_upload" accept="image/*" name="main_image" class="file-input">
@@ -551,17 +772,42 @@
                                     </div>
                                     <div id="main_image_preview" class="image-preview-grid"></div>
                                 </div>
-                                <div class="form-group full-width">
-                                    <label class="form-label" for="sub_image_upload">Upload Additional Images</label>
-                                    <div class="file-input-wrapper">
-                                        <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
-                                        <label for="sub_image_upload" class="file-input-label">
-                                            <i class="fas fa-cloud-upload-alt"></i>
-                                            Select multiple files
-                                        </label>
+                                <div class="form-section">
+                                    <h3 class="section-title">
+                                        <i class="fas fa-images"></i>
+                                        Additional Product Images
+                                    </h3>
+                                    <div class="images-container">
+                                        <div class="upload-section">
+                                            <div class="form-group">
+                                                <label class="form-label" for="sub_image_upload">Upload New Images</label>
+                                                <div class="file-input-wrapper">
+                                                    <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
+                                                    <label for="sub_image_upload" class="file-input-label">
+                                                        <i class="fas fa-cloud-upload-alt"></i>
+                                                        Select multiple files
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="url-list">
+                                                <div class="url-list-header">Current Image URLs:</div>
+                                                <div id="current-urls-list">
+                                                    <div class="url-item" style="justify-content: center; font-style: italic; color: var(--medium-gray);">
+                                                        Loading...
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="current-images-section">
+                                            <div class="current-images-header">All Images Preview</div>
+                                            <div id="all_images_preview" class="images-grid">
+                                                <!-- Images will be populated here -->
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div id="sub_image_preview" class="image-preview-grid"></div>
-                                </div>
+                                </div>                                
                                 <div class="form-group full-width">
                                     <label class="form-label" for="sub_image_urls_input">Existing Sub Image URLs (comma-separated)</label>
                                     <input type="text" id="sub_image_urls_input" class="form-input">
@@ -651,32 +897,56 @@
         </div>
     </main>
 
+    <!-- Add JSZip library for creating ZIP files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const form = document.getElementById('edit-product-form');
             const messageArea = document.getElementById('message-area');
             const productId = window.location.pathname.split('/').pop();
 
+            // Add loading overlay elements
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const loadingStatus = document.getElementById('loading-status');
+            const loadingProgressBar = document.getElementById('loading-progress-bar');
+
             const nameInput = document.getElementById('name');
             const priceInput = document.getElementById('price');
             const descriptionTextarea = document.getElementById('description');
-            const mainImageUrlInput = document.getElementById('main_image_url');
             const mainImageUploadInput = document.getElementById('main_image_upload');
             const mainImagePreviewDiv = document.getElementById('main_image_preview');
             const subImageUploadInput = document.getElementById('sub_image_upload');
-            const subImagePreviewDiv = document.getElementById('sub_image_preview');
-            const subImageUrlsTextInput = document.getElementById('sub_image_urls_input');
-            const subImageUrlsHiddenInput = document.getElementById('sub_image_urls');
             const is18PlusCheckbox = document.getElementById('is_18_plus');
-            const mailContentTextarea = document.getElementById('mail_content');
             const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
             const newCategoryInput = document.getElementById('new_category_input');
             const inStockCheckbox = document.getElementById('in_stock');
             const receivedTextarea = document.getElementById('received_text');
             const receivedImagesUploadInput = document.getElementById('received_images_upload');
             const receivedImagesPreviewDiv = document.getElementById('received_images_preview');
-            const receivedImageUrlsTextInput = document.getElementById('received_image_urls_input');
-            const receivedImageUrlsHiddenInput = document.getElementById('received_image_urls');
+
+            let existingSubImages = [];
+            let newSubImages = [];
+
+            // Add hidden inputs for uploaded URLs
+            const mainImageUrlHiddenInput = document.createElement('input');
+            mainImageUrlHiddenInput.type = 'hidden';
+            mainImageUrlHiddenInput.name = 'main_image_url';
+            mainImageUrlHiddenInput.id = 'main_image_url_hidden';
+            form.appendChild(mainImageUrlHiddenInput);
+
+            const subImageUrlsHiddenInput = document.createElement('input');
+            subImageUrlsHiddenInput.type = 'hidden';
+            subImageUrlsHiddenInput.name = 'sub_image_urls';
+            subImageUrlsHiddenInput.id = 'sub_image_urls_hidden';
+            subImageUrlsHiddenInput.value = '[]';
+            form.appendChild(subImageUrlsHiddenInput);
+
+            const receivedImagesZipUrlHiddenInput = document.createElement('input');
+            receivedImagesZipUrlHiddenInput.type = 'hidden';
+            receivedImagesZipUrlHiddenInput.name = 'received_images_zip_url';
+            receivedImagesZipUrlHiddenInput.id = 'received_images_zip_url_hidden';
+            form.appendChild(receivedImagesZipUrlHiddenInput);
 
             const requiredElements = {
                 'edit-product-form': form,
@@ -684,24 +954,160 @@
                 'name': nameInput,
                 'price': priceInput,
                 'description': descriptionTextarea,
-                'main_image_url': mainImageUrlInput,
                 'main_image_upload': mainImageUploadInput,
                 'main_image_preview': mainImagePreviewDiv,
                 'sub_image_upload': subImageUploadInput,
-                'sub_image_preview': subImagePreviewDiv,
-                'sub_image_urls_input': subImageUrlsTextInput,
-                'sub_image_urls': subImageUrlsHiddenInput,
                 'is_18_plus': is18PlusCheckbox,
-                'mail_content': mailContentTextarea,
                 'existing_categories_checkboxes': existingCategoriesCheckboxesDiv,
                 'new_category_input': newCategoryInput,
                 'in_stock': inStockCheckbox,
                 'received_text': receivedTextarea,
                 'received_images_upload': receivedImagesUploadInput,
                 'received_images_preview': receivedImagesPreviewDiv,
-                'received_image_urls_input': receivedImageUrlsTextInput,
-                'received_image_urls': receivedImageUrlsHiddenInput,
+                'main_image_url_hidden': mainImageUrlHiddenInput,
+                'sub_image_urls_hidden': subImageUrlsHiddenInput,
+                'received_images_zip_url_hidden': receivedImagesZipUrlHiddenInput,
+                'loading-overlay': loadingOverlay,
+                'loading-status': loadingStatus,
+                'loading-progress-bar': loadingProgressBar
             };
+
+            function renderAllSubImages() {
+                const allImagesPreview = document.getElementById('all_images_preview');
+                const currentUrlsList = document.getElementById('current-urls-list');
+                
+                allImagesPreview.innerHTML = '';
+                currentUrlsList.innerHTML = '';
+                
+                // Render existing images
+                existingSubImages.forEach((imageUrl, index) => {
+                    // Create image preview
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item existing';
+                    
+                    const img = document.createElement('img');
+                    img.src = imageUrl;
+                    img.alt = 'Existing image';
+                    
+                    const badge = document.createElement('div');
+                    badge.className = 'image-badge existing';
+                    badge.textContent = 'Existing';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    removeBtn.addEventListener('click', () => {
+                        existingSubImages.splice(index, 1);
+                        renderAllSubImages();
+                        updateHiddenInputs();
+                    });
+                    
+                    imageItem.appendChild(img);
+                    imageItem.appendChild(badge);
+                    imageItem.appendChild(removeBtn);
+                    allImagesPreview.appendChild(imageItem);
+                    
+                    // Create URL list item
+                    const urlItem = document.createElement('div');
+                    urlItem.className = 'url-item';
+                    
+                    const urlText = document.createElement('span');
+                    urlText.className = 'url-text';
+                    urlText.textContent = imageUrl;
+                    
+                    const urlRemoveBtn = document.createElement('button');
+                    urlRemoveBtn.className = 'url-remove';
+                    urlRemoveBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    urlRemoveBtn.addEventListener('click', () => {
+                        existingSubImages.splice(index, 1);
+                        renderAllSubImages();
+                        updateHiddenInputs();
+                    });
+                    
+                    urlItem.appendChild(urlText);
+                    urlItem.appendChild(urlRemoveBtn);
+                    currentUrlsList.appendChild(urlItem);
+                });
+                
+                // Render new images
+                newSubImages.forEach((file, index) => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item new';
+                    
+                    const img = document.createElement('img');
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                    img.alt = 'New image';
+                    
+                    const badge = document.createElement('div');
+                    badge.className = 'image-badge new';
+                    badge.textContent = 'New';
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    removeBtn.addEventListener('click', () => {
+                        newSubImages.splice(index, 1);
+                        renderAllSubImages();
+                        updateFileInput();
+                    });
+                    
+                    imageItem.appendChild(img);
+                    imageItem.appendChild(badge);
+                    imageItem.appendChild(removeBtn);
+                    allImagesPreview.appendChild(imageItem);
+                    
+                    // Add to URL list
+                    const urlItem = document.createElement('div');
+                    urlItem.className = 'url-item';
+                    
+                    const urlText = document.createElement('span');
+                    urlText.className = 'url-text';
+                    urlText.textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    
+                    const urlRemoveBtn = document.createElement('button');
+                    urlRemoveBtn.className = 'url-remove';
+                    urlRemoveBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    urlRemoveBtn.addEventListener('click', () => {
+                        newSubImages.splice(index, 1);
+                        renderAllSubImages();
+                        updateFileInput();
+                    });
+                    
+                    urlItem.appendChild(urlText);
+                    urlItem.appendChild(urlRemoveBtn);
+                    currentUrlsList.appendChild(urlItem);
+                });
+                
+                // Show message if no images
+                if (existingSubImages.length === 0 && newSubImages.length === 0) {
+                    allImagesPreview.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--medium-gray); font-style: italic; padding: 2rem;">No images added yet</div>';
+                    currentUrlsList.innerHTML = '<div class="url-item" style="justify-content: center; font-style: italic; color: var(--medium-gray);">No URLs yet</div>';
+                }
+            }
+
+            // Function to update hidden inputs
+            function updateHiddenInputs() {
+                subImageUrlsHiddenInput.value = JSON.stringify(existingSubImages.map(url => url.split('/').pop()));
+            }
+
+            // Function to update file input (simulate file selection for new images)
+            function updateFileInput() {
+                // Create new FileList-like object
+                const dt = new DataTransfer();
+                newSubImages.forEach(file => dt.items.add(file));
+                subImageUploadInput.files = dt.files;
+            }
+
+            // Modified setup for sub image upload
+            subImageUploadInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                newSubImages = [...newSubImages, ...files];
+                renderAllSubImages();
+            });
 
             let missingElement = null;
             for (const id in requiredElements) {
@@ -721,212 +1127,212 @@
                 return;
             }
 
-            function displayImagePreview(src, previewContainer, isExisting = false) {
+            // Progress tracking
+            let currentProgress = 0;
+            const totalSteps = 4; // main image, sub images, received images, update product
+
+            function updateProgress(step, message) {
+                currentProgress = step;
+                const percentage = (currentProgress / totalSteps) * 100;
+                loadingProgressBar.style.width = `${percentage}%`;
+                loadingStatus.textContent = message;
+            }
+
+            function showLoading() {
+                loadingOverlay.style.display = 'flex';
+                updateProgress(0, 'Preparing upload...');
+            }
+
+            function hideLoading() {
+                loadingOverlay.style.display = 'none';
+                currentProgress = 0;
+                loadingProgressBar.style.width = '0%';
+            }
+
+            // Upload file to UploadThing (Copied from new_product.html)
+            async function uploadToUploadThing(file) {
+                try {
+                    // 1) Get presigned URL and fields from our server
+                    const presignedResp = await fetch('/api/uploadthing', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            fileName: file.name,
+                            fileType: file.type,
+                            fileSize: file.size,
+                            slug: 'imageUploader' // Assuming this slug is correct
+                        })
+                    });
+
+                    if (!presignedResp.ok) {
+                        const errorText = await presignedResp.text();
+                        throw new Error(`Failed to get upload URL: ${presignedResp.status} ${errorText}`);
+                    }
+
+                    const uploadData = await presignedResp.json();
+                    console.log('Upload data received:', uploadData);
+
+                    // 2) Use the presigned URL directly without modification
+                    const { url, fields, key } = uploadData;
+
+                    // Create FormData for multipart upload
+                    const formData = new FormData();
+
+                    // Add all fields first (if any)
+                    if (fields) {
+                        Object.entries(fields).forEach(([key, value]) => {
+                            formData.append(key, value);
+                        });
+                    }
+
+                    // Add the file last
+                    formData.append('file', file);
+
+                    // 3) Upload using POST with FormData (not PUT)
+                    const uploadResp = await fetch(url, {
+                        method: 'PUT', // Use PUT as per UploadThing docs for presigned URLs
+                        body: formData
+                    });
+
+                    if (!uploadResp.ok) {
+                        const errorText = await uploadResp.text();
+                        throw new Error(`Failed to upload file: ${uploadResp.status} ${errorText}`);
+                    }
+
+                    console.log('Upload successful, key:', key);
+                    return key; // Return the key, which is the file identifier on UploadThing
+
+                } catch (error) {
+                    console.error('Upload error:', error);
+                    throw error;
+                }
+            }
+
+            // Create ZIP file from images (Copied from new_product.html)
+            async function createZipFromImages(files) {
+                const zip = new JSZip();
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    // Use original file extension, ensure unique names if needed
+                    const fileName = `received_image_${i + 1}.${file.name.split('.').pop()}`;
+                    zip.file(fileName, file);
+                }
+
+                return await zip.generateAsync({ type: 'blob' });
+            }
+
+            // Display image preview (modified to accept File object or URL)
+            function displayImagePreview(source, previewContainer, isFile = true) {
                 const div = document.createElement('div');
                 div.className = 'image-preview';
-                
-                const img = document.createElement('img');
-                img.src = src;
-                div.appendChild(img);
 
-                if (isExisting) {
+                const img = document.createElement('img');
+                if (isFile) {
+                     const reader = new FileReader();
+                    reader.onload = (e) => {
+                        img.src = e.target.result;
+                    };
+                    reader.readAsDataURL(source);
+                } else {
+                    img.src = source;
+                     // Add a placeholder remove button for existing images if needed
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '<i class="fas fa-times"></i>';
                     removeBtn.addEventListener('click', () => {
                         div.remove();
+                         // Logic to update the hidden input for existing URLs
                         let currentUrls = JSON.parse(subImageUrlsHiddenInput.value || '[]');
-                        currentUrls = currentUrls.filter(url => url !== src);
+                        currentUrls = currentUrls.filter(url => url !== source);
                         subImageUrlsHiddenInput.value = JSON.stringify(currentUrls);
-                        subImageUrlsTextInput.value = currentUrls.join(', ');
+                         // Need to implement similar for received images if they can be removed individually
                     });
                     div.appendChild(removeBtn);
                 }
-                
+
+                div.appendChild(img);
                 previewContainer.appendChild(div);
             }
 
-            try {
-                const response = await fetch(`/api/admin/products-data/${productId}`);
-                const product = await response.json();
-
-                if (response.ok) {
-                    console.log('[Edit Product Form] Product data fetched successfully:', product);
-                    
-                    nameInput.value = product.name || '';
-                    priceInput.value = product.price || '';
-                    descriptionTextarea.value = product.description || '';
-                    mainImageUrlInput.value = product.main_image_url || '';
-                    subImageUrlsTextInput.value = product.sub_image_urls ? product.sub_image_urls.join(', ') : '';
-                    subImageUrlsHiddenInput.value = JSON.stringify(product.sub_image_urls || []);
-                    is18PlusCheckbox.checked = product.is_18_plus || false;
-                    mailContentTextarea.value = product.mail_content || '';
-                    inStockCheckbox.checked = product.in_stock || false;
-                    receivedTextarea.value = product.received_text || '';
-                    receivedImageUrlsTextInput.value = product.received_image_urls ? product.received_image_urls.join(', ') : '';
-                    receivedImageUrlsHiddenInput.value = JSON.stringify(product.received_image_urls || []);
-
-                    if (product.main_image_url) {
-                        displayImagePreview(product.main_image_url, mainImagePreviewDiv, true);
+            // Setup image upload preview listeners
+            function setupImageUploadPreview(inputElement, previewDivElement) {
+                inputElement.addEventListener('change', e => {
+                    // Clear existing previews for main image, append for multiple sub/received
+                    if (!inputElement.multiple) {
+                        previewDivElement.innerHTML = '';
                     }
-                    if (product.sub_image_urls && product.sub_image_urls.length > 0) {
-                        product.sub_image_urls.forEach(url => {
-                            displayImagePreview(url, subImagePreviewDiv, true);
-                        });
-                    }
-                    if (product.received_image_urls && product.received_image_urls.length > 0) {
-                        product.received_image_urls.forEach(url => {
-                            displayImagePreview(url, receivedImagesPreviewDiv, true);
-                        });
-                    }
-
-                    const currentCategories = product.category ? [product.category] : [];
-                    loadCategories(currentCategories);
-
-                } else {
-                    console.error('[Edit Product Form] Failed to load product:', product.error || response.statusText);
-                    messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to load product: ${product.error || response.statusText}</div>`;
-                    form.style.display = 'none'; 
-                }
-            } catch (error) {
-                console.error('Error fetching product:', error);
-                messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Error fetching product data.</div>';
-                form.style.display = 'none';
-            }
-
-            mainImageUploadInput.addEventListener('change', (event) => {
-                mainImagePreviewDiv.innerHTML = '';
-                const file = event.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        displayImagePreview(e.target.result, mainImagePreviewDiv, false);
-                    };
-                    reader.readAsDataURL(file);
-                    mainImageUrlInput.value = '';
-                }
-            });
-
-            subImageUploadInput.addEventListener('change', (event) => {
-                const files = Array.from(event.target.files);
-                files.forEach(file => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        displayImagePreview(e.target.result, subImagePreviewDiv, false);
-                    };
-                    reader.readAsDataURL(file);
-                });
-                event.target.value = '';
-            });
-
-            if (receivedImagesUploadInput) {
-                receivedImagesUploadInput.addEventListener('change', (event) => {
-                    const files = Array.from(event.target.files);
+                    const files = Array.from(e.target.files);
                     files.forEach(file => {
-                        const reader = new FileReader();
-                        reader.onload = (e) => {
-                            displayImagePreview(e.target.result, receivedImagesPreviewDiv, false);
-                        };
-                        reader.readAsDataURL(file);
+                        displayImagePreview(file, previewDivElement, true);
                     });
-                    event.target.value = '';
                 });
             }
 
-            form.addEventListener('submit', async (event) => {
-                event.preventDefault();
-                messageArea.innerHTML = '';
+            setupImageUploadPreview(mainImageUploadInput, mainImagePreviewDiv);
+            setupImageUploadPreview(receivedImagesUploadInput, receivedImagesPreviewDiv);
 
-                const formData = new FormData(form);
-
-                const selectedCategories = [];
-                existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
-                    selectedCategories.push(checkbox.value);
-                });
-
-                const newCategory = newCategoryInput.value.trim();
-                if (newCategory) {
-                    selectedCategories.push(newCategory);
-                }
-
-                const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
-
-                formData.delete('category');
-                formData.delete('new_category_input');
-
-                if (finalCategories.length > 0) {
-                    finalCategories.forEach(cat => {
-                        formData.append('categories', cat);
-                    });
-                }
-
-                if (!formData.get('main_image') && mainImageUrlInput.value) {
-                    formData.append('main_image_url', mainImageUrlInput.value);
-                }
-
-                if (subImageUrlsTextInput) {
-                    const urls = subImageUrlsTextInput.value.split(',').map(url => url.trim()).filter(url => url !== '');
-                    subImageUrlsHiddenInput.value = JSON.stringify(urls);
-                }
-                formData.set('sub_image_urls', subImageUrlsHiddenInput.value);
-
-                if (receivedImageUrlsTextInput) {
-                    const urls = receivedImageUrlsTextInput.value.split(',').map(url => url.trim()).filter(url => url !== '');
-                    receivedImageUrlsHiddenInput.value = JSON.stringify(urls);
-                }
-                formData.set('received_image_urls', receivedImageUrlsHiddenInput.value);
-
-                console.log('[Edit Product Form] Submitting data:', formData);
-
+            // Function to load existing product data
+            async function loadProductData() {
                 try {
-                    const response = await fetch(`/api/admin/products/edit/${productId}`, {
-                        method: 'POST',
-                        body: formData
-                    });
-
-                    const result = await response.json();
+                    const response = await fetch(`/api/admin/products-data/${productId}`);
+                    const product = await response.json();
 
                     if (response.ok) {
-                        console.log('[Edit Product Form] Product updated successfully:', result);
-                        messageArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Product updated successfully!</div>';
-                        
-                        if (mainImageUploadInput) mainImageUploadInput.value = '';
-                        if (subImageUploadInput) subImageUploadInput.value = '';
-                        if (receivedImagesUploadInput) receivedImagesUploadInput.value = '';
+                        console.log('[Edit Product Form] Product data fetched successfully:', product);
 
-                        if (newCategoryInput) newCategoryInput.value = '';
+                        nameInput.value = product.name || '';
+                        priceInput.value = product.price || '';
+                        descriptionTextarea.value = product.description || '';
+                        is18PlusCheckbox.checked = product.is_18_plus || false;
+                        inStockCheckbox.checked = product.in_stock || false;
+                        receivedTextarea.value = product.received_text || '';
 
-                        existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                            checkbox.checked = false;
-                        });
+                        // Display existing images and store URLs in hidden inputs
+                        if (product.main_image_url) {
+                             // We need the key, not the full URL for uploadthing logic. Need to fetch from backend or adjust backend response.
+                             // For now, let's just display the image but the upload will replace it if a new file is selected.
+                            displayImagePreview(product.main_image_url, mainImagePreviewDiv, false);
+                            mainImageUrlHiddenInput.value = product.main_image_url.split('/').pop(); // Store key
+                        }
+                        if (product.sub_image_urls && Array.isArray(product.sub_image_urls)) {
+                            existingSubImages = [...product.sub_image_urls];
+                            subImageUrlsHiddenInput.value = JSON.stringify(product.sub_image_urls.map(url => url.split('/').pop()));
+                        }
+                         // Assuming received_images_zip_url is the key/identifier for the zip
+                        if (product.received_images_zip_url) {
+                             // No preview for zip, just store the key
+                            receivedImagesZipUrlHiddenInput.value = product.received_images_zip_url.split('/').pop(); // Store key
+                             // Maybe add a text indicator that a file exists?
+                             // receivedImagesPreviewDiv.innerHTML = '<p>Existing received images zip attached.</p>';
+                        }
+
+                        // Load categories and select existing ones
+                        loadCategories(product.category || []);
 
                     } else {
-                        console.error('[Edit Product Form] Failed to update product:', result.error || result.message || response.statusText);
-                        messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to update product: ${result.error || result.message || response.statusText}</div>`;
+                        console.error('[Edit Product Form] Failed to load product:', product.error || response.statusText);
+                        messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to load product: ${product.error || response.statusText}</div>`;
+                        form.style.display = 'none';
                     }
                 } catch (error) {
-                    console.error('[Edit Product Form] An error occurred while updating the product:', error);
-                    messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>An error occurred while updating the product.</div>';
+                    console.error('Error fetching product:', error);
+                    messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Error fetching product data.</div>';
+                    form.style.display = 'none';
                 }
-            });
-
-            if (subImageUrlsTextInput) {
-                subImageUrlsTextInput.addEventListener('input', (event) => {
-                    const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
-                    subImageUrlsHiddenInput.value = JSON.stringify(urls);
-                });
             }
 
-            async function loadCategories(currentCategory = []) {
+            // Function to load categories (Copied from new_product.html, modified for selection)
+            async function loadCategories(currentCategories = []) {
                 try {
                     const response = await fetch('/api/admin/products/categories');
                     if (!response.ok) {
                         throw new Error(`Error loading categories: ${response.status}`);
                     }
                     const categories = await response.json();
-                    
+
                     existingCategoriesCheckboxesDiv.innerHTML = '';
-                    
+
                     if (categories.length === 0) {
                         existingCategoriesCheckboxesDiv.innerHTML = '<p>No existing categories found.</p>';
                     } else {
@@ -940,10 +1346,11 @@
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
                             checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
-                            checkbox.name = 'categories';
+                            checkbox.name = 'categories'; // Name remains 'categories'
                             checkbox.value = categoryId;
 
-                            if (currentCategory.includes(categoryId)) {
+                            // Check if this category is in the current product's categories
+                            if (currentCategories.includes(categoryId)) {
                                 checkbox.checked = true;
                             }
 
@@ -962,6 +1369,145 @@
                     messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to load categories: ${error.message}</div>`;
                 }
             }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                messageArea.innerHTML = '';
+                showLoading();
+
+                // Collect data
+                const name = document.getElementById('name').value;
+                const price = document.getElementById('price').value;
+                const description = document.getElementById('description').value;
+                const received_text = document.getElementById('received_text').value;
+                const is_18_plus = document.getElementById('is_18_plus').checked;
+                const in_stock = document.getElementById('in_stock').checked;
+
+                // Get selected categories
+                const selectedCategories = [];
+                existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedCategories.push(checkbox.value);
+                });
+                const newCategory = newCategoryInput.value.trim();
+                if (newCategory) {
+                    selectedCategories.push(newCategory);
+                }
+                const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
+
+                 if (finalCategories.length === 0) {
+                    messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Please select at least one category or enter a new one.</div>';
+                     hideLoading();
+                    return;
+                }
+
+                let mainImageKey = mainImageUrlHiddenInput.value; // Start with existing key
+                let subImageKeys = JSON.parse(subImageUrlsHiddenInput.value || '[]'); // Start with existing keys
+                let receivedImagesZipKey = receivedImagesZipUrlHiddenInput.value; // Start with existing key
+
+                try {
+                    // Step 1: Upload new main image if selected
+                    updateProgress(1, 'Uploading main image...');
+                    if (mainImageUploadInput.files.length > 0) {
+                        // If a new file is selected, upload it and get the new key
+                        mainImageKey = await uploadToUploadThing(mainImageUploadInput.files[0]);
+                         // Note: The backend doesn't currently delete the old file when a new one is uploaded.
+                         // This would require fetching the old key from the DB before updating.
+                    }
+
+                    // Step 2: Upload new sub images if selected (update this part)
+                    updateProgress(2, 'Uploading additional images...');
+                    if (newSubImages.length > 0) {
+                        const newlyUploadedSubImageKeys = [];
+                        for (const file of newSubImages) {
+                            const key = await uploadToUploadThing(file);
+                            newlyUploadedSubImageKeys.push(key);
+                        }
+                        // Combine existing keys with newly uploaded keys
+                        const existingKeys = existingSubImages.map(url => url.split('/').pop());
+                        subImageKeys = [...existingKeys, ...newlyUploadedSubImageKeys];
+                    } else {
+                        // Only existing images
+                        subImageKeys = existingSubImages.map(url => url.split('/').pop());
+                    }
+
+                    // Step 3: Upload new received images as ZIP if selected
+                    updateProgress(3, 'Uploading received images...');
+                    if (receivedImagesUploadInput.files.length > 0) {
+                        const receivedImageFiles = Array.from(receivedImagesUploadInput.files);
+                        const zipBlob = await createZipFromImages(receivedImageFiles);
+                        const zipFile = new File([zipBlob], 'received_images.zip', { type: 'application/zip' });
+                         // Upload the new zip and get its key
+                        receivedImagesZipKey = await uploadToUploadThing(zipFile);
+                         // Note: Uploading a new zip replaces the old one in the DB, but the old file isn't deleted from UploadThing.
+                         // This would require fetching the old zip key from the DB before updating.
+                    }
+
+                    // Step 4: Update product in backend
+                    updateProgress(4, 'Updating product...');
+
+                    const productData = {
+                        name: name,
+                        description: description || null, // Ensure null for empty description
+                        price: parseFloat(price),
+                        category: finalCategories, // Array of categories
+                        main_image_url: mainImageKey || null, // Send key or null
+                        sub_image_urls: subImageKeys, // Array of keys
+                        is_18_plus: is_18_plus,
+                        in_stock: in_stock,
+                        received_text: received_text || null, // Ensure null for empty text
+                        received_images_zip_url: receivedImagesZipKey || null // Send key or null
+                    };
+
+                     console.log('[Edit Product Form] Sending update data:', JSON.stringify(productData, null, 2));
+
+                    const response = await fetch(`/api/admin/products/edit/${productId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json' // Send as JSON now
+                        },
+                        body: JSON.stringify(productData)
+                    });
+
+                    const result = await response.json();
+
+                    hideLoading();
+
+                    if (response.ok) {
+                        console.log('[Edit Product Form] Product updated successfully:', result);
+                        messageArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Product updated successfully!</div>';
+
+                        // Clear file inputs after successful submission
+                        if (mainImageUploadInput) mainImageUploadInput.value = '';
+                        if (subImageUploadInput) subImageUploadInput.value = '';
+                        if (receivedImagesUploadInput) receivedImagesUploadInput.value = '';
+                        // Re-fetch product data to update previews with new URLs/keys from backend if needed,
+                        // or simply clear previews and rely on loadProductData on next page load.
+                        // For simplicity, let's just clear previews and potentially reload data.
+                        mainImagePreviewDiv.innerHTML = '';
+                        subImagePreviewDiv.innerHTML = '';
+                        receivedImagesPreviewDiv.innerHTML = '';
+                        loadProductData(); // Reload data to show updated state
+
+                         // Clear new category input
+                        if (newCategoryInput) newCategoryInput.value = '';
+
+                         // Categories checkboxes will be reset by loadProductData
+
+                    } else {
+                        console.error('[Edit Product Form] Failed to update product:', result.error || result.message || response.statusText);
+                        messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to update product: ${result.error || result.message || response.statusText}</div>`;
+                    }
+                } catch (error) {
+                    console.error('[Edit Product Form] An error occurred while updating the product:', error);
+                    hideLoading();
+                    messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>An error occurred while updating the product: ${error.message}</div>`;
+                }
+            });
+
+            // Initial data load when the page is ready
+            loadProductData();
+            // Initial load of categories (can be called by loadProductData)
+            // loadCategories();
         });
     </script>
 </body>

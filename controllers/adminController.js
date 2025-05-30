@@ -128,13 +128,14 @@ const postAdminCreateProduct = async (req, res) => {
 const postAdminUpdateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminUpdateProduct: FUNCTION CALLED.');
     console.log('[Admin Controller] postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
-    console.log('[Admin Controller] postAdminUpdateProduct: Request files:', req.files);
 
     const { id } = req.params;
-    const { name, description, price, categories, new_category_input, main_image_url, is_18_plus, in_stock, received_text } = req.body;
-    const mainImageMulterFile = req.files?.main_image?.[0];
-    const subImagesMulterFiles = req.files?.sub_images;
-    const receivedImagesMulterFiles = req.files?.received_images;
+    const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
+    let { main_image_url, sub_image_urls, received_images_zip_url } = req.body;
+
+    main_image_url = `https://rhcwjrafe0.ufs.sh/f/${main_image_url}`
+    sub_image_urls = sub_image_urls.map(url => `https://rhcwjrafe0.ufs.sh/f/${url}`)
+    received_images_zip_url = `https://rhcwjrafe0.ufs.sh/f/${received_images_zip_url}`
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminUpdateProduct: Error: Name and non-negative price are required.');
@@ -144,165 +145,7 @@ const postAdminUpdateProduct = async (req, res) => {
     const isInStock = in_stock === 'true' || in_stock === 'on' || false;
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
-    let new_main_image_url = main_image_url;
-    let existing_sub_image_urls = [];
-    let existing_received_images_urls = [];
-
-    const existingSubImageUrlsJson = req.body.sub_image_urls; 
-    if (existingSubImageUrlsJson) {
-        try {
-            existing_sub_image_urls = JSON.parse(existingSubImageUrlsJson);
-            if (!Array.isArray(existing_sub_image_urls)) throw new Error('Not an array');
-            // Filter out any empty strings that might result from manual input
-            existing_sub_image_urls = existing_sub_image_urls.filter(url => url !== '');
-        } catch (e) {
-            console.error('[Admin Controller] Failed to parse existing sub_image_urls JSON:', e);
-            // If parsing fails, maybe it's a comma-separated string from an older form version or manual input?
-            // Fallback to comma-separated split, but log a warning.
-            console.warn('[Admin Controller] Attempting to parse sub_image_urls as comma-separated string.');
-            const existingSubImageUrlsString = req.body.sub_image_urls_input; // Assuming this text input exists for manual input
-            if (existingSubImageUrlsString) {
-                existing_sub_image_urls = existingSubImageUrlsString.split(',').map(url => url.trim()).filter(url => url !== '');
-            }
-        }
-    }
-
-    // Handle existing received_images_urls from the form (should be JSON string from hidden input)
-    const existingReceivedImageUrlsJson = req.body.received_images_urls; // Assuming a hidden input with name="received_images_urls" exists
-    if (existingReceivedImageUrlsJson) {
-        try {
-            existing_received_images_urls = JSON.parse(existingReceivedImageUrlsJson);
-            if (!Array.isArray(existing_received_images_urls)) throw new Error('Not an array');
-            existing_received_images_urls = existing_received_images_urls.filter(url => url !== '');
-        } catch (e) {
-            console.error('[Admin Controller] Failed to parse existing received_images_urls JSON:', e);
-            console.warn('[Admin Controller] Attempting to parse received_images_urls as comma-separated string.');
-            // Fallback: assuming a text input for manual input might exist (adjust name if needed)
-            const existingReceivedImageUrlsString = req.body.received_images_urls_input; 
-            if (existingReceivedImageUrlsString) {
-                existing_received_images_urls = existingReceivedImageUrlsString.split(',').map(url => url.trim()).filter(url => url !== '');
-            }
-        }
-    }
-
-    const new_sub_image_urls = [];
-    const new_received_images_urls = []; // Array to store newly uploaded received image URLs
-
     try {
-        // Upload new main image to UploadThing if provided, using UTFile
-        if (mainImageMulterFile) {
-            console.log(`Processing new main image for upload: ${mainImageMulterFile.originalname}`);
-             // Simulate reading from a buffer as if it were a temporary file
-            const fileBuffer = mainImageMulterFile.buffer;
-            const tempFilename = mainImageMulterFile.originalname;
-
-            const mainImageUTFile = new UTFile(
-                [fileBuffer],
-                tempFilename,
-                { type: mainImageMulterFile.mimetype } // Pass mimetype
-            );
-            // Pass the single file in an array to uploadFiles
-            const mainImageUploadResult = await utapi.uploadFiles([mainImageUTFile], { key: 'productImages' }); // Specify the productImages route
-
-            // Check if the upload was successful and get the URL from the first element
-            console.log("[Admin Controller] New main image UploadThing Response:", JSON.stringify(mainImageUploadResult, null, 2));
-            if (!mainImageUploadResult || mainImageUploadResult.length === 0) {
-                throw new Error("New main image UploadThing returned an empty response array.");
-            }
-            if (mainImageUploadResult[0].error) {
-                console.error("New main image UploadThing upload error:", mainImageUploadResult[0].error);
-                throw new Error(`New main image UploadThing error: ${mainImageUploadResult[0].error.message || 'Unknown upload error'}`);
-            }
-            if (!mainImageUploadResult[0].data || !mainImageUploadResult[0].data.ufsUrl) {
-                console.error("New main image UploadThing response missing data or ufsUrl:", mainImageUploadResult[0]);
-                throw new Error("New main image UploadThing response structure invalid (missing data.ufsUrl).");
-            }
-            
-            // Extract the URL from the data object (use data.url or data.ufsUrl)
-            new_main_image_url = mainImageUploadResult[0].data.ufsUrl; // Use .ufsUrl as recommended
-            console.log('[Admin Controller] New main image uploaded. URL:', new_main_image_url);
-            // Optional: Delete the old main image if a new one was uploaded and replace was intended
-            // This requires getting the old URL from the database first before updating
-            // and then using utapi.deleteFiles(oldUrlKey); -- Requires storing/retrieving keys, not just URLs.
-        } else if (main_image_url === '') {
-            // If no new file uploaded and the main_image_url field was explicitly cleared on the frontend
-            new_main_image_url = null;
-            // Optional: Delete the old main image from UploadThing if it existed
-            // This requires getting the old URL/key from the database before updating
-        }
-
-        // Upload new sub images to UploadThing if provided, using UTFile for each
-        if (subImagesMulterFiles && subImagesMulterFiles.length > 0) {
-            console.log('[Admin Controller] Uploading new sub images...', subImagesMulterFiles.length);
-
-            // Map multer files to UTFile instances using buffers
-            const subImageUTFiles = subImagesMulterFiles.map(file => {
-                console.log(`Processing new sub image for upload: ${file.originalname}`);
-                // Simulate reading from a buffer as if it were a temporary file
-                const fileBuffer = file.buffer;
-                const tempFilename = file.originalname;
-                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
-            });
-
-            const subImagesUploadResult = await utapi.uploadFiles(subImageUTFiles, { key: 'productImages' }); // Specify the productImages route
-
-            // Check if all uploads were successful and get URLs (check ufsUrl for each)
-            console.log("[Admin Controller] New sub images UploadThing Response:", JSON.stringify(subImagesUploadResult, null, 2));
-            if (!subImagesUploadResult || subImagesUploadResult.length !== subImageUTFiles.length) {
-                console.error("[Admin Controller] New sub image UploadThing returned incorrect number of responses or empty:", subImagesUploadResult);
-                const errors = subImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
-                throw new Error('Failed to upload one or more new sub images. Details: ' + errors);
-            }
-
-            const failedUploads = subImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
-            if (failedUploads.length > 0) {
-                console.error("[Admin Controller] Failed new sub image uploads found:", failedUploads);
-                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
-                throw new Error('Failed to upload one or more new sub images. Details: ' + errors);
-            }
-
-            // Extract URLs from the data object for each file
-            const urls = subImagesUploadResult.map(file => file.data.ufsUrl); // Use .ufsUrl as recommended
-            new_sub_image_urls.push(...urls);
-            console.log('[Admin Controller] New sub images uploaded. URLs:', new_sub_image_urls);
-        }
-
-        // Upload new received images to UploadThing if provided, using UTFile for each
-        if (receivedImagesMulterFiles && receivedImagesMulterFiles.length > 0) {
-            console.log('[Admin Controller] Uploading new received images...', receivedImagesMulterFiles.length);
-
-            const receivedImageUTFiles = receivedImagesMulterFiles.map(file => {
-                console.log(`Processing new received image for upload: ${file.originalname}`);
-                const fileBuffer = file.buffer;
-                const tempFilename = file.originalname;
-                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
-            });
-
-            const receivedImagesUploadResult = await utapi.uploadFiles(receivedImageUTFiles, { key: 'productImages' });
-
-            console.log("[Admin Controller] New received images UploadThing Response:", JSON.stringify(receivedImagesUploadResult, null, 2));
-            if (!receivedImagesUploadResult || receivedImagesUploadResult.length !== receivedImageUTFiles.length) {
-                console.error("[Admin Controller] New received image UploadThing returned incorrect number of responses or empty:", receivedImagesUploadResult);
-                const errors = receivedImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
-                throw new Error('Failed to upload one or more new received images. Details: ' + errors);
-            }
-
-            const failedUploads = receivedImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
-            if (failedUploads.length > 0) {
-                console.error("[Admin Controller] Failed new received image uploads found:", failedUploads);
-                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
-                throw new Error('Failed to upload one or more new received images. Details: ' + errors);
-            }
-
-            const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
-            new_received_images_urls.push(...urls);
-            console.log('[Admin Controller] New received images uploaded. URLs:', new_received_images_urls);
-        }
-
-        // Combine existing (from hidden input) and new (uploaded) sub image URLs
-        const final_sub_image_urls = [...existing_sub_image_urls, ...new_sub_image_urls];
-        const final_received_images_urls = [...existing_received_images_urls, ...new_received_images_urls]; // Combine existing and new received image URLs
-
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
 
@@ -320,12 +163,12 @@ const postAdminUpdateProduct = async (req, res) => {
             description: description || null,
             price: parseFloat(price),
             category: categoryToUpdate,
-            main_image_url: new_main_image_url, 
-            sub_image_urls: final_sub_image_urls, 
+            main_image_url: main_image_url, 
+            sub_image_urls: sub_image_urls,
             is_18_plus: is18Plus,
             in_stock: isInStock,
             received_text: received_text || null,
-            received_images_urls: final_received_images_urls,
+            received_images_zip_url: received_images_zip_url,
         };
 
         console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', JSON.stringify(productDataForUpdate, null, 2));
