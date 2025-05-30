@@ -38,6 +38,7 @@ app.set('views', path.join(__dirname, 'views')); // Specify the views directory
 app.set('trust proxy', 1); // Important if behind a proxy like Vercel
 
 // --- Parsers ---
+app.use('/api/webhooks/lemonsqueezy', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
@@ -122,9 +123,6 @@ app.get('/api/health', (req, res) => {
         databaseConnected: isDbConnected // Reflects the last check
     });
 });
-
-// This makes the raw body available at req.body (as a Buffer) for the webhook verification
-app.use('/api/webhooks/lemonsqueezy', express.raw({ type: 'application/json' }));
 
 // Admin routes are separate and use session auth, might also need DB.
 app.use('/api/admin', dbCheckMiddleware, adminRoutes);
