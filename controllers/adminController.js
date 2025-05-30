@@ -75,7 +75,7 @@ const postAdminCreateProduct = async (req, res) => {
 
     let main_image_url = null;
     const sub_image_urls = [];
-    const received_image_urls = [];
+    const received_images_urls = [];
 
     try {
         // Upload main image to UploadThing if provided, using UTFile
@@ -174,8 +174,8 @@ const postAdminCreateProduct = async (req, res) => {
             }
 
             const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
-            received_image_urls.push(...urls);
-            console.log('[Admin Controller] Received images uploaded. URLs:', received_image_urls);
+            received_images_urls.push(...urls);
+            console.log('[Admin Controller] Received images uploaded. URLs:', received_images_urls);
         }
 
         // Process categories: combine selected checkboxes and new input
@@ -202,7 +202,7 @@ const postAdminCreateProduct = async (req, res) => {
             is_18_plus: is18Plus,
             in_stock: isInStock,
             received_text: received_text || null,
-            received_image_urls: received_image_urls,
+            received_images_urls: received_images_urls,
         };
 
         console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Data:', JSON.stringify(productDataForSupabase, null, 2));
@@ -248,7 +248,7 @@ const postAdminUpdateProduct = async (req, res) => {
 
     let new_main_image_url = main_image_url;
     let existing_sub_image_urls = [];
-    let existing_received_image_urls = [];
+    let existing_received_images_urls = [];
 
     const existingSubImageUrlsJson = req.body.sub_image_urls; 
     if (existingSubImageUrlsJson) {
@@ -269,26 +269,26 @@ const postAdminUpdateProduct = async (req, res) => {
         }
     }
 
-    // Handle existing received_image_urls from the form (should be JSON string from hidden input)
-    const existingReceivedImageUrlsJson = req.body.received_image_urls; // Assuming a hidden input with name="received_image_urls" exists
+    // Handle existing received_images_urls from the form (should be JSON string from hidden input)
+    const existingReceivedImageUrlsJson = req.body.received_images_urls; // Assuming a hidden input with name="received_images_urls" exists
     if (existingReceivedImageUrlsJson) {
         try {
-            existing_received_image_urls = JSON.parse(existingReceivedImageUrlsJson);
-            if (!Array.isArray(existing_received_image_urls)) throw new Error('Not an array');
-            existing_received_image_urls = existing_received_image_urls.filter(url => url !== '');
+            existing_received_images_urls = JSON.parse(existingReceivedImageUrlsJson);
+            if (!Array.isArray(existing_received_images_urls)) throw new Error('Not an array');
+            existing_received_images_urls = existing_received_images_urls.filter(url => url !== '');
         } catch (e) {
-            console.error('[Admin Controller] Failed to parse existing received_image_urls JSON:', e);
-            console.warn('[Admin Controller] Attempting to parse received_image_urls as comma-separated string.');
+            console.error('[Admin Controller] Failed to parse existing received_images_urls JSON:', e);
+            console.warn('[Admin Controller] Attempting to parse received_images_urls as comma-separated string.');
             // Fallback: assuming a text input for manual input might exist (adjust name if needed)
-            const existingReceivedImageUrlsString = req.body.received_image_urls_input; 
+            const existingReceivedImageUrlsString = req.body.received_images_urls_input; 
             if (existingReceivedImageUrlsString) {
-                existing_received_image_urls = existingReceivedImageUrlsString.split(',').map(url => url.trim()).filter(url => url !== '');
+                existing_received_images_urls = existingReceivedImageUrlsString.split(',').map(url => url.trim()).filter(url => url !== '');
             }
         }
     }
 
     const new_sub_image_urls = [];
-    const new_received_image_urls = []; // Array to store newly uploaded received image URLs
+    const new_received_images_urls = []; // Array to store newly uploaded received image URLs
 
     try {
         // Upload new main image to UploadThing if provided, using UTFile
@@ -397,13 +397,13 @@ const postAdminUpdateProduct = async (req, res) => {
             }
 
             const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
-            new_received_image_urls.push(...urls);
-            console.log('[Admin Controller] New received images uploaded. URLs:', new_received_image_urls);
+            new_received_images_urls.push(...urls);
+            console.log('[Admin Controller] New received images uploaded. URLs:', new_received_images_urls);
         }
 
         // Combine existing (from hidden input) and new (uploaded) sub image URLs
         const final_sub_image_urls = [...existing_sub_image_urls, ...new_sub_image_urls];
-        const final_received_image_urls = [...existing_received_image_urls, ...new_received_image_urls]; // Combine existing and new received image URLs
+        const final_received_images_urls = [...existing_received_images_urls, ...new_received_images_urls]; // Combine existing and new received image URLs
 
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
@@ -427,7 +427,7 @@ const postAdminUpdateProduct = async (req, res) => {
             is_18_plus: is18Plus,
             in_stock: isInStock,
             received_text: received_text || null,
-            received_image_urls: final_received_image_urls,
+            received_images_urls: final_received_images_urls,
         };
 
         console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', JSON.stringify(productDataForUpdate, null, 2));
