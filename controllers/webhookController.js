@@ -22,21 +22,19 @@ const handleLemonSqueezyWebhook = async (req, res) => {
     if (event.meta && event.meta.event_name === 'order_created') {
       console.log(`[WEBHOOK_INFO] Processing 'order_created' event. Event ID: ${event.meta.event_id}`);
       const orderData = event.data;
-      const orderId = event.meta.custom_data?.user_id; // Naše interní ID objednávky
-      const lemonSqueezyOrderId = orderData?.attributes?.identifier; // ID objednávky u Lemon Squeezy (např. ODR_xxxx)
+      const orderId = event.meta.custom_data?.user_id;
       const customerEmail = orderData?.attributes?.user_email;
-      // const paymentIntentId = orderData?.id; // ID objektu 'Order' v Lemon Squeezy databázi
 
       if (!orderId) {
-        console.error(`[WEBHOOK_ERROR] 'user_id' (our order ID) not found in custom_data for event ${event.meta.event_id}. Lemon Squeezy Order ID: ${lemonSqueezyOrderId}`);
+        console.error(`[WEBHOOK_ERROR] 'user_id' (our order ID) not found in custom_data for event ${event.meta.event_id}.`);
         return res.status(400).send('Webhook error: Missing user_id in custom_data. Cannot link to internal order.');
       }
       
-      console.log(`[WEBHOOK_DATA] Internal Order ID: ${orderId}, Customer Email: ${customerEmail}, Lemon Squeezy Order ID: ${lemonSqueezyOrderId}`);
+      console.log(`[WEBHOOK_DATA] Internal Order ID: ${orderId}, Customer Email: ${customerEmail}`);
 
       // --- Sekvence tasků ---
       // 1. Aktualizace stavu objednávky na 'paid' a uložení LS Order ID
-      await webhookTasks.updateOrderStatusToPaid(orderId, lemonSqueezyOrderId, customerEmail);
+      await webhookTasks.updateOrderStatusToPaid(orderId, customerEmail);
       console.log(`[WEBHOOK_PROGRESS] Status updated to 'paid' for order ${orderId}.`);
 
       // 2. Odeslání emailu "Objednávka přijata"

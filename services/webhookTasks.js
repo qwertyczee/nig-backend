@@ -10,11 +10,12 @@ const path = require('path');
 const { utapi, UTFile } = require('../config/uploadthing'); // Správná cesta k vašemu uploadthing.js
 
 // --- Task 1: updateOrderStatusToPaid --- (beze změny)
-async function updateOrderStatusToPaid(orderId, lemonSqueezyOrderId, customerEmail) {
-    console.log(`[TASK] Aktualizace objednávky ${orderId} na 'paid'. Lemon Squeezy Order ID: ${lemonSqueezyOrderId}`);
+async function updateOrderStatusToPaid(orderId, customerEmail) {
+    console.log(`[TASK] Aktualizace objednávky ${orderId} na 'paid'.`);
     const updatePayload = {
         status: 'paid',
-        lemonsqueezy_order_id: lemonSqueezyOrderId,
+        user_id: customerEmail,
+        order_id: orderId
     };
 
     const { error, count } = await supabase

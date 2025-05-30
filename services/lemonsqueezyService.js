@@ -61,7 +61,8 @@ async function createLemonSqueezyCheckout({ user, address, discountCode, totalPr
                         },
                         //discount_code: String(discountCode || ''),
                         custom: {
-                            user_id: String(user?.id || 'guest')
+                            user_id: String(user?.id || 'guest'),
+                            user_email: String(user?.email || '')
                         }
                     }
                 },
