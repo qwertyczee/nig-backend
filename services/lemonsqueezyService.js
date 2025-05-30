@@ -1,5 +1,12 @@
 const axios = require('axios');
+const crypto = require('crypto');
 require('dotenv').config();
+
+const LEMON_SQUEEZY_SIGNING_KEY = process.env.LEMON_SQUEEZY_SIGNING_KEY;
+
+if (!LEMON_SQUEEZY_SIGNING_KEY) {
+    console.warn("LEMON_SQUEEZY_SIGNING_KEY není nastaven v .env. Verifikace webhooku bude neúspěšná nebo přeskočena.");
+}
 
 const storeId = process.env.LEMON_SQUEEZY_STORE_ID;
 const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID;
@@ -89,8 +96,49 @@ async function createLemonSqueezyCheckout({ user, address, discountCode, totalPr
 }
 
 function verifyLemonSqueezyWebhook(req) {
-    // TODO: Implement webhook signature verification if needed
-    return true;
+    if (!LEMON_SQUEEZY_SIGNING_KEY) {
+        console.error('Chyba verifikace webhooku: LEMON_SQUEEZY_SIGNING_KEY není nakonfigurován.');
+        return false;
+    }
+
+    const signatureHeader = req.get('X-Signature');
+    if (!signatureHeader) {
+        console.warn('Chyba verifikace webhooku: Chybí hlavička X-Signature.');
+        return false;
+    }
+
+    // Access the raw body. With express.raw() middleware, the raw body is available at req.body.
+    const rawBody = req.body;
+
+    if (!Buffer.isBuffer(rawBody)) {
+        console.error('Chyba verifikace webhooku: Raw tělo requestu není Buffer nebo není dostupné. Ujistěte se, že express.raw() middleware je správně nastaven pro tuto route.');
+        return false;
+    }
+
+    try {
+        const hmac = crypto.createHmac('sha256', LEMON_SQUEEZY_SIGNING_KEY);
+        // rawBody is already a Buffer from express.raw(), so no need to convert to string first.
+        const digest = Buffer.from(hmac.update(rawBody).digest('hex'), 'utf8');
+        const signature = Buffer.from(signatureHeader, 'utf8');
+
+        if (digest.length !== signature.length) {
+            console.warn('Chyba verifikace webhooku: Délky podpisů se neshodují.');
+            return false;
+        }
+
+        if (crypto.timingSafeEqual(digest, signature)) {
+            console.log('Webhook signature verified successfully.');
+            return true;
+        } else {
+            console.warn('Chyba verifikace webhooku: Podpisy se neshodují.');
+            console.log('Očekávaný digest (hex):', digest.toString('hex'));
+            console.log('Přijatý X-Signature:', signatureHeader);
+            return false;
+        }
+    } catch (error) {
+        console.error('Chyba při verifikaci podpisu webhooku:', error);
+        return false;
+    }
 }
 
 module.exports = {

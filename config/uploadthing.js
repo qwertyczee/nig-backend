@@ -2,6 +2,13 @@ const { createUploadthing } = require("uploadthing/server");
 const { UTApi, UTFile } = require("uploadthing/server");
 require('dotenv').config();
 
+const UPLOADTHING_SECRET = process.env.UPLOADTHING_SECRET;
+const UPLOADTHING_APP_ID = process.env.UPLOADTHING_APP_ID;
+
+if (!UPLOADTHING_SECRET || !UPLOADTHING_APP_ID) {
+    console.error("CHYBA: UPLOADTHING_SECRET nebo UPLOADTHING_APP_ID není definován. Zkontrolujte .env soubor.");
+}
+
 // Inicializace UploadThing helperu
 const f = createUploadthing({
     /**
@@ -18,37 +25,47 @@ const authMiddleware = async ({ req }) => {
     // Pro server-side upload nepotřebujeme nutně req, můžeme vrátit statické ID
     // nebo načíst nějakou konfiguraci.
     console.log("UploadThing Middleware (server-side context)");
-    return { serverProcessId: "wireframe-generator" }; // Příklad metadat
+    return { serverProcessId: "slavesonline-backend", triggeredBy: "order-webhook" };
 };
 
 // Definice FileRouteru
 const ourFileRouter = {
-    // Trasa specificky pro wireframe screenshoty
-    wireframeScreenshots: f({
+    photos: f({
         image: {
-        maxFileSize: "1024MB",
-        maxFileCount: 1,
-        acl: "private",
+            maxFileSize: "1024MB",
+            maxFileCount: 99,
+            acl: "private",
         },
     })
-        .middleware(authMiddleware) // Aplikujeme middleware
-        .onUploadComplete(async ({ metadata, file }) => {
+    .middleware(authMiddleware) // Aplikujeme middleware
+    .onUploadComplete(async ({ metadata, file }) => {
         // Tento kód běží na serveru PO nahrání souboru
         console.log("UploadThing Server: Upload complete for process:", metadata.serverProcessId);
         console.log("UploadThing Server: File URL (private):", file.ufsUrl); // URL bude privátní
         // Můžete zde přidat další logiku, např. uložení URL do databáze
-        }),
+    }),
 
-    // Zde můžete přidat další trasy pro jiné typy souborů/účely
-    // např. publicProfilePictures: f({ image: { acl: "public-read" } })...
-
+    // Nová trasa pro ZIP soubory objednávek
+    orderZips: f({
+        // Definujeme povolené typy souborů. Použijeme "blob" pro obecné soubory
+        // nebo můžeme specifikovat "application/zip".
+        // "blob" je flexibilnější, pokud byste chtěli nahrávat i jiné typy.
+        // Specifikace "application/zip" je přesnější.
+        "application/zip": {
+            maxFileSize: "256MB", // Upravte podle očekávané velikosti ZIPu
+            maxFileCount: 1,
+            acl: "public-read",   // ZIPy budou veřejně čitelné přes URL
+            contentDisposition: "attachment" // Navrhne prohlížeči soubor stáhnout
+        },
+    })
+    .middleware(authMiddleware) // Můžeme použít stejný nebo jiný middleware
+    .onUploadComplete(async ({ metadata, file }) => {
+        console.log("UploadThing Server (orderZips): Upload dokončen. Kontext:", metadata.triggeredBy);
+        console.log("UploadThing Server (orderZips): URL souboru (public):", file.url);
+        console.log("UploadThing Server (orderZips): Klíč souboru:", file.key);
+    }),
 };
 
-// Export typu routeru pro použití jinde (např. v API handleru)
-// export type OurFileRouter = typeof ourFileRouter; // Pokud používáte TypeScript
-
-// Export instance UTApi, která bude používat konfiguraci z env proměnných
-// (UPLOADTHING_SECRET, UPLOADTHING_APP_ID)
 const utapi = new UTApi({});
 
 module.exports = {

@@ -123,13 +123,8 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// --- API Routes ---
-// Special raw body parser for Polar webhooks - place before routes that use it
-app.use('/api/webhooks/polar', express.raw({ type: 'application/json' }));
-
-// Apply DB check middleware to routes that need DB access.
-// Webhooks might need DB access to update order status, so they get it.
-// Product and order routes definitely need it.
+// This makes the raw body available at req.body (as a Buffer) for the webhook verification
+app.use('/api/webhooks/lemonsqueezy', express.raw({ type: 'application/json' }));
 
 // Admin routes are separate and use session auth, might also need DB.
 app.use('/api/admin', dbCheckMiddleware, adminRoutes);
@@ -187,4 +182,4 @@ process.on('SIGTERM', async () => {
     process.exit(0);
 });
 
-module.exports = app; // Export the app for Vercel
+module.exports = app;

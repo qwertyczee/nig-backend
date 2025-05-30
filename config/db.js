@@ -20,9 +20,6 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceRoleKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// The initDb function has been removed to prevent blocking during cold starts.
-// The Supabase client is initialized above and exported directly.
-
 module.exports = {
     supabase,
     supabaseServiceRoleKey
