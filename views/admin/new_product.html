@@ -1,103 +1,640 @@
 <!DOCTYPE html>
-<html lang="cs"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Přidat nový produkt</title> <style> body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background-color: #f0f2f5; display: flex; min-height: 100vh; color: #333; } .sidebar { width: 250px; background-color: #283747; color: white; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); display: flex; flex-direction: column; } .sidebar h2 { text-align: center; margin-bottom: 30px; color: #ecf0f1; } .sidebar ul { list-style: none; padding: 0; flex-grow: 1; } .sidebar ul li { margin-bottom: 15px; } .sidebar ul li a { color: #bdc3c7; text-decoration: none; padding: 10px 15px; display: block; border-radius: 5px; transition: background-color 0.3s ease; } .sidebar ul li a:hover, .sidebar ul li a.active { background-color: #34495e; color: white; } .main-content { flex-grow: 1; padding: 30px; background-color: #ffffff; border-radius: 8px; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); } .main-content h1 { color: #2c3e50; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 15px; } .form-container { background-color: #fdfdfd; padding: 25px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); } .form-group { margin-bottom: 20px; /* Zvětšený margin */ } .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #555; } .form-group input[type="text"], .form-group input[type="number"], .form-group textarea, .form-group select { /* Přidán select */ width: 100%; /* Změněno pro plnou šířku */ padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 1em; } .form-group textarea { resize: vertical; min-height: 100px; /* Zvětšená výška */ } .form-group input[type="file"] { /* Styling pro file input */ padding: 8px; border: 1px solid #ccc; border-radius: 5px; } .form-group input[type="checkbox"] { margin-right: 10px; vertical-align: middle; } .form-group label[for*="is_18_plus"], .form-group label[for*="in_stock"] { /* Inline pro checkbox labels */ display: inline-block; font-weight: normal; } .image-preview-container { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; } .image-preview-container img { max-width: 100px; max-height: 100px; border-radius: 4px; border: 1px solid #ddd; object-fit: cover; } .section-title { font-size: 1.4em; color: #2c3e50; margin-top: 30px; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #eee; } .form-actions { margin-top: 30px; display: flex; gap: 10px; justify-content: flex-end; /* Zarovnání tlačítek vpravo */ } .form-actions button, .form-actions .cancel-btn { /* Sjednocení stylu pro cancel button */ padding: 12px 25px; /* Větší padding */ border: none; border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: bold; transition: background-color 0.3s ease; } .form-actions .save-btn { background-color: #007bff; color: white; } .form-actions .save-btn:hover { background-color: #0056b3; } .form-actions .cancel-btn { background-color: #6c757d; color: white; text-decoration: none; /* Pro <a> tag */ display: inline-block; /* Pro <a> tag */ text-align: center; } .form-actions .cancel-btn:hover { background-color: #5a6268; } .message { margin-bottom: 20px; padding: 15px; border-radius: 5px; font-size: 0.95em; } .error-message { color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; } .success-message { color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; } .logout-btn { background-color: #e74c3c; color: white; padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; text-align: center; text-decoration: none; margin-top: auto; transition: background-color 0.3s ease; } .logout-btn:hover { background-color: #c0392b; } </style>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Přidat nový produkt</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-color: #f093fb;
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #4ade80;
+            --error-color: #f87171;
+            --warning-color: #fbbf24;
+            --dark-color: #1f2937;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+            display: flex;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--white);
+            box-shadow: var(--shadow-xl);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: 2rem;
+            text-align: center;
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.5rem;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            color: var(--medium-gray);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-nav a i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-section {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 1rem;
+            background: var(--secondary-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .logout-btn i {
+            margin-right: 0.5rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .content-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--medium-gray);
+            font-size: 1.125rem;
+        }
+
+        .form-card {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .form-header {
+            background: var(--light-gray);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .form-content {
+            padding: 2rem;
+        }
+
+        .form-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-title i {
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            background: var(--light-gray);
+            color: var(--medium-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-input-label i {
+            margin-right: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--light-gray);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-group:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .checkbox-input {
+            margin-right: 0.75rem;
+            transform: scale(1.2);
+        }
+
+        .checkbox-label {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--light-gray);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .category-item input {
+            margin-right: 0.5rem;
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .image-preview {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--light-gray);
+            color: var(--medium-gray);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn i {
+            margin-right: 0.5rem;
+        }
+
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .message i {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .message.success {
+            background: rgba(74, 222, 128, 0.1);
+            color: #047857;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .message.error {
+            background: rgba(248, 113, 113, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="sidebar">
-        <h2>Admin Panel</h2>
-        <ul>
-            <li><a href="/api/admin/dashboard">Dashboard</a></li>
-            <li><a href="/api/admin/products" class="active">Produkty</a></li>
-            <li><a href="/api/admin/orders">Objednávky</a></li>
-        </ul>
-        <a href="/api/admin/logout" class="logout-btn">Odhlásit se</a>
-    </div>
-    <div class="main-content">
-        <h1>Přidat nový produkt</h1>
-        <div id="message-area"></div>
-        <div class="form-container">
-            <form id="new-product-form" enctype="multipart/form-data">
-                
-                <div class="form-group">
-                    <label for="name">Title produktu:</label>
-                    <input type="text" id="name" name="name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="description">Popis produktu:</label>
-                    <textarea id="description" name="description"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="price">Price (CZK):</label>
-                    <input type="number" id="price" name="price" step="0.01" min="0" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="category_select">Kategorie:</label>
-                    <select id="category_select" name="category" required>
-                        <option value="">Načítání kategorií...</option>
-                        <!-- Kategorie budou načteny pomocí JavaScriptu -->
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="main_image_upload">Main image (hlavní obrázek):</label>
-                    <input type="file" id="main_image_upload" accept="image/*" name="main_image">
-                    <div id="main_image_preview" class="image-preview-container"></div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="sub_image_upload">Sub images (další obrázky produktu):</label>
-                    <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images">
-                    <div id="sub_image_preview" class="image-preview-container"></div>
-                </div>
-                
-                <h2 class="section-title">Co uživatel obdrží</h2>
-                <div class="form-group">
-                    <label for="received_text">Textový popis obsahu balení / služby:</label>
-                    <textarea id="received_text" name="received_text"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="received_images_upload">Fotky obsahu balení / služby:</label>
-                    <input type="file" id="received_images_upload" accept="image/*" multiple name="received_images">
-                    <div id="received_images_preview" class="image-preview-container"></div>
-                </div>
-
-                <h2 class="section-title">Další nastavení</h2>
-                <div class="form-group">
-                    <label for="likes_input">"Líbí se" (položky oddělené čárkou, např. Rychlé dodání, Kvalitní materiál):</label>
-                    <input type="text" id="likes_input" name="likes_input_text"> <!-- Změna name atributu, abychom to zpracovali v JS -->
-                    <input type="hidden" id="likes" name="likes" value="[]">
-                </div>
-                <div class="form-group">
-                    <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true">
-                    <label for="is_18_plus">Produkt je 18+</label>
-                </div>
-                <div class="form-group">
-                    <label for="mail_content">Obsah emailu po zakoupení (speciální instrukce, poděkování):</label>
-                    <textarea id="mail_content" name="mail_content"></textarea>
-                </div>
-                
-                <div class="form-group">
-                    <input type="checkbox" id="in_stock" name="in_stock" value="true" checked>
-                    <label for="in_stock">Produkt je skladem</label>
-                </div>
-
-                <!-- Skrytá pole pro URLs obrázků - mohou být užitečná pro editaci, pro nový produkt se neodesílají, ale nechávám pro konzistenci -->
-                <input type="hidden" id="main_image_url" name="main_image_url">
-                <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
-                <input type="hidden" id="received_images_urls" name="received_images_urls" value="[]">
-
-
-                <div class="form-actions">
-                    <button type="submit" class="save-btn">Přidat produkt</button>
-                    <a href="/api/admin/products" class="cancel-btn">Zrušit</a>
-                </div>
-            </form>
+        <div class="sidebar-header">
+            <h2>Admin Panel</h2>
+            <p>Správa produktů</p>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/api/admin/dashboard"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                <li><a href="/api/admin/products" class="active"><i class="fas fa-box"></i>Produkty</a></li>
+                <li><a href="/api/admin/orders"><i class="fas fa-shopping-cart"></i>Objednávky</a></li>
+            </ul>
+        </nav>
+        <div class="logout-section">
+            <a href="/api/admin/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Odhlásit se
+            </a>
         </div>
     </div>
 
+    <main class="main-content">
+        <div class="content-container">
+            <div class="page-header">
+                <h1>Přidat nový produkt</h1>
+                <p>Vytvořte nový produkt pro váš obchod</p>
+            </div>
+
+            <div id="message-area"></div>
+
+            <div class="form-card">
+                <div class="form-header">
+                    <h2>Informace o produktu</h2>
+                </div>
+                <div class="form-content">
+                    <form id="new-product-form" enctype="multipart/form-data">
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Základní informace
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="name">Název produktu</label>
+                                    <input type="text" id="name" name="name" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="price">Cena (CZK)</label>
+                                    <input type="number" id="price" name="price" step="0.01" min="0" class="form-input" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label" for="description">Popis produktu</label>
+                                    <textarea id="description" name="description" class="form-input form-textarea"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-tags"></i>
+                                Kategorie
+                            </h3>
+                            <div class="form-group">
+                                <label class="form-label">Vyberte existující kategorie</label>
+                                <div id="existing_categories_checkboxes" class="categories-grid">
+                                    Načítání kategorií...
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="new_category_input">Nebo přidat novou kategorii</label>
+                                <input type="text" id="new_category_input" name="new_category_input" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-images"></i>
+                                Obrázky produktu
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="main_image_upload">Hlavní obrázek</label>
+                                    <div class="file-input-wrapper">
+                                        <input type="file" id="main_image_upload" accept="image/*" name="main_image" class="file-input">
+                                        <label for="main_image_upload" class="file-input-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            Klikněte pro výběr souboru
+                                        </label>
+                                    </div>
+                                    <div id="main_image_preview" class="image-preview-grid"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="sub_image_upload">Další obrázky</label>
+                                    <div class="file-input-wrapper">
+                                        <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
+                                        <label for="sub_image_upload" class="file-input-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            Vyberte více souborů
+                                        </label>
+                                    </div>
+                                    <div id="sub_image_preview" class="image-preview-grid"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-gift"></i>
+                                Co uživatel obdrží
+                            </h3>
+                            <div class="form-group">
+                                <label class="form-label" for="received_text">Popis obsahu balení/služby</label>
+                                <textarea id="received_text" name="received_text" class="form-input form-textarea"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="received_images_upload">Fotky obsahu balení/služby</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="received_images_upload" accept="image/*" multiple name="received_images" class="file-input">
+                                    <label for="received_images_upload" class="file-input-label">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        Vyberte fotky obsahu
+                                    </label>
+                                </div>
+                                <div id="received_images_preview" class="image-preview-grid"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-cog"></i>
+                                Další nastavení
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="likes_input">"Líbí se" vlastnosti</label>
+                                    <input type="text" id="likes_input" name="likes_input_text" class="form-input" placeholder="Rychlé dodání, Kvalitní materiál">
+                                    <input type="hidden" id="likes" name="likes" value="[]">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="mail_content">Email po zakoupení</label>
+                                    <textarea id="mail_content" name="mail_content" class="form-input form-textarea" placeholder="Speciální instrukce nebo poděkování..."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true" class="checkbox-input">
+                                        <label for="is_18_plus" class="checkbox-label">Produkt je 18+</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="in_stock" name="in_stock" value="true" checked class="checkbox-input">
+                                        <label for="in_stock" class="checkbox-label">Produkt je skladem</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <input type="hidden" id="main_image_url" name="main_image_url">
+                        <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
+                        <input type="hidden" id="received_images_urls" name="received_images_urls" value="[]">
+
+                        <div class="form-actions">
+                            <a href="/api/admin/products" class="btn btn-secondary">
+                                <i class="fas fa-times"></i>
+                                Zrušit
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                Přidat produkt
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
     <script>
+        // Stejný JavaScript jako předtím, pouze aktualizované selektory pro nové CSS třídy
         const form = document.getElementById('new-product-form');
         const msgArea = document.getElementById('message-area');
         
@@ -109,29 +646,28 @@
         const subImagePreviewDiv = document.getElementById('sub_image_preview');
         const receivedImagesPreviewDiv = document.getElementById('received_images_preview');
         
-        const categorySelect = document.getElementById('category_select');
-        const likesInputText = document.getElementById('likes_input'); // Textové pole pro uživatele
-        const likesHidden = document.getElementById('likes'); // Skryté pole pro JSON pole
+        const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
+        const newCategoryInput = document.getElementById('new_category_input');
+        const likesInputText = document.getElementById('likes_input');
+        const likesHidden = document.getElementById('likes');
 
-        // Funkce pro zobrazení náhledu obrázku
         function displayImagePreview(file, previewContainer) {
             const reader = new FileReader();
             reader.onload = (e) => {
+                const div = document.createElement('div');
+                div.className = 'image-preview';
                 const img = document.createElement('img');
                 img.src = e.target.result;
-                // Styl pro obrázky je v CSS (.image-preview-container img)
-                previewContainer.appendChild(img);
+                div.appendChild(img);
+                previewContainer.appendChild(div);
             };
             reader.readAsDataURL(file);
         }
 
-        // Funkce pro zobrazení náhledů pro skupinu souborů
         function setupImageUploadPreview(inputElement, previewDivElement) {
             inputElement.addEventListener('change', e => {
-                if (inputElement.multiple) { // Pro multiple files, nepřepisujeme, ale přidáváme
-                     // previewDivElement.innerHTML = ''; // Nemažeme, pokud chceme přidávat další soubory postupně. Pro nový produkt je lepší mazat.
-                } else {
-                    previewDivElement.innerHTML = ''; // Pro jeden soubor (main_image) přepíšeme
+                if (!inputElement.multiple) {
+                    previewDivElement.innerHTML = '';
                 }
                 const files = Array.from(e.target.files);
                 files.forEach(file => {
@@ -144,8 +680,6 @@
         setupImageUploadPreview(subImageUploadInput, subImagePreviewDiv);
         setupImageUploadPreview(receivedImagesUploadInput, receivedImagesPreviewDiv);
 
-
-        // Načtení a naplnění kategorií
         async function loadCategories() {
             try {
                 const response = await fetch('/api/admin/products/categories');
@@ -153,21 +687,41 @@
                     throw new Error(`Chyba při načítání kategorií: ${response.status}`);
                 }
                 const categories = await response.json();
-                categorySelect.innerHTML = '<option value="">Vyberte kategorii...</option>'; // Výchozí možnost
-                categories.forEach(category => {
-                    const option = document.createElement('option');
-                    option.value = category.id; // Používáme ID kategorie jako hodnotu
-                    option.textContent = category.name;
-                    categorySelect.appendChild(option);
-                });
-            } catch (error) {
-                console.error("Nepodařilo se načíst kategorie:", error);
-                categorySelect.innerHTML = '<option value="">Chyba při načítání kategorií</option>';
-                msgArea.innerHTML = `<p class="error-message">Nepodařilo se načíst kategorie: ${error.message}</p>`;
-            }
-        }
+               
+                existingCategoriesCheckboxesDiv.innerHTML = '';
+               
+                if (categories.length === 0) {
+                     existingCategoriesCheckboxesDiv.innerHTML = '<p>Žádné existující kategorie nenalezeny.</p>';
+                } else {
+                     categories.forEach(category => {
+                         const categoryId = category.id;
+                         const categoryName = category.name;
 
-        // Zpracování textového vstupu pro "Likes" do JSON pole
+                         const categoryDiv = document.createElement('div');
+                         categoryDiv.className = 'category-item';
+
+                         const checkbox = document.createElement('input');
+                         checkbox.type = 'checkbox';
+                         checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
+                         checkbox.name = 'categories';
+                         checkbox.value = categoryId;
+
+                         const label = document.createElement('label');
+                         label.htmlFor = checkbox.id;
+                         label.textContent = categoryName;
+
+                         categoryDiv.appendChild(checkbox);
+                         categoryDiv.appendChild(label);
+                         existingCategoriesCheckboxesDiv.appendChild(categoryDiv);
+                     });
+                 }
+             } catch (error) {
+                  console.error("Nepodařilo se načíst kategorie:", error);
+                  existingCategoriesCheckboxesDiv.innerHTML = '<p class="message error">Chyba při načítání kategorií.</p>';
+                  msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Nepodařilo se načíst kategorie: ${error.message}</div>`;
+              }
+          }
+
         likesInputText.addEventListener('input', (event) => {
             const items = event.target.value.split(',')
                             .map(item => item.trim())
@@ -175,51 +729,63 @@
             likesHidden.value = JSON.stringify(items);
         });
 
-
         form.addEventListener('submit', async e => {
             e.preventDefault();
             msgArea.innerHTML = '';
 
-            // Likes jsou již zpracovány do hidden inputu 'likes'
-            // Není potřeba speciální logiky pro FormData, pokud jsou name atributy správně.
             const formData = new FormData(form);
 
-            // Pro kontrolu, co se odesílá:
-            // for (let [key, value] of formData.entries()) {
-            //     console.log(`${key}: ${value}`);
-            // }
+            const selectedCategories = [];
+            existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                selectedCategories.push(checkbox.value);
+            });
+
+            const newCategory = newCategoryInput.value.trim();
+            if (newCategory) {
+                selectedCategories.push(newCategory);
+            }
+
+            const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
+
+            formData.delete('category');
+            formData.delete('new_category_input');
+
+            if (finalCategories.length === 0) {
+                msgArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Prosím vyberte alespoň jednu kategorii nebo zadejte novou.</div>';
+                return;
+            }
 
             try {
                 const res = await fetch('/api/admin/products', {
                     method: 'POST',
-                    body: formData // FormData automaticky nastaví Content-Type na multipart/form-data
+                    body: formData
                 });
 
                 const json = await res.json();
 
                 if (res.ok) {
-                    msgArea.innerHTML = '<p class="success-message">Produkt byl úspěšně vytvořen!</p>';
-                    form.reset(); // Resetuje všechna pole formuláře
+                    msgArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Produkt byl úspěšně vytvořen!</div>';
+                    form.reset();
                     mainImagePreviewDiv.innerHTML = '';
                     subImagePreviewDiv.innerHTML = '';
                     receivedImagesPreviewDiv.innerHTML = '';
-                    likesHidden.value = '[]'; // likesInputText se resetuje s form.reset()
-                    // categorySelect se také resetuje s form.reset() na první option
-                    // Skryté inputy pro URL se také resetují
+                    likesHidden.value = '[]';
+                    existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
                     document.getElementById('main_image_url').value = '';
                     document.getElementById('sub_image_urls').value = '[]';
                     document.getElementById('received_images_urls').value = '[]';
-
+                    newCategoryInput.value = '';
                 } else {
-                    msgArea.innerHTML = `<p class="error-message">Nepodařilo se vytvořit produkt: ${json.error || json.message || res.statusText}</p>`;
+                    msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Nepodařilo se vytvořit produkt: ${json.error || json.message || res.statusText}</div>`;
                 }
             } catch (err) {
                 console.error('Chyba při odesílání formuláře:', err);
-                msgArea.innerHTML = '<p class="error-message">Došlo k chybě při vytváření produktu.</p>';
+                msgArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Došlo k chybě při vytváření produktu.</div>';
             }
         });
 
-        // Načtení kategorií při startu
         document.addEventListener('DOMContentLoaded', () => {
             loadCategories();
         });

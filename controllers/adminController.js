@@ -1,15 +1,5 @@
-const path = require('path');
 const { supabase } = require('../config/db');
 const { utapi, UTFile } = require('../config/uploadthing');
-
-const getLoginPage = (req, res) => {
-    // If admin_auth cookie exists, redirect to dashboard
-    if (req.cookies && req.cookies.admin_auth) {
-        return res.redirect('/api/admin/dashboard'); // Redirect to the correct dashboard route
-    }
-    // Otherwise, serve the login page
-    res.sendFile('login.html', { root: path.join(__dirname, '../views/admin') });
-};
 
 const postLogin = async (req, res) => {
     const { email, password } = req.body;
@@ -65,103 +55,12 @@ const postLogin = async (req, res) => {
     }
 };
 
-const getDashboardPage = async (req, res) => {
-  try {
-    const { count: totalProducts, error: productsError } = await supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true });
-
-    const { count: totalOrders, error: ordersError } = await supabase
-      .from('orders')
-      .select('*', { count: 'exact', head: true });
-
-    const { data: salesData, error: salesError } = await supabase
-      .from('orders')
-      .select('total_amount');
-
-    let totalSales = 0;
-    if (salesData) {
-        totalSales = salesData.reduce((sum, order) => sum + order.total_amount, 0);
-    }
-
-    const { count: totalCustomers, error: customersError } = await supabase
-      .from('users') 
-      .select('*', { count: 'exact', head: true });
-
-    if (productsError) console.error('Error fetching total products:', productsError.message);
-    if (ordersError) console.error('Error fetching total orders:', ordersError.message);
-    if (salesError) console.error('Error fetching total sales:', salesError.message);
-    if (customersError) console.error('Error fetching total customers:', customersError.message);
-
-    res.render('api/admin/dashboard', {
-      totalProducts: totalProducts || 0,
-      newOrders: totalOrders || 0, 
-      totalSales: totalSales || 0,
-      totalCustomers: totalCustomers || 0,
-      user: req.session.user 
-    });
-  } catch (error) {
-    console.error('Error rendering dashboard:', error);
-    res.status(500).send('Internal Server Error');
-  }
-};
-
-const logoutAdmin = (req, res) => {
-  // Clear the admin_auth cookie
-  res.clearCookie('admin_auth');
-  console.log('[Admin Logout] admin_auth cookie cleared. Redirecting to login.');
-  res.redirect('/api/admin/login');
-};
-
-const getAdminProductsPage = async (req, res) => {
-    try {
-        // Removed data fetching logic as client will fetch via API
-        // const { data: products, error } = await supabase
-        //     .from('products')
-        //     .select('*');
-
-        // if (error) {
-        //     console.error('Error fetching products for admin:', error.message);
-        //     return res.status(500).send('Error fetching products.');
-        // }
-
-        // Pass message as a query parameter if needed for client-side JS
-        // const message = req.query.message ? '?message=' + encodeURIComponent(req.query.message) : '';
-        // res.sendFile(`products.html${message}`, { root: path.join(__dirname, '../views/admin') });
-
-        // Simple serve the static HTML file
-        res.sendFile('products.html', { root: path.join(__dirname, '../views/admin') });
-
-    } catch (error) {
-        console.error('Error in getAdminProductsPage:', error);
-        // Still send 500 if file serving itself fails, though less likely
-        res.status(500).send('Internal Server Error');
-    }
-};
-
-const getAdminOrdersPage = async (req, res) => {
-    try {
-        res.sendFile('orders.html', { root: path.join(__dirname, '../views/admin') });
-
-    } catch (error) {
-        console.error('Error in getAdminOrdersPage:', error);
-        res.status(500).send('Internal Server Error');
-    }
-};
-
-const getNewProductForm = (req, res) => {
-    // Removed query parameter passing for repopulation, client-side JS will handle this if needed
-    // const query = req.query; // Keep query for repopulating on error
-    res.sendFile('new_product.html', { root: path.join(__dirname, '../views/admin') });
-};
-
 const postAdminCreateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminCreateProduct: FUNKCE ZAVOLÁNA.');
     console.log('[Admin Controller] postAdminCreateProduct: Request body:', JSON.stringify(req.body, null, 2));
-    // Access files from req.files due to multer middleware
     console.log('[Admin Controller] postAdminCreateProduct: Request files:', req.files);
 
-    const { name, description, price, category, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
+    const { name, description, price, categories, new_category_input, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
     const mainImageMulterFile = req.files?.main_image?.[0]; // Get main image file from multer
     const subImagesMulterFiles = req.files?.sub_images; // Get sub image files from multer
     const receivedImagesMulterFiles = req.files?.received_images; // Get received image files from multer
@@ -297,22 +196,36 @@ const postAdminCreateProduct = async (req, res) => {
             }
         }
 
+        // Process categories: combine selected checkboxes and new input
+        let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
+        const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
+        
+        if (newCategory) {
+            finalCategoriesArray.push(newCategory);
+        }
+        
+        // Ensure uniqueness and remove any potential empty strings
+        finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
+
+        // Ensure that if the array is empty, we store an empty array [] and not potentially an empty string ""
+        const categoryToStore = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
+
         const productDataForSupabase = {
             name,
             description: description || null,
             price: parseFloat(price),
-            category: category || null,
+            category: categoryToStore,
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls, 
             likes: likesArray, 
             is_18_plus: is18Plus,
             mail_content: mail_content || null,
             in_stock: isInStock,
-            received_text: received_text || null, // Include received_text
-            received_image_urls: received_image_urls, // Include received_image_urls
+            received_text: received_text || null,
+            received_image_urls: received_image_urls,
         };
 
-        console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Jméno:', productDataForSupabase.name);
+        console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Data:', JSON.stringify(productDataForSupabase, null, 2));
         const { data, error: supabaseError } = await supabase
             .from('products')
             .insert([productDataForSupabase])
@@ -334,55 +247,16 @@ const postAdminCreateProduct = async (req, res) => {
     }
 };
 
-const getAdminProductCategories = async (req, res) => {
-    try {
-        // Fetch distinct categories from the "products" table
-        const { data: categories, error } = await supabase
-            .from('products')
-            .select('category', { distinct: true })
-            .not('category', 'is', null) // Exclude products with no category set
-            .neq('category', ''); // Exclude products with empty string category
-
-        if (error) {
-            console.error('Error fetching product categories from DB:', error.message);
-            return res.status(500).json({ error: 'Failed to fetch product categories from database' });
-        }
-
-        // Format the categories for the frontend as an array of objects { id, name }
-        const formattedCategories = categories
-            .map(item => ({
-                id: item.category, // Use the original category name as ID
-                // Capitalize the first letter for the display name
-                name: item.category.charAt(0).toUpperCase() + item.category.slice(1)
-            }))
-            .filter(category => category.id !== null && category.id !== ''); // Filter out any potential null/empty categories
-
-        res.json(formattedCategories);
-    } catch (error) {
-        console.error('Error in getAdminProductCategories:', error);
-        res.status(500).json({ error: 'Internal Server Error fetching product categories' });
-    }
-};
-
-const getEditProductForm = async (req, res) => {
-    try {
-        res.sendFile('edit_product.html', { root: path.join(__dirname, '../views/admin') });
-    } catch (error) {
-        console.error('Error in getEditProductForm:', error);
-        res.status(500).send('Internal Server Error');
-    }
-};
-
 const postAdminUpdateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminUpdateProduct: FUNCTION CALLED.');
     console.log('[Admin Controller] postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
     console.log('[Admin Controller] postAdminUpdateProduct: Request files:', req.files);
 
     const { id } = req.params;
-    const { name, description, price, category, main_image_url, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
-    const mainImageMulterFile = req.files?.main_image?.[0]; // New main image file from multer (if uploaded)
-    const subImagesMulterFiles = req.files?.sub_images; // New sub image files from multer (if uploaded)
-    const receivedImagesMulterFiles = req.files?.received_images; // New received image files from multer (if uploaded)
+    const { name, description, price, categories, new_category_input, main_image_url, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
+    const mainImageMulterFile = req.files?.main_image?.[0];
+    const subImagesMulterFiles = req.files?.sub_images;
+    const receivedImagesMulterFiles = req.files?.received_images;
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminUpdateProduct: Error: Name and non-negative price are required.');
@@ -392,11 +266,10 @@ const postAdminUpdateProduct = async (req, res) => {
     const isInStock = in_stock === 'true' || in_stock === 'on' || false;
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
-    let new_main_image_url = main_image_url; // Start with existing URL from form field
+    let new_main_image_url = main_image_url;
     let existing_sub_image_urls = [];
-    let existing_received_image_urls = []; // Array to hold existing received image URLs
+    let existing_received_image_urls = [];
 
-    // Handle existing sub_image_urls from the form (should be JSON string from hidden input)
     const existingSubImageUrlsJson = req.body.sub_image_urls; 
     if (existingSubImageUrlsJson) {
         try {
@@ -570,22 +443,34 @@ const postAdminUpdateProduct = async (req, res) => {
             }
         }
 
+        let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
+        const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
+
+        if (newCategory) {
+            finalCategoriesArray.push(newCategory);
+        }
+
+        finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
+
+        // Ensure that if the array is empty, we store an empty array [] and not potentially an empty string ""
+        const categoryToUpdate = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
+
         const productDataForUpdate = {
             name,
             description: description || null,
             price: parseFloat(price),
-            category: category || null,
+            category: categoryToUpdate,
             main_image_url: new_main_image_url, 
             sub_image_urls: final_sub_image_urls, 
-            likes: likesArray, 
+            likes: likesArray,
             is_18_plus: is18Plus,
             mail_content: mail_content || null,
             in_stock: isInStock,
-            received_text: received_text || null, // Include received_text
-            received_image_urls: final_received_image_urls, // Include received_image_urls
+            received_text: received_text || null,
+            received_image_urls: final_received_image_urls,
         };
 
-        console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', productDataForUpdate);
+        console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', JSON.stringify(productDataForUpdate, null, 2));
         const { data, error: supabaseError } = await supabase
             .from('products')
             .update(productDataForUpdate)
@@ -605,31 +490,6 @@ const postAdminUpdateProduct = async (req, res) => {
         if (!res.headersSent) {
             res.status(500).json({ error: 'Unexpected error: ' + error.message });
         }
-    }
-};
-
-const getAdminOrderDetail = async (req, res) => {
-    try {
-        // Removed data fetching logic as client will fetch via API
-        // const { id } = req.params;
-        // const { data: order, error } = await supabase
-        //     .from('orders')
-        //     .select('*')
-        //     .eq('id', id)
-        //     .single();
-
-        // if (error || !order) {
-        //     return res.status(404).send('Order not found');
-        // }
-
-        // Removed passing order data to render, client-side JS will fetch
-        // res.render('admin/order_detail', { order });
-
-        // Simply serve the static HTML file
-        res.sendFile('order_detail.html', { root: path.join(__dirname, '../views/admin') });
-
-    } catch (err) {
-        res.status(500).send('Internal Server Error');
     }
 };
 
@@ -680,21 +540,35 @@ const getAdminOrdersApi = async (req, res) => {
         const limit = parseInt(req.query.limit, 10) || 10;
         const from = (page - 1) * limit;
         const to = from + limit - 1;
+        const searchTerm = req.query.search;
 
-        const { count, error: countError } = await supabase
+        let query = supabase
             .from('orders')
             .select('*', { count: 'exact', head: true });
+
+        if (searchTerm) {
+            query = query.ilike('customer_email', `%${searchTerm}%`);
+        }
+
+        const { count, error: countError } = await query;
 
         if (countError) {
             console.error('Error fetching order count for API:', countError.message);
             return res.status(500).json({ error: 'Error fetching order count.' });
         }
 
-        const { data: orders, error } = await supabase
+        // Reset query for fetching data, applying the same search filter
+        let dataQuery = supabase
             .from('orders')
             .select('*')
             .order('created_at', { ascending: false })
             .range(from, to);
+
+        if (searchTerm) {
+            dataQuery = dataQuery.ilike('customer_email', `%${searchTerm}%`);
+        }
+
+        const { data: orders, error } = await dataQuery;
 
         if (error) {
             console.error('Error fetching orders for API:', error.message);
@@ -712,6 +586,35 @@ const getAdminOrdersApi = async (req, res) => {
     } catch (error) {
         console.error('Error in getAdminOrdersApi:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+const getAdminProductCategories = async (req, res) => {
+    try {
+        // Fetch distinct categories from the "products" table
+        const { data: categories, error } = await supabase
+            .from('products')
+            .select('category', { distinct: true })
+            .not('category', 'is', null) // Exclude products with no category set
+            .neq('category', ''); // Exclude products with empty string category
+
+        if (error) {
+            console.error('Error fetching product categories from DB:', error.message);
+            return res.status(500).json({ error: 'Failed to fetch product categories from database' });
+        }
+
+        // Format the categories for the frontend as an array of objects { id, name }
+        const formattedCategories = categories
+            .map(item => ({
+                id: item.category,
+                name: item.category.charAt(0).toUpperCase() + item.category.slice(1)
+            }))
+            .filter(category => category.id !== null && category.id !== ''); // Filter out any potential null/empty categories
+
+        res.json(formattedCategories);
+    } catch (error) {
+        console.error('Error in getAdminProductCategories:', error);
+        res.status(500).json({ error: 'Internal Server Error fetching product categories' });
     }
 };
 
@@ -825,21 +728,41 @@ const deleteAdminProduct = async (req, res) => {
     }
 };
 
-module.exports = {  
-    getLoginPage,
+const getAdminOrderDetailById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        console.log(`[Admin Controller] getAdminOrderDetailById: Attempting to fetch order with ID: ${id}`);
+        const { data: order, error } = await supabase
+            .from('orders')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !order) {
+            console.error('[Admin Controller] getAdminOrderDetailById: Error fetching order:', error ? error.message : 'Order not found');
+            // Return 404 if not found, 500 for other DB errors
+            if (error && error.code === 'PGRST116') { // Example error code for no rows found (adjust if needed based on actual Supabase errors)
+                return res.status(404).json({ error: 'Order not found.' });
+            }
+            return res.status(error ? 500 : 404).json({ error: error ? 'Database error fetching order: ' + error.message : 'Order not found.' });
+        }
+
+        console.log(`[Admin Controller] getAdminOrderDetailById: Order found for ID: ${id}`);
+        res.json(order);
+    } catch (error) {
+        console.error('[Admin Controller] getAdminOrderDetailById: === GENERAL ERROR ===:', error.message, error.stack);
+        res.status(500).json({ error: 'An unexpected error occurred while fetching order details.' });
+    }
+};
+
+module.exports = {
     postLogin,
-    getDashboardPage,
-    logoutAdmin,
-    getAdminProductsPage,
-    getNewProductForm,
     postAdminCreateProduct,
-    getAdminOrdersPage,
-    getEditProductForm,
     postAdminUpdateProduct,
-    getAdminOrderDetail,
     getDashboardStatsApi,
     getAdminOrdersApi,
     getAdminProductCategories,
     getAdminProductByIdApi,
-    deleteAdminProduct
+    deleteAdminProduct,
+    getAdminOrderDetailById
 };

@@ -209,10 +209,10 @@ const cancelMyOrder = async (req, res) => {
                 // If existingOrder.user_id !== userId, it's an auth issue (though RLS should prevent seeing it too).
                 // More likely, the status is not 'pending' or 'awaiting_payment'.
                 if (existingOrder.user_id !== userId) {
-                     return res.status(403).json({ message: 'You are not authorized to cancel this order.' });
+                    return res.status(403).json({ message: 'You are not authorized to cancel this order.' });
                 }
                 if (!['pending', 'awaiting_payment'].includes(existingOrder.status)) {
-                     return res.status(400).json({ message: `Order is in '${existingOrder.status}' status and cannot be cancelled by the user.` });
+                    return res.status(400).json({ message: `Order is in '${existingOrder.status}' status and cannot be cancelled by the user.` });
                 }
                 // Default message if other specific checks don't catch it
                 return res.status(403).json({ message: 'Order cannot be cancelled. It may not exist, not belong to you, or not be in a cancellable state.' });
@@ -223,7 +223,7 @@ const cancelMyOrder = async (req, res) => {
         // `.single()` would throw PGRST116 if count is 0, so this check is somewhat redundant if error handling above is complete.
         // However, it's a good safeguard.
         if (count === 0 || !data) { 
-             return res.status(404).json({ message: 'Order not found, not in a cancellable state, or not authorized.' });
+            return res.status(404).json({ message: 'Order not found, not in a cancellable state, or not authorized.' });
         }
 
         res.json(data); // Return the updated (cancelled) order

@@ -29,7 +29,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
       if (orderId) {
         await supabase
           .from('orders')
-          .update({ status: 'processing', payment_intent_id: orderData.id })
+          .update({ status: 'paid', payment_intent_id: orderData.id })
           .eq('id', orderId)
           .eq('status', 'awaiting_payment');
       }

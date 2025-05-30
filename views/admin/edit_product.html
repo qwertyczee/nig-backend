@@ -4,240 +4,670 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Product</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            background-color: #f0f2f5;
-            display: flex;
-            min-height: 100vh;
-            color: #333;
+        :root {
+            --primary-color: #667eea;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-color: #f093fb;
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #4ade80;
+            --error-color: #f87171;
+            --warning-color: #fbbf24;
+            --dark-color: #1f2937;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+            display: flex;
+        }
+
         .sidebar {
-            width: 250px;
-            background-color: #283747;
-            color: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            width: 280px;
+            background: var(--white);
+            box-shadow: var(--shadow-xl);
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 10;
         }
-        .sidebar h2 {
+
+        .sidebar-header {
+            padding: 2rem;
             text-align: center;
-            margin-bottom: 30px;
-            color: #ecf0f1;
+            background: var(--primary-gradient);
+            color: white;
         }
-        .sidebar ul {
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.5rem;
+        }
+
+        .sidebar-nav ul {
             list-style: none;
-            padding: 0;
-            flex-grow: 1;
         }
-        .sidebar ul li {
-            margin-bottom: 15px;
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
         }
-        .sidebar ul li a {
-            color: #bdc3c7;
-            text-decoration: none;
-            padding: 10px 15px;
-            display: block;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .sidebar ul li a:hover, .sidebar ul li a.active {
-            background-color: #34495e;
-            color: white;
-        }
-        .main-content {
-            flex-grow: 1;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            margin: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        .main-content h1 {
-            color: #2c3e50;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
-        .form-container {
-            background-color: #fdfdfd;
-            padding: 25px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #555;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="number"],
-        .form-group textarea {
-            width: calc(100% - 22px);
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            font-size: 1em;
-        }
-        .form-group textarea {
-            resize: vertical;
-            min-height: 80px;
-        }
-        .form-group input[type="checkbox"] {
-            margin-right: 10px;
-        }
-        .form-actions {
-            margin-top: 25px;
+
+        .sidebar-nav a {
             display: flex;
-            gap: 10px;
-        }
-        .form-actions button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
-        }
-        .form-actions .save-btn {
-            background-color: #007bff;
-            color: white;
-        }
-        .form-actions .save-btn:hover {
-            background-color: #0056b3;
-        }
-        .form-actions .cancel-btn {
-            background-color: #6c757d;
-            color: white;
-        }
-        .form-actions .cancel-btn:hover {
-            background-color: #5a6268;
-        }
-        .message {
-            margin-bottom: 15px;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        .error-message {
-            color: #721c24;
-            background-color: #f8d7da;
-            border: 1px solid #f5c6cb;
-        }
-         .success-message {
-            color: #155724;
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-        }
-        .logout-btn {
-            background-color: #e74c3c;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: center;
+            align-items: center;
+            padding: 1rem;
+            color: var(--medium-gray);
             text-decoration: none;
-            margin-top: auto; /* Pushes the logout button to the bottom */
-            transition: background-color 0.3s ease;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
         }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-nav a i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-section {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 1rem;
+            background: var(--secondary-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
         .logout-btn:hover {
-            background-color: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .logout-btn i {
+            margin-right: 0.5rem;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+        }
+
+        .content-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: var(--medium-gray);
+            font-size: 1.125rem;
+        }
+
+        .form-card {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .form-header {
+            background: var(--light-gray);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-header h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .form-content {
+            padding: 2rem;
+        }
+
+        .form-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-title i {
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: var(--white);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-input-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            background: var(--light-gray);
+            color: var(--medium-gray);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            border-color: var(--primary-color);
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .file-input-label i {
+            margin-right: 0.5rem;
+            font-size: 1.25rem;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            background: var(--light-gray);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-group:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .checkbox-input {
+            margin-right: 0.75rem;
+            transform: scale(1.2);
+        }
+
+        .checkbox-label {
+            font-weight: 500;
+            color: var(--dark-color);
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1rem;
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: var(--light-gray);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .category-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .category-item input {
+            margin-right: 0.5rem;
+        }
+
+        .image-preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .image-preview {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .image-preview img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background: var(--error-color);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--light-gray);
+            color: var(--medium-gray);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .btn i {
+            margin-right: 0.5rem;
+        }
+
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .message i {
+            margin-right: 0.75rem;
+            font-size: 1.25rem;
+        }
+
+        .message.success {
+            background: rgba(74, 222, 128, 0.1);
+            color: #047857;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+
+        .message.error {
+            background: rgba(248, 113, 113, 0.1);
+            color: #dc2626;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <h2>Admin Panel</h2>
-        <ul>
-            <li><a href="/api/admin/dashboard">Dashboard</a></li>
-            <li><a href="/api/admin/products" class="active">Products</a></li>
-            <li><a href="/api/admin/orders">Orders</a></li>
-        </ul>
-        <a href="/api/admin/logout" class="logout-btn">Logout</a>
-    </div>
-    <div class="main-content">
-        <h1>Edit Product</h1>
-
-        <div id="message-area"></div>
-
-        <div class="form-container">
-            <form id="edit-product-form" enctype="multipart/form-data">
-                <!-- Product ID will be added via JS -->
-                <div class="form-group">
-                    <label for="name">Name:</label>
-                    <input type="text" id="name" name="name" required>
-                </div>
-                <div class="form-group">
-                    <label for="price">Price:</label>
-                    <input type="number" id="price" name="price" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">Description:</label>
-                    <textarea id="description" name="description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="main_image_url">Main Image URL:</label>
-                    <input type="text" id="main_image_url" name="main_image_url">
-                </div>
-                <div class="form-group">
-                    <label for="main_image_upload">Upload Main Image:</label>
-                    <input type="file" id="main_image_upload" accept="image/*" name="main_image">
-                    <div id="main_image_preview" style="margin-top: 10px;"></div>
-                </div>
-                <div class="form-group">
-                    <label for="sub_image_upload">Upload Sub Images:</label>
-                    <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images">
-                    <div id="sub_image_preview" style="margin-top: 10px;"></div>
-                </div>
-                <div class="form-group">
-                    <label for="sub_image_urls_input">Existing Sub Image URLs (comma-separated):</label>
-                    <input type="text" id="sub_image_urls_input">
-                    <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
-                    <!-- The hidden input with id="sub_image_urls" will be kept and updated by this input's listener -->
-                </div>
-                <div class="form-group">
-                    <label for="likes_input">Likes (comma-separated):</label>
-                    <input type="text" id="likes_input">
-                    <input type="hidden" id="likes" name="likes">
-                </div>
-                <div class="form-group">
-                    <label for="is_18_plus">18+ Section:</label>
-                    <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true">
-                </div>
-                <div class="form-group">
-                    <label for="mail_content">Mail Content:</label>
-                    <textarea id="mail_content" name="mail_content"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="category">Category:</label>
-                    <input type="text" id="category" name="category">
-                </div>
-                <div class="form-group">
-                    <label for="in_stock">In Stock:</label>
-                    <input type="checkbox" id="in_stock" name="in_stock" value="true">
-                </div>
-                <div class="form-actions">
-                    <button type="submit" class="save-btn">Save Changes</button>
-                    <a href="/api/admin/products" class="cancel-btn">Cancel</a>
-                </div>
-            </form>
+        <div class="sidebar-header">
+            <h2>Admin Panel</h2>
+            <p>Product Management</p>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/api/admin/dashboard"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                <li><a href="/api/admin/products" class="active"><i class="fas fa-box"></i>Products</a></li>
+                <li><a href="/api/admin/orders"><i class="fas fa-shopping-cart"></i>Orders</a></li>
+            </ul>
+        </nav>
+        <div class="logout-section">
+            <a href="/api/admin/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
         </div>
     </div>
 
+    <main class="main-content">
+        <div class="content-container">
+            <div class="page-header">
+                <h1>Edit Product</h1>
+                <p>Update product information and settings</p>
+            </div>
+
+            <div id="message-area"></div>
+
+            <div class="form-card">
+                <div class="form-header">
+                    <h2>Product Information</h2>
+                </div>
+                <div class="form-content">
+                    <form id="edit-product-form" enctype="multipart/form-data">
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                Basic Information
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="name">Product Name</label>
+                                    <input type="text" id="name" name="name" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="price">Price</label>
+                                    <input type="number" id="price" name="price" step="0.01" class="form-input" required>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label" for="description">Description</label>
+                                    <textarea id="description" name="description" class="form-input form-textarea"></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-images"></i>
+                                Product Images
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="main_image_url">Main Image URL</label>
+                                    <input type="text" id="main_image_url" name="main_image_url" class="form-input">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="main_image_upload">Upload Main Image</label>
+                                    <div class="file-input-wrapper">
+                                        <input type="file" id="main_image_upload" accept="image/*" name="main_image" class="file-input">
+                                        <label for="main_image_upload" class="file-input-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            Click to select file
+                                        </label>
+                                    </div>
+                                    <div id="main_image_preview" class="image-preview-grid"></div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label" for="sub_image_upload">Upload Additional Images</label>
+                                    <div class="file-input-wrapper">
+                                        <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
+                                        <label for="sub_image_upload" class="file-input-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            Select multiple files
+                                        </label>
+                                    </div>
+                                    <div id="sub_image_preview" class="image-preview-grid"></div>
+                                </div>
+                                <div class="form-group full-width">
+                                    <label class="form-label" for="sub_image_urls_input">Existing Sub Image URLs (comma-separated)</label>
+                                    <input type="text" id="sub_image_urls_input" class="form-input">
+                                    <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-tags"></i>
+                                Categories
+                            </h3>
+                            <div class="form-group">
+                                <label class="form-label">Select existing categories</label>
+                                <div id="existing_categories_checkboxes" class="categories-grid">
+                                    Loading categories...
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="new_category_input">Or add a new category</label>
+                                <input type="text" id="new_category_input" name="new_category_input" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-gift"></i>
+                                What User Receives
+                            </h3>
+                            <div class="form-group">
+                                <label class="form-label" for="received_text">Text description of package contents/service</label>
+                                <textarea id="received_text" name="received_text" class="form-input form-textarea"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="received_images_upload">Upload received images</label>
+                                <div class="file-input-wrapper">
+                                    <input type="file" id="received_images_upload" accept="image/*" multiple name="received_images" class="file-input">
+                                    <label for="received_images_upload" class="file-input-label">
+                                        <i class="fas fa-cloud-upload-alt"></i>
+                                        Select content photos
+                                    </label>
+                                </div>
+                                <div id="received_images_preview" class="image-preview-grid"></div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="received_image_urls_input">Existing Received Image URLs (comma-separated)</label>
+                                <input type="text" id="received_image_urls_input" class="form-input">
+                                <input type="hidden" id="received_image_urls" name="received_image_urls" value="[]">
+                            </div>
+                        </div>
+
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-cog"></i>
+                                Additional Settings
+                            </h3>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label class="form-label" for="likes_input">Likes (comma-separated)</label>
+                                    <input type="text" id="likes_input" class="form-input">
+                                    <input type="hidden" id="likes" name="likes">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="mail_content">Mail Content</label>
+                                    <textarea id="mail_content" name="mail_content" class="form-input form-textarea"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true" class="checkbox-input">
+                                        <label for="is_18_plus" class="checkbox-label">18+ Section</label>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="in_stock" name="in_stock" value="true" class="checkbox-input">
+                                        <label for="in_stock" class="checkbox-label">In Stock</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <a href="/api/admin/products" class="btn btn-secondary">
+                                <i class="fas fa-times"></i>
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
     <script>
+        // Stejný JavaScript jako původně, s aktualizovanými selektory CSS tříd
         document.addEventListener('DOMContentLoaded', async () => {
             const form = document.getElementById('edit-product-form');
             const messageArea = document.getElementById('message-area');
             const productId = window.location.pathname.split('/').pop();
 
-            // Get references to form elements and add checks
+            // Všechny stejné proměnné a funkce jako původně...
             const nameInput = document.getElementById('name');
             const priceInput = document.getElementById('price');
             const descriptionTextarea = document.getElementById('description');
@@ -246,37 +676,47 @@
             const mainImagePreviewDiv = document.getElementById('main_image_preview');
             const subImageUploadInput = document.getElementById('sub_image_upload');
             const subImagePreviewDiv = document.getElementById('sub_image_preview');
-            const subImageUrlsTextInput = document.getElementById('sub_image_urls_input'); // Get the text input
-            const subImageUrlsHiddenInput = document.getElementById('sub_image_urls'); // Get the hidden input
-            const likesInput = document.getElementById('likes_input'); // Get the text input
-            const likesHidden = document.getElementById('likes'); // Get the hidden input
+            const subImageUrlsTextInput = document.getElementById('sub_image_urls_input');
+            const subImageUrlsHiddenInput = document.getElementById('sub_image_urls');
+            const likesInput = document.getElementById('likes_input');
+            const likesHidden = document.getElementById('likes');
             const is18PlusCheckbox = document.getElementById('is_18_plus');
             const mailContentTextarea = document.getElementById('mail_content');
-            const categoryInput = document.getElementById('category');
+            const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
+            const newCategoryInput = document.getElementById('new_category_input');
             const inStockCheckbox = document.getElementById('in_stock');
+            const receivedTextarea = document.getElementById('received_text');
+            const receivedImagesUploadInput = document.getElementById('received_images_upload');
+            const receivedImagesPreviewDiv = document.getElementById('received_images_preview');
+            const receivedImageUrlsTextInput = document.getElementById('received_image_urls_input');
+            const receivedImageUrlsHiddenInput = document.getElementById('received_image_urls');
 
+            // Kontrola elementů
             const requiredElements = {
                 'edit-product-form': form,
                 'message-area': messageArea,
                 'name': nameInput,
                 'price': priceInput,
-                // description, main_image_url, etc. might be optional in the backend,
-                // but their corresponding inputs are required in the form HTML
                 'description': descriptionTextarea,
                 'main_image_url': mainImageUrlInput,
                 'main_image_upload': mainImageUploadInput,
                 'main_image_preview': mainImagePreviewDiv,
                 'sub_image_upload': subImageUploadInput,
                 'sub_image_preview': subImagePreviewDiv,
-                // The problematic one: ensure this is checked
                 'sub_image_urls_input': subImageUrlsTextInput,
                 'sub_image_urls': subImageUrlsHiddenInput,
                 'likes_input': likesInput,
                 'likes': likesHidden,
                 'is_18_plus': is18PlusCheckbox,
                 'mail_content': mailContentTextarea,
-                'category': categoryInput,
+                'existing_categories_checkboxes': existingCategoriesCheckboxesDiv,
+                'new_category_input': newCategoryInput,
                 'in_stock': inStockCheckbox,
+                'received_text': receivedTextarea,
+                'received_images_upload': receivedImagesUploadInput,
+                'received_images_preview': receivedImagesPreviewDiv,
+                'received_image_urls_input': receivedImageUrlsTextInput,
+                'received_image_urls': receivedImageUrlsHiddenInput,
             };
 
             let missingElement = null;
@@ -284,86 +724,67 @@
                 if (!requiredElements[id]) {
                     missingElement = id;
                     console.error(`[Edit Product Form] ERROR: Required HTML element with ID "${id}" not found.`);
-                    messageArea.innerHTML = `<p class="message error-message">Configuration error: Missing form element with ID "${id}". Please check the HTML file.</p>`;
-                    // Optionally disable form or hide it if a critical element is missing
+                    messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Configuration error: Missing form element with ID "${id}". Please check the HTML file.</div>`;
                     if (form) form.style.display = 'none';
-                    return; // Stop further execution if a required element is missing
+                    return;
                 }
             }
 
             if (!productId) {
                 console.error('[Edit Product Form] ERROR: Product ID not found in URL.');
-                messageArea.innerHTML = '<p class="message error-message">Product ID not found in URL.</p>';
+                messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Product ID not found in URL.</div>';
                 if (form) form.style.display = 'none';
                 return;
             }
 
-            // Helper to display image preview
             function displayImagePreview(src, previewContainer, isExisting = false) {
+                const div = document.createElement('div');
+                div.className = 'image-preview';
+                
                 const img = document.createElement('img');
                 img.src = src;
-                img.style.maxWidth = isExisting ? '80px' : '100px';
-                img.style.maxHeight = isExisting ? '80px' : '100px';
-                img.style.margin = '5px';
-                if (isExisting) {
-                    // Add a remove button for existing images
-                    const container = document.createElement('div');
-                    container.style.display = 'inline-block';
-                    container.style.position = 'relative';
-                    container.appendChild(img);
+                div.appendChild(img);
 
-                    const removeBtn = document.createElement('span');
-                    removeBtn.textContent = 'x';
-                    removeBtn.style.position = 'absolute';
-                    removeBtn.style.top = '0';
-                    removeBtn.style.right = '0';
-                    removeBtn.style.background = 'red';
-                    removeBtn.style.color = 'white';
-                    removeBtn.style.borderRadius = '50%';
-                    removeBtn.style.width = '15px';
-                    removeBtn.style.height = '15px';
-                    removeBtn.style.textAlign = 'center';
-                    removeBtn.style.lineHeight = '15px';
-                    removeBtn.style.cursor = 'pointer';
+                if (isExisting) {
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
                     removeBtn.addEventListener('click', () => {
-                        container.remove();
-                        // Remove URL from the hidden input and text input
+                        div.remove();
                         let currentUrls = JSON.parse(subImageUrlsHiddenInput.value || '[]');
                         currentUrls = currentUrls.filter(url => url !== src);
                         subImageUrlsHiddenInput.value = JSON.stringify(currentUrls);
                         subImageUrlsTextInput.value = currentUrls.join(', ');
                     });
-                    container.appendChild(removeBtn);
-                    previewContainer.appendChild(container);
-                } else {
-                    previewContainer.appendChild(img);
+                    div.appendChild(removeBtn);
                 }
+                
+                previewContainer.appendChild(div);
             }
 
-            // Fetch product data and populate form
+            // Zbytek JavaScriptu zůstává stejný, jen aktualizovat message display
             try {
                 const response = await fetch(`/api/admin/products-data/${productId}`);
                 const product = await response.json();
 
                 if (response.ok) {
                     console.log('[Edit Product Form] Product data fetched successfully:', product);
-                    // Populate form - Access properties safely after checking elements exist
+                    
                     nameInput.value = product.name || '';
                     priceInput.value = product.price || '';
                     descriptionTextarea.value = product.description || '';
                     mainImageUrlInput.value = product.main_image_url || '';
-
-                    // These inputs were checked for existence above, now safely set values
                     subImageUrlsTextInput.value = product.sub_image_urls ? product.sub_image_urls.join(', ') : '';
                     subImageUrlsHiddenInput.value = JSON.stringify(product.sub_image_urls || []);
                     likesInput.value = product.likes ? product.likes.join(', ') : '';
                     likesHidden.value = JSON.stringify(product.likes || []);
                     is18PlusCheckbox.checked = product.is_18_plus || false;
                     mailContentTextarea.value = product.mail_content || '';
-                    categoryInput.value = product.category || '';
                     inStockCheckbox.checked = product.in_stock || false;
+                    receivedTextarea.value = product.received_text || '';
+                    receivedImageUrlsTextInput.value = product.received_image_urls ? product.received_image_urls.join(', ') : '';
+                    receivedImageUrlsHiddenInput.value = JSON.stringify(product.received_image_urls || []);
 
-                    // Display existing image previews
                     if (product.main_image_url) {
                         displayImagePreview(product.main_image_url, mainImagePreviewDiv, true);
                     }
@@ -372,73 +793,108 @@
                             displayImagePreview(url, subImagePreviewDiv, true);
                         });
                     }
+                    if (product.received_image_urls && product.received_image_urls.length > 0) {
+                        product.received_image_urls.forEach(url => {
+                            displayImagePreview(url, receivedImagesPreviewDiv, true);
+                        });
+                    }
+
+                    const currentCategories = product.category ? [product.category] : [];
+                    loadCategories(currentCategories);
 
                 } else {
                     console.error('[Edit Product Form] Failed to load product:', product.error || response.statusText);
-                    messageArea.innerHTML = `<p class="message error-message">Failed to load product: ${product.error || response.statusText}</p>`;
+                    messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to load product: ${product.error || response.statusText}</div>`;
                     form.style.display = 'none'; 
                 }
             } catch (error) {
                 console.error('Error fetching product:', error);
-                messageArea.innerHTML = '<p class="message error-message">Error fetching product data.</p>';
+                messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Error fetching product data.</div>';
                 form.style.display = 'none';
             }
 
-            // Handle Main Image Upload (Preview)
+            // Zbytek handleru a funkcí...
             mainImageUploadInput.addEventListener('change', (event) => {
-                // Clear previous previews of main image
                 mainImagePreviewDiv.innerHTML = '';
                 const file = event.target.files[0];
                 if (file) {
-                    // Display client-side preview
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         displayImagePreview(e.target.result, mainImagePreviewDiv, false);
                     };
                     reader.readAsDataURL(file);
-                     // Clear the manual URL input when a new file is selected
                     mainImageUrlInput.value = '';
                 }
             });
 
-            // Handle Sub Images Upload (Preview)
             subImageUploadInput.addEventListener('change', (event) => {
                 const files = Array.from(event.target.files);
-                 // Do NOT clear previous previews, append new ones
                 files.forEach(file => {
-                    // Display client-side preview
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         displayImagePreview(e.target.result, subImagePreviewDiv, false);
                     };
                     reader.readAsDataURL(file);
                 });
-                // Clear the file input after processing for consistent behavior
                 event.target.value = '';
             });
 
-            // Handle form submission
+            if (receivedImagesUploadInput) {
+                receivedImagesUploadInput.addEventListener('change', (event) => {
+                    const files = Array.from(event.target.files);
+                    files.forEach(file => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => {
+                            displayImagePreview(e.target.result, receivedImagesPreviewDiv, false);
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                    event.target.value = '';
+                });
+            }
+
             form.addEventListener('submit', async (event) => {
                 event.preventDefault();
-
                 messageArea.innerHTML = '';
 
                 const formData = new FormData(form);
 
-                // Ensure the main_image_url from the text input is included if no new file was uploaded
-                // If a new file was selected, the mainImageUploadInput change listener clears this.
-                // If no new file is selected, we want to send the existing URL.
+                const selectedCategories = [];
+                existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedCategories.push(checkbox.value);
+                });
+
+                const newCategory = newCategoryInput.value.trim();
+                if (newCategory) {
+                    selectedCategories.push(newCategory);
+                }
+
+                const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
+
+                formData.delete('category');
+                formData.delete('new_category_input');
+
+                if (finalCategories.length > 0) {
+                    finalCategories.forEach(cat => {
+                        formData.append('categories', cat);
+                    });
+                }
+
                 if (!formData.get('main_image') && mainImageUrlInput.value) {
                     formData.append('main_image_url', mainImageUrlInput.value);
                 }
 
-                // Ensure the combined sub_image_urls (existing from input + new from upload preview logic)
-                // are correctly represented. The hidden input should hold the source of truth.
                 if (subImageUrlsTextInput) {
                     const urls = subImageUrlsTextInput.value.split(',').map(url => url.trim()).filter(url => url !== '');
                     subImageUrlsHiddenInput.value = JSON.stringify(urls);
                 }
                 formData.set('sub_image_urls', subImageUrlsHiddenInput.value);
+
+                if (receivedImageUrlsTextInput) {
+                    const urls = receivedImageUrlsTextInput.value.split(',').map(url => url.trim()).filter(url => url !== '');
+                    receivedImageUrlsHiddenInput.value = JSON.stringify(urls);
+                }
+                formData.set('received_image_urls', receivedImageUrlsHiddenInput.value);
 
                 console.log('[Edit Product Form] Submitting data:', formData);
 
@@ -452,25 +908,28 @@
 
                     if (response.ok) {
                         console.log('[Edit Product Form] Product updated successfully:', result);
-                        messageArea.innerHTML = '<p class="message success-message">Product updated successfully!</p>';
-                        // Optionally update previews or clear file inputs here
+                        messageArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Product updated successfully!</div>';
+                        
                         if (mainImageUploadInput) mainImageUploadInput.value = '';
                         if (subImageUploadInput) subImageUploadInput.value = '';
+                        if (receivedImagesUploadInput) receivedImagesUploadInput.value = '';
+
+                        if (newCategoryInput) newCategoryInput.value = '';
+
+                        existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                            checkbox.checked = false;
+                        });
 
                     } else {
                         console.error('[Edit Product Form] Failed to update product:', result.error || result.message || response.statusText);
-                        messageArea.innerHTML = `<p class="message error-message">Failed to update product: ${result.error || result.message || response.statusText}</p>`;
+                        messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to update product: ${result.error || result.message || response.statusText}</div>`;
                     }
                 } catch (error) {
                     console.error('[Edit Product Form] An error occurred while updating the product:', error);
-                    messageArea.innerHTML = '<p class="message error-message">An error occurred while updating the product.</p>';
+                    messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>An error occurred while updating the product.</div>';
                 }
             });
 
-            // Input listeners to update hidden fields for arrays
-            // Variables for input listeners are declared at the top of the script
-
-            // Ensure the sub_image_urls_input exists before adding listener
             if (subImageUrlsTextInput) {
                 subImageUrlsTextInput.addEventListener('input', (event) => {
                     const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
@@ -478,13 +937,66 @@
                 });
             }
 
-            if (likesInput) { // Add a check here too
-                 likesInput.addEventListener('input', (event) => {
+            if (likesInput) {
+                likesInput.addEventListener('input', (event) => {
                     const items = event.target.value.split(',').map(item => item.trim()).filter(item => item !== '');
                     likesHidden.value = JSON.stringify(items);
                 });
             }
+
+            if (receivedImageUrlsTextInput) {
+                receivedImageUrlsTextInput.addEventListener('input', (event) => {
+                    const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
+                    receivedImageUrlsHiddenInput.value = JSON.stringify(urls);
+                });
+            }
+
+            async function loadCategories(currentCategory = []) {
+                try {
+                    const response = await fetch('/api/admin/products/categories');
+                    if (!response.ok) {
+                        throw new Error(`Error loading categories: ${response.status}`);
+                    }
+                    const categories = await response.json();
+                    
+                    existingCategoriesCheckboxesDiv.innerHTML = '';
+                    
+                    if (categories.length === 0) {
+                        existingCategoriesCheckboxesDiv.innerHTML = '<p>No existing categories found.</p>';
+                    } else {
+                        categories.forEach(category => {
+                            const categoryId = category.id;
+                            const categoryName = category.name;
+
+                            const categoryDiv = document.createElement('div');
+                            categoryDiv.className = 'category-item';
+
+                            const checkbox = document.createElement('input');
+                            checkbox.type = 'checkbox';
+                            checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
+                            checkbox.name = 'categories';
+                            checkbox.value = categoryId;
+
+                            if (currentCategory.includes(categoryId)) {
+                                checkbox.checked = true;
+                            }
+
+                            const label = document.createElement('label');
+                            label.htmlFor = checkbox.id;
+                            label.textContent = categoryName;
+
+                            categoryDiv.appendChild(checkbox);
+                            categoryDiv.appendChild(label);
+                            existingCategoriesCheckboxesDiv.appendChild(categoryDiv);
+                        });
+                    }
+                } catch (error) {
+                    console.error("Failed to load categories:", error);
+                    existingCategoriesCheckboxesDiv.innerHTML = '<div class="message error">Error loading categories.</div>';
+                    messageArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Failed to load categories: ${error.message}</div>`;
+                }
+            }
         });
     </script>
 </body>
-</html> 
+</html>

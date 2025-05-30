@@ -4,198 +4,523 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Products</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            background-color: #f0f2f5;
-            display: flex;
-            min-height: 100vh;
-            color: #333;
+        :root {
+            --primary-color: #667eea;
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-color: #f093fb;
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-gradient: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            --warning-gradient: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            --info-gradient: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            --dark-color: #1f2937;
+            --light-gray: #f8fafc;
+            --medium-gray: #64748b;
+            --border-color: #e2e8f0;
+            --white: #ffffff;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: var(--dark-color);
+            display: flex;
+        }
+
         .sidebar {
-            width: 250px;
-            background-color: #283747;
-            color: white;
-            padding: 20px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            width: 280px;
+            background: var(--white);
+            box-shadow: var(--shadow-xl);
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 10;
         }
-        .sidebar h2 {
+
+        .sidebar-header {
+            padding: 2rem;
             text-align: center;
-            margin-bottom: 30px;
-            color: #ecf0f1;
-        }
-        .sidebar ul {
-            list-style: none;
-            padding: 0;
-            flex-grow: 1;
-        }
-        .sidebar ul li {
-            margin-bottom: 15px;
-        }
-        .sidebar ul li a {
-            color: #bdc3c7;
-            text-decoration: none;
-            padding: 10px 15px;
-            display: block;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .sidebar ul li a:hover, .sidebar ul li a.active {
-            background-color: #34495e;
+            background: var(--primary-gradient);
             color: white;
         }
+
+        .sidebar-header h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-header p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 1.5rem;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            color: var(--medium-gray);
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .sidebar-nav a:hover,
+        .sidebar-nav a.active {
+            background: var(--primary-gradient);
+            color: white;
+            transform: translateX(4px);
+        }
+
+        .sidebar-nav a i {
+            margin-right: 0.75rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .logout-section {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .logout-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            padding: 1rem;
+            background: var(--secondary-gradient);
+            color: white;
+            text-decoration: none;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .logout-btn i {
+            margin-right: 0.5rem;
+        }
+
         .main-content {
-            flex-grow: 1;
-            padding: 30px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            margin: 20px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
         }
-        .main-content h1 {
-            color: #2c3e50;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
+
+        .content-container {
+            max-width: 1200px;
+            margin: 0 auto;
         }
+
+        .page-header {
+            background: var(--white);
+            padding: 2rem;
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+        }
+
+        .page-title i {
+            background: var(--primary-gradient);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+
+        .page-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--dark-color);
+        }
+
+        .add-product-btn {
+            background: var(--success-gradient);
+            color: white;
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .add-product-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .add-product-btn i {
+            margin-right: 0.5rem;
+        }
+
+        .products-container {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--light-gray);
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .table-header h2 i {
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+        }
+
         .product-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
-        .product-table th, .product-table td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
+
         .product-table th {
-            background-color: #f8f8f8;
-            font-weight: bold;
-            color: #555;
+            background: var(--light-gray);
+            padding: 1.5rem 2rem;
+            text-align: left;
+            font-weight: 600;
+            color: var(--dark-color);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-color);
         }
-        .product-table tr:nth-child(even) {
-            background-color: #f9f9f9;
+
+        .product-table td {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--medium-gray);
         }
+
         .product-table tr:hover {
-            background-color: #f1f1f1;
+            background: var(--light-gray);
         }
-        .actions button, .actions a {
-            padding: 8px 12px;
-            margin-right: 5px;
+
+        .product-id {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: var(--dark-color);
+        }
+
+        .product-price {
+            font-weight: 600;
+            color: var(--success-color);
+        }
+
+        .stock-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stock-badge.in-stock {
+            background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+            color: #166534;
+        }
+
+        .stock-badge.out-of-stock {
+            background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+            color: #991b1b;
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
             border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.9em;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
             text-decoration: none;
-            color: white;
-            display: inline-block;
-        }
-        .actions .edit-btn {
-            background-color: #28a745;
-        }
-        .actions .delete-btn {
-            background-color: #dc3545;
-        }
-        .add-product-btn {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
             cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin-bottom: 20px;
-            transition: background-color 0.3s ease;
-        }
-        .add-product-btn:hover {
-            background-color: #0056b3;
-        }
-        .logout-btn {
-            background-color: #e74c3c;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
             color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
+        }
+
+        .action-btn i {
+            margin-right: 0.25rem;
+        }
+
+        .edit-btn {
+            background: var(--info-gradient);
+        }
+
+        .edit-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .delete-btn {
+            background: var(--danger-gradient);
+        }
+
+        .delete-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .loading-state {
             text-align: center;
-            text-decoration: none;
-            margin-top: auto; /* Pushes the logout button to the bottom */
-            transition: background-color 0.3s ease;
+            padding: 3rem;
+            color: var(--medium-gray);
         }
-        .logout-btn:hover {
-            background-color: #c0392b;
+
+        .loading-state i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--medium-gray);
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary-color);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                order: 2;
+            }
+
+            .main-content {
+                order: 1;
+                padding: 1rem;
+            }
+
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .product-table {
+                font-size: 0.875rem;
+            }
+
+            .product-table th,
+            .product-table td {
+                padding: 1rem;
+            }
+
+            .actions {
+                flex-direction: column;
+            }
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <h2>Admin Panel</h2>
-        <ul>
-            <li><a href="/api/admin/dashboard">Dashboard</a></li>
-            <li><a href="/api/admin/products" class="active">Products</a></li>
-            <li><a href="/api/admin/orders">Orders</a></li>
-        </ul>
-        <a href="/api/admin/logout" class="logout-btn">Logout</a>
+        <div class="sidebar-header">
+            <h2>Admin Panel</h2>
+            <p>Control Center</p>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="/api/admin/dashboard"><i class="fas fa-chart-line"></i>Dashboard</a></li>
+                <li><a href="/api/admin/products" class="active"><i class="fas fa-box"></i>Products</a></li>
+                <li><a href="/api/admin/orders"><i class="fas fa-shopping-cart"></i>Orders</a></li>
+            </ul>
+        </nav>
+        <div class="logout-section">
+            <a href="/api/admin/logout" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
     </div>
-    <div class="main-content">
-        <h1>Product Management</h1>
 
-        <a href="/api/admin/products/new" class="add-product-btn">Add New Product</a>
+    <main class="main-content">
+        <div class="content-container">
+            <div class="page-header">
+                <div class="page-title">
+                    <i class="fas fa-box"></i>
+                    <h1>Product Management</h1>
+                </div>
+                <a href="/api/admin/products/new" class="add-product-btn">
+                    <i class="fas fa-plus"></i>
+                    Add New Product
+                </a>
+            </div>
 
-        <table class="product-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="product-list">
-                <!-- Products will be loaded here by JavaScript -->
-            </tbody>
-        </table>
-    </div>
+            <div class="products-container">
+                <div class="table-header">
+                    <h2>
+                        <i class="fas fa-list"></i>
+                        Product Inventory
+                    </h2>
+                </div>
+
+                <div id="loading-state" class="loading-state">
+                    <i class="fas fa-spinner"></i>
+                    <p>Loading products...</p>
+                </div>
+
+                <table class="product-table" id="product-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Product Name</th>
+                            <th>Price</th>
+                            <th>Stock Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="product-list">
+                        <!-- Products will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <i class="fas fa-box-open"></i>
+                    <h3>No Products Found</h3>
+                    <p>Start by adding your first product to the inventory.</p>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             const productListBody = document.getElementById('product-list');
+            const productTable = document.getElementById('product-table');
+            const loadingState = document.getElementById('loading-state');
+            const emptyState = document.getElementById('empty-state');
             
             try {
                 const response = await fetch('/api/products');
                 const products = await response.json();
 
+                // Hide loading state
+                loadingState.style.display = 'none';
+
                 if (response.ok) {
                     if (products.length === 0) {
-                        productListBody.innerHTML = '<tr><td colspan="5">No products found.</td></tr>';
+                        emptyState.style.display = 'block';
                     } else {
+                        productTable.style.display = 'table';
+                        
                         products.forEach(product => {
                             const row = document.createElement('tr');
                             row.innerHTML = `
-                                <td>${product.id}</td>
-                                <td>${product.name}</td>
-                                <td>${product.price.toFixed(2)} Kč</td>
-                                <td>${product.in_stock ? 'In Stock' : 'Out of Stock'}</td>
+                                <td class="product-id">#${product.id}</td>
+                                <td class="product-name">${product.name}</td>
+                                <td class="product-price">${product.price.toFixed(2)} Kč</td>
+                                <td>
+                                    <span class="stock-badge ${product.in_stock ? 'in-stock' : 'out-of-stock'}">
+                                        ${product.in_stock ? 'In Stock' : 'Out of Stock'}
+                                    </span>
+                                </td>
                                 <td class="actions">
-                                    <a href="/api/admin/products/edit/${product.id}" class="edit-btn">Edit</a>
-                                    <button class="delete-btn" data-product-id="${product.id}">Delete</button>
+                                    <a href="/api/admin/products/edit/${product.id}" class="action-btn edit-btn">
+                                        <i class="fas fa-edit"></i>
+                                        Edit
+                                    </a>
+                                    <button class="action-btn delete-btn" data-product-id="${product.id}">
+                                        <i class="fas fa-trash"></i>
+                                        Delete
+                                    </button>
                                 </td>
                             `;
                             productListBody.appendChild(row);
                         });
 
-                        // Add event listeners for delete buttons (will implement delete logic later)
+                        // Add event listeners for delete buttons
                         productListBody.querySelectorAll('.delete-btn').forEach(button => {
                             button.addEventListener('click', async (event) => {
-                                const productId = event.target.dataset.productId;
-                                if (confirm(`Are you sure you want to delete product ${productId}?`)) {
-                                    // Implement delete logic here
-                                    console.log(`Attempting to delete product with ID: ${productId}`);
+                                const productId = event.target.closest('.delete-btn').dataset.productId;
+                                const productName = event.target.closest('tr').querySelector('.product-name').textContent;
+                                
+                                if (confirm(`Are you sure you want to delete "${productName}"?`)) {
+                                    // Disable button during request
+                                    event.target.closest('.delete-btn').disabled = true;
+                                    event.target.closest('.delete-btn').innerHTML = '<i class="fas fa-spinner"></i> Deleting...';
+                                    
                                     try {
                                         const response = await fetch(`/api/admin/products/${productId}`, {
                                             method: 'DELETE',
@@ -204,16 +529,34 @@
                                         const result = await response.json();
 
                                         if (response.ok) {
-                                            console.log(`Product ${productId} deleted successfully.`);
-                                            // Remove the row from the table
-                                            event.target.closest('tr').remove();
+                                            // Remove the row from the table with animation
+                                            const row = event.target.closest('tr');
+                                            row.style.transition = 'all 0.3s ease';
+                                            row.style.opacity = '0';
+                                            row.style.transform = 'translateX(-20px)';
+                                            
+                                            setTimeout(() => {
+                                                row.remove();
+                                                
+                                                // Check if table is empty
+                                                if (productListBody.children.length === 0) {
+                                                    productTable.style.display = 'none';
+                                                    emptyState.style.display = 'block';
+                                                }
+                                            }, 300);
                                         } else {
                                             console.error('Failed to delete product:', result.error);
                                             alert(`Error deleting product: ${result.error}`);
+                                            // Re-enable button
+                                            event.target.closest('.delete-btn').disabled = false;
+                                            event.target.closest('.delete-btn').innerHTML = '<i class="fas fa-trash"></i> Delete';
                                         }
                                     } catch (error) {
                                         console.error('Error during delete request:', error);
                                         alert('An error occurred while trying to delete the product.');
+                                        // Re-enable button
+                                        event.target.closest('.delete-btn').disabled = false;
+                                        event.target.closest('.delete-btn').innerHTML = '<i class="fas fa-trash"></i> Delete';
                                     }
                                 }
                             });
@@ -221,13 +564,16 @@
                     }
                 } else {
                     console.error('Failed to fetch products:', products.error);
-                    productListBody.innerHTML = '<tr><td colspan="5">Error loading products.</td></tr>';
+                    emptyState.innerHTML = '<i class="fas fa-exclamation-triangle"></i><h3>Error Loading Products</h3><p>Please try refreshing the page.</p>';
+                    emptyState.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Error fetching products:', error);
-                productListBody.innerHTML = '<tr><td colspan="5">Error loading products.</td></tr>';
+                loadingState.style.display = 'none';
+                emptyState.innerHTML = '<i class="fas fa-exclamation-triangle"></i><h3>Error Loading Products</h3><p>Please try refreshing the page.</p>';
+                emptyState.style.display = 'block';
             }
         });
     </script>
 </body>
-</html> 
+</html>
