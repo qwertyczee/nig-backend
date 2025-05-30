@@ -590,15 +590,6 @@
                             </h3>
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label class="form-label" for="likes_input">"Líbí se" vlastnosti</label>
-                                    <input type="text" id="likes_input" name="likes_input_text" class="form-input" placeholder="Rychlé dodání, Kvalitní materiál">
-                                    <input type="hidden" id="likes" name="likes" value="[]">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="mail_content">Email po zakoupení</label>
-                                    <textarea id="mail_content" name="mail_content" class="form-input form-textarea" placeholder="Speciální instrukce nebo poděkování..."></textarea>
-                                </div>
-                                <div class="form-group">
                                     <div class="checkbox-group">
                                         <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true" class="checkbox-input">
                                         <label for="is_18_plus" class="checkbox-label">Produkt je 18+</label>
@@ -634,7 +625,6 @@
     </main>
 
     <script>
-        // Stejný JavaScript jako předtím, pouze aktualizované selektory pro nové CSS třídy
         const form = document.getElementById('new-product-form');
         const msgArea = document.getElementById('message-area');
         
@@ -648,8 +638,6 @@
         
         const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
         const newCategoryInput = document.getElementById('new_category_input');
-        const likesInputText = document.getElementById('likes_input');
-        const likesHidden = document.getElementById('likes');
 
         function displayImagePreview(file, previewContainer) {
             const reader = new FileReader();
@@ -687,47 +675,39 @@
                     throw new Error(`Chyba při načítání kategorií: ${response.status}`);
                 }
                 const categories = await response.json();
-               
                 existingCategoriesCheckboxesDiv.innerHTML = '';
-               
-                if (categories.length === 0) {
-                     existingCategoriesCheckboxesDiv.innerHTML = '<p>Žádné existující kategorie nenalezeny.</p>';
-                } else {
-                     categories.forEach(category => {
-                         const categoryId = category.id;
-                         const categoryName = category.name;
+            
+            if (categories.length === 0) {
+                    existingCategoriesCheckboxesDiv.innerHTML = '<p>Žádné existující kategorie nenalezeny.</p>';
+            } else {
+                    categories.forEach(category => {
+                        const categoryId = category.id;
+                        const categoryName = category.name;
 
-                         const categoryDiv = document.createElement('div');
-                         categoryDiv.className = 'category-item';
+                        const categoryDiv = document.createElement('div');
+                        categoryDiv.className = 'category-item';
 
-                         const checkbox = document.createElement('input');
-                         checkbox.type = 'checkbox';
-                         checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
-                         checkbox.name = 'categories';
-                         checkbox.value = categoryId;
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
+                        checkbox.name = 'categories';
+                        checkbox.value = categoryId;
 
-                         const label = document.createElement('label');
-                         label.htmlFor = checkbox.id;
-                         label.textContent = categoryName;
+                        const label = document.createElement('label');
+                        label.htmlFor = checkbox.id;
+                        label.textContent = categoryName;
 
-                         categoryDiv.appendChild(checkbox);
-                         categoryDiv.appendChild(label);
-                         existingCategoriesCheckboxesDiv.appendChild(categoryDiv);
-                     });
-                 }
-             } catch (error) {
-                  console.error("Nepodařilo se načíst kategorie:", error);
-                  existingCategoriesCheckboxesDiv.innerHTML = '<p class="message error">Chyba při načítání kategorií.</p>';
-                  msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Nepodařilo se načíst kategorie: ${error.message}</div>`;
-              }
-          }
-
-        likesInputText.addEventListener('input', (event) => {
-            const items = event.target.value.split(',')
-                            .map(item => item.trim())
-                            .filter(item => item !== '');
-            likesHidden.value = JSON.stringify(items);
-        });
+                        categoryDiv.appendChild(checkbox);
+                        categoryDiv.appendChild(label);
+                        existingCategoriesCheckboxesDiv.appendChild(categoryDiv);
+                    });
+                }
+            } catch (error) {
+                console.error("Nepodařilo se načíst kategorie:", error);
+                existingCategoriesCheckboxesDiv.innerHTML = '<p class="message error">Chyba při načítání kategorií.</p>';
+                msgArea.innerHTML = `<div class="message error"><i class="fas fa-exclamation-triangle"></i>Nepodařilo se načíst kategorie: ${error.message}</div>`;
+            }
+        }
 
         form.addEventListener('submit', async e => {
             e.preventDefault();
@@ -769,7 +749,6 @@
                     mainImagePreviewDiv.innerHTML = '';
                     subImagePreviewDiv.innerHTML = '';
                     receivedImagesPreviewDiv.innerHTML = '';
-                    likesHidden.value = '[]';
                     existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                         checkbox.checked = false;
                     });

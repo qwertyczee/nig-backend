@@ -60,10 +60,10 @@ const postAdminCreateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminCreateProduct: Request body:', JSON.stringify(req.body, null, 2));
     console.log('[Admin Controller] postAdminCreateProduct: Request files:', req.files);
 
-    const { name, description, price, categories, new_category_input, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
-    const mainImageMulterFile = req.files?.main_image?.[0]; // Get main image file from multer
-    const subImagesMulterFiles = req.files?.sub_images; // Get sub image files from multer
-    const receivedImagesMulterFiles = req.files?.received_images; // Get received image files from multer
+    const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
+    const mainImageMulterFile = req.files?.main_image?.[0];
+    const subImagesMulterFiles = req.files?.sub_images;
+    const receivedImagesMulterFiles = req.files?.received_images;
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminCreateProduct: Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
@@ -178,24 +178,6 @@ const postAdminCreateProduct = async (req, res) => {
             console.log('[Admin Controller] Received images uploaded. URLs:', received_image_urls);
         }
 
-        // Handle likes array (assuming comma-separated string from frontend text input, or JSON from hidden input)
-        let likesArray = [];
-        if (likes) {
-            try {
-                // Attempt to parse as JSON array first (from hidden input)
-                const parsedLikes = JSON.parse(likes);
-                if (Array.isArray(parsedLikes)) {
-                    likesArray = parsedLikes.map(item => item.trim()).filter(item => item !== '');
-                } else {
-                    // Fallback to comma-separated string split
-                    likesArray = likes.split(',').map(item => item.trim()).filter(item => item !== '');
-                }
-            } catch (e) {
-                // If JSON parsing fails, assume comma-separated string
-                likesArray = likes.split(',').map(item => item.trim()).filter(item => item !== '');
-            }
-        }
-
         // Process categories: combine selected checkboxes and new input
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
@@ -217,9 +199,7 @@ const postAdminCreateProduct = async (req, res) => {
             category: categoryToStore,
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls, 
-            likes: likesArray, 
             is_18_plus: is18Plus,
-            mail_content: mail_content || null,
             in_stock: isInStock,
             received_text: received_text || null,
             received_image_urls: received_image_urls,
@@ -253,7 +233,7 @@ const postAdminUpdateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminUpdateProduct: Request files:', req.files);
 
     const { id } = req.params;
-    const { name, description, price, categories, new_category_input, main_image_url, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
+    const { name, description, price, categories, new_category_input, main_image_url, is_18_plus, in_stock, received_text } = req.body;
     const mainImageMulterFile = req.files?.main_image?.[0];
     const subImagesMulterFiles = req.files?.sub_images;
     const receivedImagesMulterFiles = req.files?.received_images;
@@ -425,24 +405,6 @@ const postAdminUpdateProduct = async (req, res) => {
         const final_sub_image_urls = [...existing_sub_image_urls, ...new_sub_image_urls];
         const final_received_image_urls = [...existing_received_image_urls, ...new_received_image_urls]; // Combine existing and new received image URLs
 
-        // Handle likes array (should be JSON string from hidden input)
-        let likesArray = [];
-        if (likes) {
-            try {
-                likesArray = JSON.parse(likes);
-                if (!Array.isArray(likesArray)) throw new Error('Not an array');
-                likesArray = likesArray.map(item => item.trim()).filter(item => item !== '');
-            } catch (e) {
-                console.error('[Admin Controller] Failed to parse likes JSON:', e);
-                // Fallback to comma-separated split if JSON parsing fails, log warning.
-                console.warn('[Admin Controller] Attempting to parse likes as comma-separated string.');
-                const likesInputString = req.body.likes_input; // Assuming this text input exists
-                if (likesInputString) {
-                    likesArray = likesInputString.split(',').map(item => item.trim()).filter(item => item !== '');
-                }
-            }
-        }
-
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
 
@@ -462,9 +424,7 @@ const postAdminUpdateProduct = async (req, res) => {
             category: categoryToUpdate,
             main_image_url: new_main_image_url, 
             sub_image_urls: final_sub_image_urls, 
-            likes: likesArray,
             is_18_plus: is18Plus,
-            mail_content: mail_content || null,
             in_stock: isInStock,
             received_text: received_text || null,
             received_image_urls: final_received_image_urls,
@@ -634,12 +594,10 @@ const getAdminProductByIdApi = async (req, res) => {
         
         // Ensure fields that might be null or undefined have default client-friendly values
         product.sub_image_urls = product.sub_image_urls || [];
-        product.likes = product.likes || [];
         product.is_18_plus = product.is_18_plus || false;
         product.in_stock = product.in_stock || false;
         product.description = product.description || '';
         product.main_image_url = product.main_image_url || '';
-        product.mail_content = product.mail_content || '';
         product.category = product.category || '';
 
         res.json(product);

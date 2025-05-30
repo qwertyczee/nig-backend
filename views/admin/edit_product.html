@@ -621,15 +621,6 @@
                             </h3>
                             <div class="form-grid">
                                 <div class="form-group">
-                                    <label class="form-label" for="likes_input">Likes (comma-separated)</label>
-                                    <input type="text" id="likes_input" class="form-input">
-                                    <input type="hidden" id="likes" name="likes">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" for="mail_content">Mail Content</label>
-                                    <textarea id="mail_content" name="mail_content" class="form-input form-textarea"></textarea>
-                                </div>
-                                <div class="form-group">
                                     <div class="checkbox-group">
                                         <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true" class="checkbox-input">
                                         <label for="is_18_plus" class="checkbox-label">18+ Section</label>
@@ -661,13 +652,11 @@
     </main>
 
     <script>
-        // Stejný JavaScript jako původně, s aktualizovanými selektory CSS tříd
         document.addEventListener('DOMContentLoaded', async () => {
             const form = document.getElementById('edit-product-form');
             const messageArea = document.getElementById('message-area');
             const productId = window.location.pathname.split('/').pop();
 
-            // Všechny stejné proměnné a funkce jako původně...
             const nameInput = document.getElementById('name');
             const priceInput = document.getElementById('price');
             const descriptionTextarea = document.getElementById('description');
@@ -678,8 +667,6 @@
             const subImagePreviewDiv = document.getElementById('sub_image_preview');
             const subImageUrlsTextInput = document.getElementById('sub_image_urls_input');
             const subImageUrlsHiddenInput = document.getElementById('sub_image_urls');
-            const likesInput = document.getElementById('likes_input');
-            const likesHidden = document.getElementById('likes');
             const is18PlusCheckbox = document.getElementById('is_18_plus');
             const mailContentTextarea = document.getElementById('mail_content');
             const existingCategoriesCheckboxesDiv = document.getElementById('existing_categories_checkboxes');
@@ -691,7 +678,6 @@
             const receivedImageUrlsTextInput = document.getElementById('received_image_urls_input');
             const receivedImageUrlsHiddenInput = document.getElementById('received_image_urls');
 
-            // Kontrola elementů
             const requiredElements = {
                 'edit-product-form': form,
                 'message-area': messageArea,
@@ -705,8 +691,6 @@
                 'sub_image_preview': subImagePreviewDiv,
                 'sub_image_urls_input': subImageUrlsTextInput,
                 'sub_image_urls': subImageUrlsHiddenInput,
-                'likes_input': likesInput,
-                'likes': likesHidden,
                 'is_18_plus': is18PlusCheckbox,
                 'mail_content': mailContentTextarea,
                 'existing_categories_checkboxes': existingCategoriesCheckboxesDiv,
@@ -762,7 +746,6 @@
                 previewContainer.appendChild(div);
             }
 
-            // Zbytek JavaScriptu zůstává stejný, jen aktualizovat message display
             try {
                 const response = await fetch(`/api/admin/products-data/${productId}`);
                 const product = await response.json();
@@ -776,8 +759,6 @@
                     mainImageUrlInput.value = product.main_image_url || '';
                     subImageUrlsTextInput.value = product.sub_image_urls ? product.sub_image_urls.join(', ') : '';
                     subImageUrlsHiddenInput.value = JSON.stringify(product.sub_image_urls || []);
-                    likesInput.value = product.likes ? product.likes.join(', ') : '';
-                    likesHidden.value = JSON.stringify(product.likes || []);
                     is18PlusCheckbox.checked = product.is_18_plus || false;
                     mailContentTextarea.value = product.mail_content || '';
                     inStockCheckbox.checked = product.in_stock || false;
@@ -813,7 +794,6 @@
                 form.style.display = 'none';
             }
 
-            // Zbytek handleru a funkcí...
             mainImageUploadInput.addEventListener('change', (event) => {
                 mainImagePreviewDiv.innerHTML = '';
                 const file = event.target.files[0];
@@ -934,20 +914,6 @@
                 subImageUrlsTextInput.addEventListener('input', (event) => {
                     const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
                     subImageUrlsHiddenInput.value = JSON.stringify(urls);
-                });
-            }
-
-            if (likesInput) {
-                likesInput.addEventListener('input', (event) => {
-                    const items = event.target.value.split(',').map(item => item.trim()).filter(item => item !== '');
-                    likesHidden.value = JSON.stringify(items);
-                });
-            }
-
-            if (receivedImageUrlsTextInput) {
-                receivedImageUrlsTextInput.addEventListener('input', (event) => {
-                    const urls = event.target.value.split(',').map(url => url.trim()).filter(url => url !== '');
-                    receivedImageUrlsHiddenInput.value = JSON.stringify(urls);
                 });
             }
 
