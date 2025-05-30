@@ -4,7 +4,6 @@ const { ourFileRouter } = require("../config/uploadthing");
 const { 
     getLoginPage,
     postLogin,
-    getDashboardPage,
     logoutAdmin,
     getAdminProductsPage,
     getNewProductForm,
@@ -13,6 +12,7 @@ const {
     getEditProductForm,
     postAdminUpdateProduct,
     getAdminOrderDetail,
+    getAdminProductCategories,
     getDashboardStatsApi,
     getAdminOrdersApi,
     getAdminProductByIdApi,
@@ -83,12 +83,14 @@ router.get('/products/new', isAdminAuthenticated, getNewProductForm);
 router.get('/products/edit/:id', isAdminAuthenticated, getEditProductForm);
 
 // Modify routes to use multer middleware for file uploads
-router.post('/products', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }]), postAdminCreateProduct); // Handle product creation with file uploads
-router.post('/products/edit/:id', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }]), postAdminUpdateProduct); // Handle product update with file uploads
+router.post('/products', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 99 }, { name: 'received_images', maxCount: 99 }]), postAdminCreateProduct); // Handle product creation with file uploads
+router.post('/products/edit/:id', isAdminAuthenticated, upload.fields([{ name: 'main_image', maxCount: 1 }, { name: 'sub_images', maxCount: 10 }, { name: 'received_images', maxCount: 99 }]), postAdminUpdateProduct); // Handle product update with file uploads
 
 // Order Management (Admin)
 router.get('/orders', isAdminAuthenticated, getAdminOrdersPage);
 router.get('/orders/:id', getAdminOrderDetail);
+
+router.get('/products/categories', isAdminAuthenticated, getAdminProductCategories);
 
 // ** New API route to fetch order data (JSON) **
 router.get('/orders-data', isAdminAuthenticated, getAdminOrdersApi);

@@ -161,9 +161,10 @@ const postAdminCreateProduct = async (req, res) => {
     // Access files from req.files due to multer middleware
     console.log('[Admin Controller] postAdminCreateProduct: Request files:', req.files);
 
-    const { name, description, price, category, likes, is_18_plus, mail_content, in_stock } = req.body;
+    const { name, description, price, category, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
     const mainImageMulterFile = req.files?.main_image?.[0]; // Get main image file from multer
     const subImagesMulterFiles = req.files?.sub_images; // Get sub image files from multer
+    const receivedImagesMulterFiles = req.files?.received_images; // Get received image files from multer
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminCreateProduct: Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
@@ -175,6 +176,7 @@ const postAdminCreateProduct = async (req, res) => {
 
     let main_image_url = null;
     const sub_image_urls = [];
+    const received_image_urls = [];
 
     try {
         // Upload main image to UploadThing if provided, using UTFile
@@ -245,6 +247,38 @@ const postAdminCreateProduct = async (req, res) => {
             console.log('[Admin Controller] Sub images uploaded. URLs:', sub_image_urls);
         }
 
+        // Upload received images to UploadThing if provided, using UTFile for each
+        if (receivedImagesMulterFiles && receivedImagesMulterFiles.length > 0) {
+            console.log('[Admin Controller] Uploading received images...', receivedImagesMulterFiles.length);
+
+            const receivedImageUTFiles = receivedImagesMulterFiles.map(file => {
+                console.log(`Processing received image for upload: ${file.originalname}`);
+                const fileBuffer = file.buffer;
+                const tempFilename = file.originalname;
+                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
+            });
+
+            const receivedImagesUploadResult = await utapi.uploadFiles(receivedImageUTFiles, { key: 'productImages' });
+
+            console.log("[Admin Controller] Received images UploadThing Response:", JSON.stringify(receivedImagesUploadResult, null, 2));
+            if (!receivedImagesUploadResult || receivedImagesUploadResult.length !== receivedImageUTFiles.length) {
+                console.error("[Admin Controller] Received image UploadThing returned incorrect number of responses or empty:", receivedImagesUploadResult);
+                const errors = receivedImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
+                throw new Error('Failed to upload one or more received images. Details: ' + errors);
+            }
+
+            const failedUploads = receivedImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
+            if (failedUploads.length > 0) {
+                console.error("[Admin Controller] Failed received image uploads found:", failedUploads);
+                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
+                throw new Error('Failed to upload one or more received images. Details: ' + errors);
+            }
+
+            const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
+            received_image_urls.push(...urls);
+            console.log('[Admin Controller] Received images uploaded. URLs:', received_image_urls);
+        }
+
         // Handle likes array (assuming comma-separated string from frontend text input, or JSON from hidden input)
         let likesArray = [];
         if (likes) {
@@ -274,6 +308,8 @@ const postAdminCreateProduct = async (req, res) => {
             is_18_plus: is18Plus,
             mail_content: mail_content || null,
             in_stock: isInStock,
+            received_text: received_text || null, // Include received_text
+            received_image_urls: received_image_urls, // Include received_image_urls
         };
 
         console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Jméno:', productDataForSupabase.name);
@@ -298,6 +334,36 @@ const postAdminCreateProduct = async (req, res) => {
     }
 };
 
+const getAdminProductCategories = async (req, res) => {
+    try {
+        // Fetch distinct categories from the "products" table
+        const { data: categories, error } = await supabase
+            .from('products')
+            .select('category', { distinct: true })
+            .not('category', 'is', null) // Exclude products with no category set
+            .neq('category', ''); // Exclude products with empty string category
+
+        if (error) {
+            console.error('Error fetching product categories from DB:', error.message);
+            return res.status(500).json({ error: 'Failed to fetch product categories from database' });
+        }
+
+        // Format the categories for the frontend as an array of objects { id, name }
+        const formattedCategories = categories
+            .map(item => ({
+                id: item.category, // Use the original category name as ID
+                // Capitalize the first letter for the display name
+                name: item.category.charAt(0).toUpperCase() + item.category.slice(1)
+            }))
+            .filter(category => category.id !== null && category.id !== ''); // Filter out any potential null/empty categories
+
+        res.json(formattedCategories);
+    } catch (error) {
+        console.error('Error in getAdminProductCategories:', error);
+        res.status(500).json({ error: 'Internal Server Error fetching product categories' });
+    }
+};
+
 const getEditProductForm = async (req, res) => {
     try {
         res.sendFile('edit_product.html', { root: path.join(__dirname, '../views/admin') });
@@ -313,9 +379,10 @@ const postAdminUpdateProduct = async (req, res) => {
     console.log('[Admin Controller] postAdminUpdateProduct: Request files:', req.files);
 
     const { id } = req.params;
-    const { name, description, price, category, main_image_url, likes, is_18_plus, mail_content, in_stock } = req.body;
+    const { name, description, price, category, main_image_url, likes, is_18_plus, mail_content, in_stock, received_text } = req.body;
     const mainImageMulterFile = req.files?.main_image?.[0]; // New main image file from multer (if uploaded)
     const subImagesMulterFiles = req.files?.sub_images; // New sub image files from multer (if uploaded)
+    const receivedImagesMulterFiles = req.files?.received_images; // New received image files from multer (if uploaded)
 
     if (!name || price === undefined || parseFloat(price) < 0) {
         console.error('[Admin Controller] postAdminUpdateProduct: Error: Name and non-negative price are required.');
@@ -327,6 +394,7 @@ const postAdminUpdateProduct = async (req, res) => {
 
     let new_main_image_url = main_image_url; // Start with existing URL from form field
     let existing_sub_image_urls = [];
+    let existing_received_image_urls = []; // Array to hold existing received image URLs
 
     // Handle existing sub_image_urls from the form (should be JSON string from hidden input)
     const existingSubImageUrlsJson = req.body.sub_image_urls; 
@@ -348,7 +416,26 @@ const postAdminUpdateProduct = async (req, res) => {
         }
     }
 
+    // Handle existing received_image_urls from the form (should be JSON string from hidden input)
+    const existingReceivedImageUrlsJson = req.body.received_image_urls; // Assuming a hidden input with name="received_image_urls" exists
+    if (existingReceivedImageUrlsJson) {
+        try {
+            existing_received_image_urls = JSON.parse(existingReceivedImageUrlsJson);
+            if (!Array.isArray(existing_received_image_urls)) throw new Error('Not an array');
+            existing_received_image_urls = existing_received_image_urls.filter(url => url !== '');
+        } catch (e) {
+            console.error('[Admin Controller] Failed to parse existing received_image_urls JSON:', e);
+            console.warn('[Admin Controller] Attempting to parse received_image_urls as comma-separated string.');
+            // Fallback: assuming a text input for manual input might exist (adjust name if needed)
+            const existingReceivedImageUrlsString = req.body.received_image_urls_input; 
+            if (existingReceivedImageUrlsString) {
+                existing_received_image_urls = existingReceivedImageUrlsString.split(',').map(url => url.trim()).filter(url => url !== '');
+            }
+        }
+    }
+
     const new_sub_image_urls = [];
+    const new_received_image_urls = []; // Array to store newly uploaded received image URLs
 
     try {
         // Upload new main image to UploadThing if provided, using UTFile
@@ -429,8 +516,41 @@ const postAdminUpdateProduct = async (req, res) => {
             console.log('[Admin Controller] New sub images uploaded. URLs:', new_sub_image_urls);
         }
 
+        // Upload new received images to UploadThing if provided, using UTFile for each
+        if (receivedImagesMulterFiles && receivedImagesMulterFiles.length > 0) {
+            console.log('[Admin Controller] Uploading new received images...', receivedImagesMulterFiles.length);
+
+            const receivedImageUTFiles = receivedImagesMulterFiles.map(file => {
+                console.log(`Processing new received image for upload: ${file.originalname}`);
+                const fileBuffer = file.buffer;
+                const tempFilename = file.originalname;
+                return new UTFile([fileBuffer], tempFilename, { type: file.mimetype });
+            });
+
+            const receivedImagesUploadResult = await utapi.uploadFiles(receivedImageUTFiles, { key: 'productImages' });
+
+            console.log("[Admin Controller] New received images UploadThing Response:", JSON.stringify(receivedImagesUploadResult, null, 2));
+            if (!receivedImagesUploadResult || receivedImagesUploadResult.length !== receivedImageUTFiles.length) {
+                console.error("[Admin Controller] New received image UploadThing returned incorrect number of responses or empty:", receivedImagesUploadResult);
+                const errors = receivedImagesUploadResult?.map(file => file.error?.message || 'Unknown upload error').join(', ') || 'No response';
+                throw new Error('Failed to upload one or more new received images. Details: ' + errors);
+            }
+
+            const failedUploads = receivedImagesUploadResult.filter(file => file.error || !file.data?.ufsUrl);
+            if (failedUploads.length > 0) {
+                console.error("[Admin Controller] Failed new received image uploads found:", failedUploads);
+                const errors = failedUploads.map(file => file.error?.message || 'Missing data.ufsUrl').join(', ');
+                throw new Error('Failed to upload one or more new received images. Details: ' + errors);
+            }
+
+            const urls = receivedImagesUploadResult.map(file => file.data.ufsUrl);
+            new_received_image_urls.push(...urls);
+            console.log('[Admin Controller] New received images uploaded. URLs:', new_received_image_urls);
+        }
+
         // Combine existing (from hidden input) and new (uploaded) sub image URLs
         const final_sub_image_urls = [...existing_sub_image_urls, ...new_sub_image_urls];
+        const final_received_image_urls = [...existing_received_image_urls, ...new_received_image_urls]; // Combine existing and new received image URLs
 
         // Handle likes array (should be JSON string from hidden input)
         let likesArray = [];
@@ -461,6 +581,8 @@ const postAdminUpdateProduct = async (req, res) => {
             is_18_plus: is18Plus,
             mail_content: mail_content || null,
             in_stock: isInStock,
+            received_text: received_text || null, // Include received_text
+            received_image_urls: final_received_image_urls, // Include received_image_urls
         };
 
         console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', productDataForUpdate);
@@ -717,6 +839,7 @@ module.exports = {
     getAdminOrderDetail,
     getDashboardStatsApi,
     getAdminOrdersApi,
+    getAdminProductCategories,
     getAdminProductByIdApi,
     deleteAdminProduct
 };
