@@ -280,11 +280,13 @@
                     if (response.ok) {
                         // Login successful, redirect to dashboard
                         window.location.href = '/api/admin/dashboard';
+                        console.log("Successful")
                     } else {
                         // Login failed, display error message from backend
                         const errorData = await response.json();
                         errorMessageElement.textContent = errorData.message || 'Login failed. Please try again.';
                         errorMessageElement.style.display = 'block';
+                        console.log(errorData)
                     }
                 } catch (error) {
                     console.error('Error during login:', error);

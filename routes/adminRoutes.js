@@ -1,6 +1,7 @@
 const { Router } = require('express');
 const {
     getAdminOrderDetailById,
+    postLogin,
     postAdminCreateProduct,
     postAdminUpdateProduct,
     getAdminProductCategories,
@@ -97,12 +98,7 @@ router.delete('/products/:id', isAdminAuthenticated, deleteAdminProduct);
 router.get('/oders-data/:id', isAdminAuthenticated, getAdminOrderDetailById)
 router.get('/orders-data', isAdminAuthenticated, getAdminOrdersApi);
 
-router.post('/login', (req, res) => {
-  // Clear the admin_auth cookie
-  res.clearCookie('admin_auth');
-  console.log('[Admin Logout] admin_auth cookie cleared. Redirecting to login.');
-  res.redirect('/api/admin/login');
-});
+router.post('/login', postLogin);
 
 // Logout route
 router.get('/logout', (req, res) => {
