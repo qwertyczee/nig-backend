@@ -673,7 +673,7 @@
                                 </div>
                                 <div class="form-group">
                                     <div class="checkbox-group">
-                                        <input type="checkbox" id="in_stock" name="in_stock" value="true" checked class="checkbox-input">
+                                        <input type="checkbox" id="in_stock" name="in_stock" checked class="checkbox-input">
                                         <label for="in_stock" class="checkbox-label">Produkt je skladem</label>
                                     </div>
                                 </div>
@@ -883,7 +883,6 @@
         form.addEventListener('submit', async e => {
             e.preventDefault();
             msgArea.innerHTML = '';
-            console.log('test')
 
             // Get selected categories
             const selectedCategories = [];
@@ -891,27 +890,14 @@
                 selectedCategories.push(checkbox.value);
             });
 
-            console.log('test2')
-
             const newCategory = newCategoryInput.value.trim();
             if (newCategory) {
                 selectedCategories.push(newCategory);
             }
 
-            console.log('test3')
-
             const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
 
-            if (finalCategories.length === 0) {
-                msgArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Prosím vyberte alespoň jednu kategorii nebo zadejte novou.</div>';
-                return;
-            }
-
-            console.log('test4')
-
             showLoading();
-
-            console.log('test5')
 
             try {
                 let mainImageUrl = '';
@@ -923,9 +909,7 @@
                 if (mainImageUploadInput.files.length > 0) {
                     mainImageUrl = await uploadToUploadThing(mainImageUploadInput.files[0]);
                 }
-
-                console.log('test6')
-
+                
                 // Step 2: Upload sub images
                 updateProgress(2, 'Nahrávám další obrázky...');
                 if (subImageUploadInput.files.length > 0) {
@@ -948,6 +932,9 @@
                 // Step 4: Create product
                 updateProgress(4, 'Vytvářím produkt...');
 
+                // Explicitly get the boolean value of the checkbox
+                const isProductInStock = document.getElementById('in_stock').checked;
+
                 // Prepare form data without files
                 const productData = {
                     name: document.getElementById('name').value,
@@ -955,7 +942,7 @@
                     description: document.getElementById('description').value,
                     received_text: document.getElementById('received_text').value,
                     is_18_plus: document.getElementById('is_18_plus').checked,
-                    in_stock: document.getElementById('in_stock').checked,
+                    in_stock: isProductInStock,
                     categories: finalCategories,
                     main_image_url: mainImageUrl,
                     sub_image_urls: subImageUrls,

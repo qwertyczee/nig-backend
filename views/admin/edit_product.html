@@ -868,13 +868,13 @@
                             <div class="form-grid">
                                 <div class="form-group">
                                     <div class="checkbox-group">
-                                        <input type="checkbox" id="is_18_plus" name="is_18_plus" value="true" class="checkbox-input">
+                                        <input type="checkbox" id="is_18_plus" name="is_18_plus" class="checkbox-input">
                                         <label for="is_18_plus" class="checkbox-label">18+ Section</label>
                                     </div>
                                 </div>
                                 <div class="form-group">
                                     <div class="checkbox-group">
-                                        <input type="checkbox" id="in_stock" name="in_stock" value="true" class="checkbox-input">
+                                        <input type="checkbox" id="in_stock" name="in_stock" class="checkbox-input">
                                         <label for="in_stock" class="checkbox-label">In Stock</label>
                                     </div>
                                 </div>
@@ -1381,7 +1381,7 @@
                 const description = document.getElementById('description').value;
                 const received_text = document.getElementById('received_text').value;
                 const is_18_plus = document.getElementById('is_18_plus').checked;
-                const in_stock = document.getElementById('in_stock').checked;
+                const isProductInStock = document.getElementById('in_stock').checked;
 
                 // Get selected categories
                 const selectedCategories = [];
@@ -1393,12 +1393,6 @@
                     selectedCategories.push(newCategory);
                 }
                 const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
-
-                 if (finalCategories.length === 0) {
-                    messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Please select at least one category or enter a new one.</div>';
-                     hideLoading();
-                    return;
-                }
 
                 let mainImageKey = mainImageUrlHiddenInput.value; // Start with existing key
                 let subImageKeys = JSON.parse(subImageUrlsHiddenInput.value || '[]'); // Start with existing keys
@@ -1453,17 +1447,17 @@
                         main_image_url: mainImageKey || null, // Send key or null
                         sub_image_urls: subImageKeys, // Array of keys
                         is_18_plus: is_18_plus,
-                        in_stock: in_stock,
+                        in_stock: isProductInStock,
                         received_text: received_text || null, // Ensure null for empty text
                         received_images_zip_url: receivedImagesZipKey || null // Send key or null
                     };
 
-                     console.log('[Edit Product Form] Sending update data:', JSON.stringify(productData, null, 2));
+                    console.log('[Edit Product Form] Sending update data:', JSON.stringify(productData, null, 2));
 
                     const response = await fetch(`/api/admin/products/edit/${productId}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json' // Send as JSON now
+                            'Content-Type': 'application/json'
                         },
                         body: JSON.stringify(productData)
                     });
@@ -1484,7 +1478,6 @@
                         // or simply clear previews and rely on loadProductData on next page load.
                         // For simplicity, let's just clear previews and potentially reload data.
                         mainImagePreviewDiv.innerHTML = '';
-                        subImagePreviewDiv.innerHTML = '';
                         receivedImagesPreviewDiv.innerHTML = '';
                         loadProductData(); // Reload data to show updated state
 

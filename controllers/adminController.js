@@ -72,7 +72,6 @@ const postAdminCreateProduct = async (req, res) => {
         return res.status(400).json({ error: 'Name and a non-negative price are required' });
     }
 
-    const isInStock = in_stock === 'true' || in_stock === 'on' || false;
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
     try {
@@ -98,7 +97,7 @@ const postAdminCreateProduct = async (req, res) => {
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls, 
             is_18_plus: is18Plus,
-            in_stock: isInStock,
+            in_stock: in_stock,
             received_text: received_text || null,
             received_images_zip_url: received_images_zip_url,
         };
@@ -142,7 +141,6 @@ const postAdminUpdateProduct = async (req, res) => {
         return res.status(400).json({ error: 'Name and a non-negative price are required' });
     }
 
-    const isInStock = in_stock === 'true' || in_stock === 'on' || false;
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
     try {
@@ -166,7 +164,7 @@ const postAdminUpdateProduct = async (req, res) => {
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls,
             is_18_plus: is18Plus,
-            in_stock: isInStock,
+            in_stock: in_stock,
             received_text: received_text || null,
             received_images_zip_url: received_images_zip_url,
         };
