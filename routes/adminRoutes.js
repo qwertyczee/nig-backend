@@ -65,7 +65,6 @@ router.get('/login', (req, res) => {
   res.sendFile('login.html', { root: path.join(__dirname, '../views/admin') });
 });
 
-
 router.get('/dashboard', isAdminAuthenticated, (req, res) => {
   res.sendFile('dashboard.html', { root: path.join(__dirname, '../views/admin') });
 });
@@ -84,8 +83,6 @@ router.get('/orders', isAdminAuthenticated, (req, res) => {
 router.get('/orders/:id', isAdminAuthenticated, (req, res) => {
   res.sendFile('order_detail.html', { root: path.join(__dirname, '../views/admin') });
 });
-
-
 
 // Modify routes to use multer middleware for file uploads
 router.get('/dashboard-stats', isAdminAuthenticated, getDashboardStatsApi);
@@ -107,8 +104,6 @@ router.get('/logout', (req, res) => {
   console.log('[Admin Logout] admin_auth cookie cleared. Redirecting to login.');
   res.redirect('/api/admin/login');
 });
-
-
 
 // Export isAdminAuthenticated middleware
 module.exports = router;
