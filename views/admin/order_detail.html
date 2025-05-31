@@ -41,6 +41,27 @@
             display: flex;
         }
 
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+
+        .mobile-menu-toggle:hover {
+            background: var(--light-gray);
+        }
+
         .sidebar {
             width: 280px;
             background: var(--white);
@@ -48,7 +69,23 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 10;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
 
         .sidebar-header {
@@ -56,6 +93,26 @@
             text-align: center;
             background: var(--primary-gradient);
             color: white;
+            position: relative;
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-header h2 {
@@ -91,6 +148,7 @@
             border-radius: 12px;
             transition: all 0.3s ease;
             font-weight: 500;
+            min-height: 48px;
         }
 
         .sidebar-nav a:hover,
@@ -123,6 +181,7 @@
             border-radius: 12px;
             font-weight: 600;
             transition: all 0.3s ease;
+            min-height: 48px;
         }
 
         .logout-btn:hover {
@@ -138,10 +197,11 @@
             flex: 1;
             padding: 2rem;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
         }
 
         .content-container {
-            max-width: 800px;
+            max-width: 1200px;
             margin: 0 auto;
         }
 
@@ -204,63 +264,6 @@
             color: var(--dark-color);
         }
 
-        .order-details {
-            background: var(--white);
-            border-radius: 20px;
-            box-shadow: var(--shadow-md);
-            overflow: hidden;
-            margin-bottom: 2rem;
-        }
-
-        .details-header {
-            background: var(--light-gray);
-            padding: 1.5rem 2rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .details-header h2 {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--dark-color);
-            display: flex;
-            align-items: center;
-        }
-
-        .details-header h2 i {
-            margin-right: 0.75rem;
-            color: var(--info-color);
-        }
-
-        .details-content {
-            padding: 2rem;
-        }
-
-        .order-info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2rem;
-        }
-
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .info-label {
-            font-size: 0.875rem;
-            font-weight: 600;
-            color: var(--medium-gray);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
-        }
-
-        .info-value {
-            font-size: 1.125rem;
-            font-weight: 600;
-            color: var(--dark-color);
-        }
-
         .order-status {
             display: inline-flex;
             align-items: center;
@@ -293,8 +296,85 @@
             background: var(--success-gradient);
         }
 
+        .order-status.paid {
+            background: var(--success-gradient);
+        }
+
         .order-status.cancelled {
             background: var(--danger-gradient);
+        }
+
+        .order-status.refunded {
+            background: var(--danger-gradient);
+        }
+
+        .order-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .order-card {
+            background: var(--white);
+            border-radius: 20px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .order-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .card-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--light-gray);
+        }
+
+        .card-header h2 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .card-header h2 i {
+            margin-right: 0.75rem;
+            color: var(--primary-color);
+        }
+
+        .card-content {
+            padding: 2rem;
+        }
+
+        .info-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--medium-gray);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .info-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark-color);
+            word-break: break-word;
         }
 
         .amount-display {
@@ -303,6 +383,28 @@
             background: var(--success-gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+        }
+
+        .address-card {
+            background: var(--light-gray);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .address-line {
+            margin-bottom: 0.5rem;
+            color: var(--dark-color);
+            font-weight: 500;
+        }
+
+        .address-line:last-child {
+            margin-bottom: 0;
+        }
+
+        .full-width-card {
+            grid-column: 1 / -1;
         }
 
         .error-message {
@@ -358,44 +460,167 @@
             }
         }
 
+        .copy-btn {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .copy-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .copy-btn i {
+            margin-right: 0.5rem;
+        }
+
+        /* Mobile Styles */
         @media (max-width: 768px) {
-            body {
-                flex-direction: column;
+            .mobile-menu-toggle {
+                display: block;
             }
 
             .sidebar {
-                width: 100%;
-                order: 2;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1000;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .sidebar-close {
+                display: block;
             }
 
             .main-content {
-                order: 1;
+                margin-left: 0;
                 padding: 1rem;
+                padding-top: 4rem;
+            }
+
+            .page-header {
+                padding: 1.5rem;
             }
 
             .page-title {
                 flex-direction: column;
                 text-align: center;
+                align-items: center;
+            }
+
+            .page-title h1 {
+                font-size: 1.75rem;
+            }
+
+            .order-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .card-content {
+                padding: 1.5rem;
+            }
+
+            .content-container {
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 0.75rem;
+                padding-top: 3.5rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+                border-radius: 12px;
             }
 
             .page-title h1 {
                 font-size: 1.5rem;
             }
 
-            .order-info-grid {
-                grid-template-columns: 1fr;
+            .order-card {
+                border-radius: 12px;
+            }
+
+            .card-content {
+                padding: 1rem;
+            }
+
+            .info-grid {
                 gap: 1rem;
             }
 
-            .details-content {
-                padding: 1.5rem;
+            .address-card {
+                padding: 1rem;
             }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .main-content {
+                padding-top: 1rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+            }
+
+            .page-title h1 {
+                font-size: 1.75rem;
+            }
+        }
+
+        /* Better touch targets */
+        @media (hover: none) and (pointer: coarse) {
+            .sidebar-nav a,
+            .logout-btn,
+            .copy-btn,
+            .back-link {
+                min-height: 44px;
+            }
+        }
+
+        /* Focus states for accessibility */
+        .mobile-menu-toggle:focus,
+        .sidebar-close:focus,
+        .copy-btn:focus,
+        .back-link:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
+            <button class="sidebar-close" id="sidebar-close">
+                <i class="fas fa-times"></i>
+            </button>
             <h2>Admin Panel</h2>
             <p>Control Center</p>
         </div>
@@ -417,11 +642,6 @@
     <main class="main-content">
         <div class="content-container">
             <div class="page-header">
-                <a href="/api/admin/orders" class="back-link">
-                    <i class="fas fa-arrow-left"></i>
-                    Back to Orders
-                </a>
-
                 <div class="page-title">
                     <div class="title-section">
                         <div class="title-icon">
@@ -439,47 +659,144 @@
 
             <div id="message-area"></div>
 
-            <div class="order-details">
-                <div class="details-header">
-                    <h2>
-                        <i class="fas fa-info-circle"></i>
-                        Order Information
-                    </h2>
+            <div class="order-grid" id="order-content">
+                <!-- Order Overview Card -->
+                <div class="order-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-info-circle"></i>
+                            Order Overview
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Order ID</div>
+                                <div class="info-value" id="order-detail-id">
+                                    <div class="loading-skeleton"></div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Customer Email</div>
+                                <div class="info-value" id="customer-email">
+                                    <div class="loading-skeleton"></div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Total Amount</div>
+                                <div class="info-value" id="total-amount">
+                                    <div class="loading-skeleton"></div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Order Status</div>
+                                <div class="info-value" id="order-status-detail">
+                                    <div class="loading-skeleton"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="details-content">
-                    <div class="order-info-grid">
-                        <div class="info-item">
-                            <div class="info-label">Customer Email</div>
-                            <div class="info-value" id="customer-email">
-                                <div class="loading-skeleton"></div>
+
+                <!-- Date Information Card -->
+                <div class="order-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-calendar"></i>
+                            Date Information
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <div class="info-label">Order Created</div>
+                                <div class="info-value" id="created-at">
+                                    <div class="loading-skeleton"></div>
+                                </div>
+                            </div>
+                            <div class="info-item">
+                                <div class="info-label">Last Updated</div>
+                                <div class="info-value" id="updated-at">
+                                    <div class="loading-skeleton"></div>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="info-item">
-                            <div class="info-label">Total Amount</div>
-                            <div class="info-value" id="total-amount">
-                                <div class="loading-skeleton"></div>
-                            </div>
+                <!-- Shipping Address Card -->
+                <div class="order-card full-width-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-truck"></i>
+                            Shipping Address
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div id="shipping-address">
+                            <div class="loading-skeleton"></div>
                         </div>
+                    </div>
+                </div>
 
-                        <div class="info-item">
-                            <div class="info-label">Order Date</div>
-                            <div class="info-value" id="created-at">
-                                <div class="loading-skeleton"></div>
-                            </div>
-                        </div>
-
-                        <div class="info-item">
-                            <div class="info-label">Order Status</div>
-                            <div class="info-value" id="order-status-detail">
-                                <div class="loading-skeleton"></div>
-                            </div>
+                <!-- Billing Address Card -->
+                <div class="order-card full-width-card">
+                    <div class="card-header">
+                        <h2>
+                            <i class="fas fa-credit-card"></i>
+                            Billing Address
+                        </h2>
+                    </div>
+                    <div class="card-content">
+                        <div id="billing-address">
+                            <div class="loading-skeleton"></div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </main>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebarClose = document.getElementById('sidebar-close');
+
+        function openSidebar() {
+            sidebar.classList.remove('mobile-hidden');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('mobile-hidden');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        mobileMenuToggle.addEventListener('click', openSidebar);
+        sidebarClose.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar on window resize if mobile view is no longer active
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('mobile-hidden');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                sidebar.classList.add('mobile-hidden');
+            }
+        });
+
+        // Initialize mobile state
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('mobile-hidden');
+        }
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -488,10 +805,14 @@
             const messageArea = document.getElementById('message-area');
             const orderIdElement = document.getElementById('order-id');
             const orderStatusContainer = document.getElementById('order-status-container');
+            const orderDetailIdElement = document.getElementById('order-detail-id');
             const orderStatusDetailElement = document.getElementById('order-status-detail');
             const customerEmailElement = document.getElementById('customer-email');
             const totalAmountElement = document.getElementById('total-amount');
             const createdAtElement = document.getElementById('created-at');
+            const updatedAtElement = document.getElementById('updated-at');
+            const shippingAddressElement = document.getElementById('shipping-address');
+            const billingAddressElement = document.getElementById('billing-address');
 
             function showError(message) {
                 messageArea.innerHTML = `
@@ -504,10 +825,60 @@
                 // Update loading elements to show error state
                 orderIdElement.textContent = 'Error Loading Order';
                 orderStatusContainer.innerHTML = '<span class="order-status cancelled"><i class="fas fa-times"></i>Error</span>';
+                orderDetailIdElement.textContent = 'Error';
                 customerEmailElement.textContent = 'Error';
                 totalAmountElement.textContent = 'Error';
                 createdAtElement.textContent = 'Error';
+                updatedAtElement.textContent = 'Error';
                 orderStatusDetailElement.textContent = 'Error';
+                shippingAddressElement.textContent = 'Error loading address';
+                billingAddressElement.textContent = 'Error loading address';
+            }
+
+            function formatAddress(address) {
+                if (!address) return 'No address provided';
+                
+                const addressCard = document.createElement('div');
+                addressCard.className = 'address-card';
+                
+                const addressLines = [
+                    { label: 'Full Name', value: address.full_name },
+                    { label: 'Street', value: address.street },
+                    { label: 'City', value: `${address.city} ${address.postal_code}` },
+                    { label: 'Country', value: address.country },
+                    { label: 'Phone', value: address.phone }
+                ].filter(line => line.value);
+
+                addressLines.forEach(line => {
+                    const addressLine = document.createElement('div');
+                    addressLine.className = 'address-line';
+                    addressLine.innerHTML = `<strong>${line.label}:</strong> ${line.value}`;
+                    addressCard.appendChild(addressLine);
+                });
+
+                return addressCard;
+            }
+
+            function getStatusIcon(status) {
+                const statusIcons = {
+                    pending: 'fas fa-clock',
+                    processing: 'fas fa-cog fa-spin',
+                    shipped: 'fas fa-truck',
+                    delivered: 'fas fa-check-circle',
+                    paid: 'fas fa-check-circle',
+                    cancelled: 'fas fa-times-circle',
+                    refunded: 'fas fa-undo'
+                };
+                return statusIcons[status.toLowerCase()] || 'fas fa-question-circle';
+            }
+
+            function copyToClipboard(text) {
+                navigator.clipboard.writeText(text).then(() => {
+                    // Could add a toast notification here
+                    console.log('Copied to clipboard:', text);
+                }).catch(err => {
+                    console.error('Failed to copy: ', err);
+                });
             }
 
             if (!orderId) {
@@ -516,24 +887,16 @@
             }
 
             try {
-                const response = await fetch(`/api/admin/getorder/${orderId}`);
+                const response = await fetch(`/api/admin/oders-data/${orderId}`);
                 const order = await response.json();
 
                 if (response.ok) {
                     // Update order ID
-                    orderIdElement.textContent = `Order #${order.id}`;
+                    orderIdElement.textContent = `Order #${order.id.split('-')[0]}`;
                     
                     // Update status badge
                     const statusText = order.status.charAt(0).toUpperCase() + order.status.slice(1);
-                    const statusIcons = {
-                        pending: 'fas fa-clock',
-                        processing: 'fas fa-cog fa-spin',
-                        shipped: 'fas fa-truck',
-                        delivered: 'fas fa-check-circle',
-                        cancelled: 'fas fa-times-circle'
-                    };
-                    
-                    const statusIcon = statusIcons[order.status.toLowerCase()] || 'fas fa-question-circle';
+                    const statusIcon = getStatusIcon(order.status);
                     
                     orderStatusContainer.innerHTML = `
                         <span class="order-status ${order.status.toLowerCase()}">
@@ -543,16 +906,52 @@
                     `;
                     
                     // Update order details
-                    customerEmailElement.textContent = order.customer_email || 'N/A';
+                    orderDetailIdElement.innerHTML = `
+                        ${order.id}
+                        <button class="copy-btn" onclick="copyToClipboard('${order.id}')">
+                            <i class="fas fa-copy"></i>
+                            Copy ID
+                        </button>
+                    `;
+                    
+                    customerEmailElement.innerHTML = `
+                        ${order.user_id || 'N/A'}
+                        ${order.user_id ? `<button class="copy-btn" onclick="copyToClipboard('${order.user_id}')">
+                            <i class="fas fa-copy"></i>
+                            Copy Email
+                        </button>` : ''}
+                    `;
+                    
                     totalAmountElement.innerHTML = `<span class="amount-display">${order.total_amount.toFixed(2)} Kč</span>`;
-                    createdAtElement.textContent = new Date(order.created_at).toLocaleString('cs-CZ', {
+                    
+                    const createdDate = new Date(order.created_at);
+                    createdAtElement.textContent = createdDate.toLocaleString('cs-CZ', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        second: '2-digit'
                     });
+                    
+                    const updatedDate = new Date(order.updated_at);
+                    updatedAtElement.textContent = updatedDate.toLocaleString('cs-CZ', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    
                     orderStatusDetailElement.textContent = statusText;
+                    
+                    // Update addresses
+                    shippingAddressElement.innerHTML = '';
+                    shippingAddressElement.appendChild(formatAddress(order.shipping_address));
+                    
+                    billingAddressElement.innerHTML = '';
+                    billingAddressElement.appendChild(formatAddress(order.billing_address));
                     
                 } else {
                     showError(`Failed to load order: ${order.error || response.statusText}`);
@@ -562,6 +961,34 @@
                 showError('An error occurred while fetching order details. Please try again later.');
             }
         });
+
+        // Make copyToClipboard globally available
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success feedback
+                const button = event.target.closest('.copy-btn');
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+                button.style.background = 'var(--success-gradient)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.style.background = 'var(--primary-gradient)';
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                // Show error feedback
+                const button = event.target.closest('.copy-btn');
+                const originalContent = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-times"></i> Failed';
+                button.style.background = 'var(--danger-gradient)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalContent;
+                    button.style.background = 'var(--primary-gradient)';
+                }, 2000);
+            });
+        }
     </script>
 </body>
 </html>

@@ -37,6 +37,28 @@
             min-height: 100vh;
             color: var(--dark-color);
             display: flex;
+            position: relative;
+        }
+
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+
+        .mobile-menu-toggle:hover {
+            background: var(--light-gray);
         }
 
         .sidebar {
@@ -46,7 +68,23 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 10;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
         }
 
         .sidebar-header {
@@ -54,6 +92,26 @@
             text-align: center;
             background: var(--primary-gradient);
             color: white;
+            position: relative;
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-header h2 {
@@ -89,6 +147,7 @@
             border-radius: 12px;
             transition: all 0.3s ease;
             font-weight: 500;
+            min-height: 48px;
         }
 
         .sidebar-nav a:hover,
@@ -121,6 +180,7 @@
             border-radius: 12px;
             font-weight: 600;
             transition: all 0.3s ease;
+            min-height: 48px;
         }
 
         .logout-btn:hover {
@@ -136,6 +196,7 @@
             flex: 1;
             padding: 2rem;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
         }
 
         .content-container {
@@ -168,7 +229,7 @@
 
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 2rem;
             margin-bottom: 3rem;
         }
@@ -225,6 +286,7 @@
             justify-content: center;
             font-size: 1.5rem;
             color: white;
+            flex-shrink: 0;
         }
 
         .stat-icon.products {
@@ -239,12 +301,17 @@
             background: var(--success-gradient);
         }
 
+        .stat-content {
+            flex: 1;
+        }
+
         .stat-title {
             font-size: 1rem;
             font-weight: 600;
             color: var(--medium-gray);
             text-transform: uppercase;
             letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
         }
 
         .stat-value {
@@ -252,6 +319,7 @@
             font-weight: 700;
             color: var(--dark-color);
             margin-bottom: 0.5rem;
+            line-height: 1;
         }
 
         .stat-label {
@@ -264,7 +332,8 @@
             align-items: center;
             justify-content: center;
             color: var(--medium-gray);
-            font-size: 1.125rem;
+            font-size: 1rem;
+            padding: 1rem;
         }
 
         .loading-state i {
@@ -281,6 +350,8 @@
             color: #dc2626;
             text-align: center;
             font-weight: 500;
+            font-size: 1rem;
+            padding: 1rem;
         }
 
         .quick-actions {
@@ -314,7 +385,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1rem;
+            padding: 1.25rem;
             background: var(--light-gray);
             color: var(--medium-gray);
             text-decoration: none;
@@ -322,6 +393,7 @@
             font-weight: 600;
             transition: all 0.3s ease;
             border: 2px solid transparent;
+            min-height: 56px;
         }
 
         .action-btn:hover {
@@ -335,40 +407,283 @@
             margin-right: 0.5rem;
         }
 
+        /* Mobile Styles */
         @media (max-width: 768px) {
-            body {
-                flex-direction: column;
+            .mobile-menu-toggle {
+                display: block;
             }
 
             .sidebar {
-                width: 100%;
-                order: 2;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1000;
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .sidebar-close {
+                display: block;
             }
 
             .main-content {
-                order: 1;
-                margin: 1rem;
+                margin-left: 0;
+                padding: 1rem;
+                padding-top: 4rem;
+            }
+
+            .page-header {
                 padding: 1.5rem;
+                margin-bottom: 1.5rem;
             }
 
             .page-header h1 {
-                font-size: 2rem;
+                font-size: 2.25rem;
+            }
+
+            .page-header p {
+                font-size: 1rem;
             }
 
             .stats-grid {
                 grid-template-columns: 1fr;
                 gap: 1rem;
+                margin-bottom: 2rem;
+            }
+
+            .stat-card {
+                padding: 1.5rem;
+            }
+
+            .stat-header {
+                margin-bottom: 1rem;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 1.25rem;
             }
 
             .stat-value {
                 font-size: 2rem;
             }
+
+            .quick-actions {
+                padding: 1.5rem;
+            }
+
+            .quick-actions h2 {
+                font-size: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            .actions-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+
+            .action-btn {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 0.75rem;
+                padding-top: 3.5rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .page-header h1 {
+                font-size: 1.875rem;
+            }
+
+            .page-header p {
+                font-size: 0.875rem;
+            }
+
+            .stat-card {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .stat-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .stat-icon {
+                align-self: center;
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
+
+            .stat-content {
+                text-align: center;
+                width: 100%;
+            }
+
+            .stat-value {
+                font-size: 1.75rem;
+            }
+
+            .quick-actions {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .actions-grid {
+                gap: 0.5rem;
+            }
+
+            .action-btn {
+                font-size: 0.875rem;
+                padding: 0.875rem;
+            }
+        }
+
+        /* Landscape mobile optimization */
+        @media (max-width: 768px) and (orientation: landscape) {
+            .main-content {
+                padding-top: 1rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .page-header p {
+                font-size: 0.875rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+                gap: 1rem;
+            }
+
+            .stat-header {
+                flex-direction: row;
+                align-items: center;
+            }
+
+            .stat-content {
+                text-align: left;
+            }
+        }
+
+        /* Better touch targets */
+        @media (hover: none) and (pointer: coarse) {
+            .sidebar-nav a,
+            .logout-btn,
+            .action-btn {
+                min-height: 44px;
+            }
+
+            .mobile-menu-toggle,
+            .sidebar-close {
+                min-width: 44px;
+                min-height: 44px;
+            }
+        }
+
+        /* Focus states for accessibility */
+        .mobile-menu-toggle:focus,
+        .sidebar-close:focus,
+        .action-btn:focus,
+        .sidebar-nav a:focus,
+        .logout-btn:focus {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        /* Enhanced loading and error states */
+        .loading-state {
+            min-height: 60px;
+        }
+
+        .error-state {
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Improved stat card responsiveness */
+        @media (max-width: 1024px) and (min-width: 769px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .stat-header {
+                gap: 0.75rem;
+            }
+
+            .stat-title {
+                font-size: 0.875rem;
+            }
+        }
+
+        /* Animation improvements */
+        .stat-card,
+        .quick-actions {
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.1s;
+        }
+
+        .stat-card:nth-child(3) {
+            animation-delay: 0.2s;
+        }
+
+        .quick-actions {
+            animation-delay: 0.3s;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <!-- Mobile Menu Toggle -->
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar Overlay for Mobile -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
+            <button class="sidebar-close" id="sidebar-close">
+                <i class="fas fa-times"></i>
+            </button>
             <h2>Admin Panel</h2>
             <p>Control Center</p>
         </div>
@@ -397,7 +712,7 @@
             <div class="stats-grid">
                 <div class="stat-card products">
                     <div class="stat-header">
-                        <div>
+                        <div class="stat-content">
                             <div class="stat-title">Total Products</div>
                             <div class="stat-value" id="total-products">
                                 <div class="loading-state">
@@ -415,7 +730,7 @@
 
                 <div class="stat-card orders">
                     <div class="stat-header">
-                        <div>
+                        <div class="stat-content">
                             <div class="stat-title">Total Orders</div>
                             <div class="stat-value" id="total-orders">
                                 <div class="loading-state">
@@ -433,7 +748,7 @@
 
                 <div class="stat-card sales">
                     <div class="stat-header">
-                        <div>
+                        <div class="stat-content">
                             <div class="stat-title">Total Sales</div>
                             <div class="stat-value" id="total-sales">
                                 <div class="loading-state">
@@ -473,6 +788,47 @@
         </div>
     </main>
 
+    <!-- Mobile Menu Script -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebarClose = document.getElementById('sidebar-close');
+
+        function openSidebar() {
+            sidebar.classList.remove('mobile-hidden');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('mobile-hidden');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        mobileMenuToggle.addEventListener('click', openSidebar);
+        sidebarClose.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar on window resize if mobile view is no longer active
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('mobile-hidden');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                sidebar.classList.add('mobile-hidden');
+            }
+        });
+
+        // Initialize mobile state
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('mobile-hidden');
+        }
+    </script>
+
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
             try {
@@ -485,15 +841,15 @@
                     document.getElementById('total-sales').textContent = `${data.totalSales.toFixed(2)} Kč`;
                 } else {
                     console.error('Failed to fetch dashboard stats:', data.error);
-                    document.getElementById('total-products').innerHTML = '<div class="error-state">Error</div>';
-                    document.getElementById('total-orders').innerHTML = '<div class="error-state">Error</div>';
-                    document.getElementById('total-sales').innerHTML = '<div class="error-state">Error</div>';
+                    document.getElementById('total-products').innerHTML = '<div class="error-state">Error loading data</div>';
+                    document.getElementById('total-orders').innerHTML = '<div class="error-state">Error loading data</div>';
+                    document.getElementById('total-sales').innerHTML = '<div class="error-state">Error loading data</div>';
                 }
             } catch (error) {
                 console.error('Error fetching dashboard stats:', error);
-                document.getElementById('total-products').innerHTML = '<div class="error-state">Error</div>';
-                document.getElementById('total-orders').innerHTML = '<div class="error-state">Error</div>';
-                document.getElementById('total-sales').innerHTML = '<div class="error-state">Error</div>';
+                document.getElementById('total-products').innerHTML = '<div class="error-state">Network error</div>';
+                document.getElementById('total-orders').innerHTML = '<div class="error-state">Network error</div>';
+                document.getElementById('total-sales').innerHTML = '<div class="error-state">Network error</div>';
             }
         });
     </script>

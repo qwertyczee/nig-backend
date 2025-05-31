@@ -246,15 +246,10 @@ const getAdminOrdersApi = async (req, res) => {
             .select('*', { count: 'exact', head: true });
 
         if (searchTerm) {
-            query = query.ilike('customer_email', `%${searchTerm}%`);
+            query = query.ilike('user_id', `%${searchTerm}%`);
         }
 
-        const { count, error: countError } = await query;
-
-        if (countError) {
-            console.error('Error fetching order count for API:', countError.message);
-            return res.status(500).json({ error: 'Error fetching order count.' });
-        }
+        const { count = 0, error: countError } = await query;
 
         // Reset query for fetching data, applying the same search filter
         let dataQuery = supabase
@@ -264,7 +259,7 @@ const getAdminOrdersApi = async (req, res) => {
             .range(from, to);
 
         if (searchTerm) {
-            dataQuery = dataQuery.ilike('customer_email', `%${searchTerm}%`);
+            dataQuery = dataQuery.ilike('user_id', `%${searchTerm}%`);
         }
 
         const { data: orders, error } = await dataQuery;

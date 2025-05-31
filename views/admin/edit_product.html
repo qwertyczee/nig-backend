@@ -37,6 +37,27 @@
             min-height: 100vh;
             color: var(--dark-color);
             display: flex;
+            position: relative;
+        }
+
+        .mobile-menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1001;
+            background: var(--white);
+            border: none;
+            border-radius: 12px;
+            padding: 0.75rem;
+            box-shadow: var(--shadow-md);
+            cursor: pointer;
+            font-size: 1.25rem;
+            color: var(--primary-color);
+        }
+
+        .mobile-menu-toggle:hover {
+            background: var(--light-gray);
         }
 
         .sidebar {
@@ -46,7 +67,27 @@
             display: flex;
             flex-direction: column;
             position: relative;
-            z-index: 10;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar.mobile-hidden {
+            transform: translateX(-100%);
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
         }
 
         .sidebar-header {
@@ -54,6 +95,26 @@
             text-align: center;
             background: var(--primary-gradient);
             color: white;
+            position: relative;
+        }
+
+        .sidebar-close {
+            display: none;
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .sidebar-close:hover {
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .sidebar-header h2 {
@@ -89,6 +150,7 @@
             border-radius: 12px;
             transition: all 0.3s ease;
             font-weight: 500;
+            min-height: 48px;
         }
 
         .sidebar-nav a:hover,
@@ -121,6 +183,7 @@
             border-radius: 12px;
             font-weight: 600;
             transition: all 0.3s ease;
+            min-height: 48px;
         }
 
         .logout-btn:hover {
@@ -136,6 +199,7 @@
             flex: 1;
             padding: 2rem;
             overflow-y: auto;
+            transition: margin-left 0.3s ease;
         }
 
         .content-container {
@@ -226,7 +290,7 @@
             display: block;
             font-weight: 600;
             color: var(--dark-color);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.75rem;
             font-size: 0.875rem;
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -234,12 +298,13 @@
 
         .form-input {
             width: 100%;
-            padding: 1rem;
+            padding: 1.25rem;
             border: 2px solid var(--border-color);
             border-radius: 12px;
             font-size: 1rem;
             transition: all 0.3s ease;
             background: var(--white);
+            min-height: 48px;
         }
 
         .form-input:focus {
@@ -271,13 +336,16 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 2.5rem 1.5rem;
             border: 2px dashed var(--border-color);
             border-radius: 12px;
             background: var(--light-gray);
             color: var(--medium-gray);
             cursor: pointer;
             transition: all 0.3s ease;
+            min-height: 80px;
+            text-align: center;
+            font-weight: 500;
         }
 
         .file-input-label:hover {
@@ -286,18 +354,19 @@
         }
 
         .file-input-label i {
-            margin-right: 0.5rem;
-            font-size: 1.25rem;
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
         }
 
         .checkbox-group {
             display: flex;
             align-items: center;
-            padding: 1rem;
+            padding: 1.25rem;
             background: var(--light-gray);
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.3s ease;
+            min-height: 60px;
         }
 
         .checkbox-group:hover {
@@ -305,13 +374,16 @@
         }
 
         .checkbox-input {
-            margin-right: 0.75rem;
-            transform: scale(1.2);
+            margin-right: 1rem;
+            transform: scale(1.3);
+            cursor: pointer;
         }
 
         .checkbox-label {
             font-weight: 500;
             color: var(--dark-color);
+            cursor: pointer;
+            flex: 1;
         }
 
         .categories-grid {
@@ -324,11 +396,12 @@
         .category-item {
             display: flex;
             align-items: center;
-            padding: 0.75rem;
+            padding: 1rem;
             background: var(--light-gray);
             border-radius: 8px;
             transition: all 0.3s ease;
             cursor: pointer;
+            min-height: 56px;
         }
 
         .category-item:hover {
@@ -336,12 +409,20 @@
         }
 
         .category-item input {
-            margin-right: 0.5rem;
+            margin-right: 0.75rem;
+            transform: scale(1.2);
+            cursor: pointer;
+        }
+
+        .category-item label {
+            cursor: pointer;
+            flex: 1;
+            font-weight: 500;
         }
 
         .image-preview-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
             gap: 1rem;
             margin-top: 1rem;
         }
@@ -351,11 +432,12 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: var(--shadow-sm);
+            aspect-ratio: 1;
         }
 
         .image-preview img {
             width: 100%;
-            height: 120px;
+            height: 100%;
             object-fit: cover;
         }
 
@@ -383,10 +465,11 @@
             padding-top: 2rem;
             border-top: 1px solid var(--border-color);
             margin-top: 2rem;
+            flex-direction: row;
         }
 
         .btn {
-            padding: 1rem 2rem;
+            padding: 1.25rem 2rem;
             border: none;
             border-radius: 12px;
             font-weight: 600;
@@ -397,6 +480,8 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            min-height: 56px;
+            width: auto;
         }
 
         .btn-primary {
@@ -424,17 +509,20 @@
         }
 
         .message {
-            padding: 1rem 1.5rem;
+            padding: 1.25rem 1.5rem;
             border-radius: 12px;
             margin-bottom: 1.5rem;
             font-weight: 500;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
+            line-height: 1.5;
         }
 
         .message i {
             margin-right: 0.75rem;
             font-size: 1.25rem;
+            margin-top: 0.125rem;
+            flex-shrink: 0;
         }
 
         .message.success {
@@ -449,30 +537,6 @@
             border: 1px solid rgba(248, 113, 113, 0.3);
         }
 
-        @media (max-width: 768px) {
-            body {
-                flex-direction: column;
-            }
-
-            .sidebar {
-                width: 100%;
-                order: 2;
-            }
-
-            .main-content {
-                order: 1;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .categories-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Add Loading Overlay Styles */
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -484,15 +548,17 @@
             align-items: center;
             justify-content: center;
             z-index: 9999;
+            padding: 1rem;
         }
 
         .loading-content {
             background: white;
             padding: 2rem;
-            border-radius: 10px;
+            border-radius: 16px;
             text-align: center;
             max-width: 400px;
-            width: 90%;
+            width: 100%;
+            box-shadow: var(--shadow-xl);
         }
 
         .loading-spinner {
@@ -512,9 +578,9 @@
 
         .loading-progress {
             width: 100%;
-            height: 20px;
+            height: 8px;
             background: #f3f3f3;
-            border-radius: 10px;
+            border-radius: 4px;
             overflow: hidden;
             margin-top: 1rem;
         }
@@ -524,17 +590,19 @@
             background: #007bff;
             width: 0%;
             transition: width 0.3s ease;
-            border-radius: 10px;
+            border-radius: 4px;
         }
 
         .loading-content h3 {
             margin-bottom: 0.5rem;
             color: #333;
+            font-size: 1.25rem;
         }
 
         .loading-content p {
             color: #666;
             margin-bottom: 0;
+            font-size: 0.875rem;
         }
 
         .images-container {
@@ -578,6 +646,7 @@
             box-shadow: var(--shadow-sm);
             border: 2px solid transparent;
             transition: all 0.3s ease;
+            aspect-ratio: 1;
         }
 
         .image-item.existing {
@@ -590,7 +659,7 @@
 
         .image-item img {
             width: 100%;
-            height: 100px;
+            height: 100%;
             object-fit: cover;
         }
 
@@ -611,6 +680,7 @@
             font-size: 0.7rem;
             opacity: 0;
             transition: opacity 0.3s ease;
+            z-index: 1;
         }
 
         .image-item:hover .remove-btn {
@@ -627,6 +697,7 @@
             border-radius: 4px;
             font-size: 0.7rem;
             font-weight: 500;
+            z-index: 1;
         }
 
         .image-badge.existing {
@@ -680,15 +751,206 @@
         }
 
         @media (max-width: 768px) {
+            .mobile-menu-toggle {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 1000;
+            }
+
+            .sidebar.mobile-hidden {
+                transform: translateX(-100%);
+            }
+
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .sidebar-close {
+                display: block;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 1rem;
+                padding-top: 4rem;
+            }
+
+            .page-header {
+                padding: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .page-header p {
+                font-size: 1rem;
+            }
+
+            .form-content {
+                padding: 1.5rem;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .categories-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .section-title {
+                font-size: 1.25rem;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .section-title i {
+                margin-right: 0;
+            }
+
+            .form-actions {
+                flex-direction: column-reverse;
+            }
+
+            .file-input-label {
+                padding: 2rem 1rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .file-input-label i {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+
+            .image-preview-grid {
+                grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+                gap: 0.75rem;
+            }
+
+            .loading-content {
+                padding: 1.5rem;
+                margin: 1rem;
+            }
+
+            .loading-content h3 {
+                font-size: 1.125rem;
+            }
+
             .images-container {
                 grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .main-content {
+                padding: 0.75rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            .page-header h1 {
+                font-size: 1.75rem;
+            }
+
+            .form-card {
+                border-radius: 12px;
+            }
+
+            .form-content {
+                padding: 1rem;
+            }
+
+            .form-input {
+                padding: 1rem;
+            }
+
+            .btn {
+                padding: 1rem 1.5rem;
+                font-size: 0.875rem;
+            }
+
+            .categories-grid {
+                gap: 0.5rem;
+            }
+
+            .category-item {
+                padding: 0.75rem;
+            }
+
+            .checkbox-group {
+                padding: 1rem;
+            }
+
+            .file-input-label {
+                padding: 1.5rem 1rem;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            .main-content {
+                padding-top: 1rem;
+            }
+
+            .page-header {
+                padding: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 1.5rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .page-header p {
+                font-size: 0.875rem;
+            }
+        }
+
+        .btn:focus,
+        .form-input:focus,
+        .checkbox-input:focus,
+        .file-input:focus + .file-input-label {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
+        }
+
+        @media (hover: none) and (pointer: coarse) {
+            .sidebar-nav a,
+            .logout-btn,
+            .btn,
+            .checkbox-group,
+            .category-item,
+            .file-input-label {
+                min-height: 44px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <button class="mobile-menu-toggle" id="mobile-menu-toggle">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
+            <button class="sidebar-close" id="sidebar-close">
+                <i class="fas fa-times"></i>
+            </button>
             <h2>Admin Panel</h2>
             <p>Product Management</p>
         </div>
@@ -716,7 +978,6 @@
 
             <div id="message-area"></div>
 
-            <!-- Loading Overlay -->
             <div id="loading-overlay" class="loading-overlay" style="display: none;">
                 <div class="loading-content">
                     <div class="loading-spinner"></div>
@@ -897,8 +1158,48 @@
         </div>
     </main>
 
-    <!-- Add JSZip library for creating ZIP files -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <!-- Mobile Menu Script -->
+    <script>
+        // Mobile menu functionality
+        const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar');
+        const sidebarOverlay = document.getElementById('sidebar-overlay');
+        const sidebarClose = document.getElementById('sidebar-close');
+
+        function openSidebar() {
+            sidebar.classList.remove('mobile-hidden');
+            sidebarOverlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('mobile-hidden');
+            sidebarOverlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+
+        mobileMenuToggle.addEventListener('click', openSidebar);
+        sidebarClose.addEventListener('click', closeSidebar);
+        sidebarOverlay.addEventListener('click', closeSidebar);
+
+        // Close sidebar on window resize if mobile view is no longer active
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('mobile-hidden');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            } else {
+                sidebar.classList.add('mobile-hidden');
+            }
+        });
+
+        // Initialize mobile state
+        if (window.innerWidth <= 768) {
+            sidebar.classList.add('mobile-hidden');
+        }
+    </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', async () => {
@@ -906,7 +1207,6 @@
             const messageArea = document.getElementById('message-area');
             const productId = window.location.pathname.split('/').pop();
 
-            // Add loading overlay elements
             const loadingOverlay = document.getElementById('loading-overlay');
             const loadingStatus = document.getElementById('loading-status');
             const loadingProgressBar = document.getElementById('loading-progress-bar');
@@ -928,7 +1228,6 @@
             let existingSubImages = [];
             let newSubImages = [];
 
-            // Add hidden inputs for uploaded URLs
             const mainImageUrlHiddenInput = document.createElement('input');
             mainImageUrlHiddenInput.type = 'hidden';
             mainImageUrlHiddenInput.name = 'main_image_url';
@@ -979,9 +1278,7 @@
                 allImagesPreview.innerHTML = '';
                 currentUrlsList.innerHTML = '';
                 
-                // Render existing images
                 existingSubImages.forEach((imageUrl, index) => {
-                    // Create image preview
                     const imageItem = document.createElement('div');
                     imageItem.className = 'image-item existing';
                     
@@ -1007,7 +1304,6 @@
                     imageItem.appendChild(removeBtn);
                     allImagesPreview.appendChild(imageItem);
                     
-                    // Create URL list item
                     const urlItem = document.createElement('div');
                     urlItem.className = 'url-item';
                     
@@ -1029,7 +1325,6 @@
                     currentUrlsList.appendChild(urlItem);
                 });
                 
-                // Render new images
                 newSubImages.forEach((file, index) => {
                     const imageItem = document.createElement('div');
                     imageItem.className = 'image-item new';
@@ -1060,7 +1355,6 @@
                     imageItem.appendChild(removeBtn);
                     allImagesPreview.appendChild(imageItem);
                     
-                    // Add to URL list
                     const urlItem = document.createElement('div');
                     urlItem.className = 'url-item';
                     
@@ -1082,27 +1376,22 @@
                     currentUrlsList.appendChild(urlItem);
                 });
                 
-                // Show message if no images
                 if (existingSubImages.length === 0 && newSubImages.length === 0) {
                     allImagesPreview.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--medium-gray); font-style: italic; padding: 2rem;">No images added yet</div>';
                     currentUrlsList.innerHTML = '<div class="url-item" style="justify-content: center; font-style: italic; color: var(--medium-gray);">No URLs yet</div>';
                 }
             }
 
-            // Function to update hidden inputs
             function updateHiddenInputs() {
                 subImageUrlsHiddenInput.value = JSON.stringify(existingSubImages.map(url => url.split('/').pop()));
             }
 
-            // Function to update file input (simulate file selection for new images)
             function updateFileInput() {
-                // Create new FileList-like object
                 const dt = new DataTransfer();
                 newSubImages.forEach(file => dt.items.add(file));
                 subImageUploadInput.files = dt.files;
             }
 
-            // Modified setup for sub image upload
             subImageUploadInput.addEventListener('change', (e) => {
                 const files = Array.from(e.target.files);
                 newSubImages = [...newSubImages, ...files];
@@ -1127,9 +1416,8 @@
                 return;
             }
 
-            // Progress tracking
             let currentProgress = 0;
-            const totalSteps = 4; // main image, sub images, received images, update product
+            const totalSteps = 4;
 
             function updateProgress(step, message) {
                 currentProgress = step;
@@ -1149,10 +1437,8 @@
                 loadingProgressBar.style.width = '0%';
             }
 
-            // Upload file to UploadThing (Copied from new_product.html)
             async function uploadToUploadThing(file) {
                 try {
-                    // 1) Get presigned URL and fields from our server
                     const presignedResp = await fetch('/api/uploadthing', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1160,7 +1446,7 @@
                             fileName: file.name,
                             fileType: file.type,
                             fileSize: file.size,
-                            slug: 'imageUploader' // Assuming this slug is correct
+                            slug: 'imageUploader'
                         })
                     });
 
@@ -1172,25 +1458,20 @@
                     const uploadData = await presignedResp.json();
                     console.log('Upload data received:', uploadData);
 
-                    // 2) Use the presigned URL directly without modification
                     const { url, fields, key } = uploadData;
 
-                    // Create FormData for multipart upload
                     const formData = new FormData();
 
-                    // Add all fields first (if any)
                     if (fields) {
                         Object.entries(fields).forEach(([key, value]) => {
                             formData.append(key, value);
                         });
                     }
 
-                    // Add the file last
                     formData.append('file', file);
 
-                    // 3) Upload using POST with FormData (not PUT)
                     const uploadResp = await fetch(url, {
-                        method: 'PUT', // Use PUT as per UploadThing docs for presigned URLs
+                        method: 'PUT',
                         body: formData
                     });
 
@@ -1200,7 +1481,7 @@
                     }
 
                     console.log('Upload successful, key:', key);
-                    return key; // Return the key, which is the file identifier on UploadThing
+                    return key;
 
                 } catch (error) {
                     console.error('Upload error:', error);
@@ -1208,13 +1489,11 @@
                 }
             }
 
-            // Create ZIP file from images (Copied from new_product.html)
             async function createZipFromImages(files) {
                 const zip = new JSZip();
 
                 for (let i = 0; i < files.length; i++) {
                     const file = files[i];
-                    // Use original file extension, ensure unique names if needed
                     const fileName = `received_image_${i + 1}.${file.name.split('.').pop()}`;
                     zip.file(fileName, file);
                 }
@@ -1222,31 +1501,27 @@
                 return await zip.generateAsync({ type: 'blob' });
             }
 
-            // Display image preview (modified to accept File object or URL)
             function displayImagePreview(source, previewContainer, isFile = true) {
                 const div = document.createElement('div');
                 div.className = 'image-preview';
 
                 const img = document.createElement('img');
                 if (isFile) {
-                     const reader = new FileReader();
+                    const reader = new FileReader();
                     reader.onload = (e) => {
                         img.src = e.target.result;
                     };
                     reader.readAsDataURL(source);
                 } else {
                     img.src = source;
-                     // Add a placeholder remove button for existing images if needed
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'remove-btn';
                     removeBtn.innerHTML = '<i class="fas fa-times"></i>';
                     removeBtn.addEventListener('click', () => {
                         div.remove();
-                         // Logic to update the hidden input for existing URLs
                         let currentUrls = JSON.parse(subImageUrlsHiddenInput.value || '[]');
                         currentUrls = currentUrls.filter(url => url !== source);
                         subImageUrlsHiddenInput.value = JSON.stringify(currentUrls);
-                         // Need to implement similar for received images if they can be removed individually
                     });
                     div.appendChild(removeBtn);
                 }
@@ -1255,10 +1530,8 @@
                 previewContainer.appendChild(div);
             }
 
-            // Setup image upload preview listeners
             function setupImageUploadPreview(inputElement, previewDivElement) {
                 inputElement.addEventListener('change', e => {
-                    // Clear existing previews for main image, append for multiple sub/received
                     if (!inputElement.multiple) {
                         previewDivElement.innerHTML = '';
                     }
@@ -1272,7 +1545,6 @@
             setupImageUploadPreview(mainImageUploadInput, mainImagePreviewDiv);
             setupImageUploadPreview(receivedImagesUploadInput, receivedImagesPreviewDiv);
 
-            // Function to load existing product data
             async function loadProductData() {
                 try {
                     const response = await fetch(`/api/admin/products-data/${productId}`);
@@ -1288,26 +1560,18 @@
                         inStockCheckbox.checked = product.in_stock || false;
                         receivedTextarea.value = product.received_text || '';
 
-                        // Display existing images and store URLs in hidden inputs
                         if (product.main_image_url) {
-                             // We need the key, not the full URL for uploadthing logic. Need to fetch from backend or adjust backend response.
-                             // For now, let's just display the image but the upload will replace it if a new file is selected.
                             displayImagePreview(product.main_image_url, mainImagePreviewDiv, false);
-                            mainImageUrlHiddenInput.value = product.main_image_url.split('/').pop(); // Store key
+                            mainImageUrlHiddenInput.value = product.main_image_url.split('/').pop();
                         }
                         if (product.sub_image_urls && Array.isArray(product.sub_image_urls)) {
                             existingSubImages = [...product.sub_image_urls];
                             subImageUrlsHiddenInput.value = JSON.stringify(product.sub_image_urls.map(url => url.split('/').pop()));
                         }
-                         // Assuming received_images_zip_url is the key/identifier for the zip
                         if (product.received_images_zip_url) {
-                             // No preview for zip, just store the key
-                            receivedImagesZipUrlHiddenInput.value = product.received_images_zip_url.split('/').pop(); // Store key
-                             // Maybe add a text indicator that a file exists?
-                             // receivedImagesPreviewDiv.innerHTML = '<p>Existing received images zip attached.</p>';
+                            receivedImagesZipUrlHiddenInput.value = product.received_images_zip_url.split('/').pop();
                         }
 
-                        // Load categories and select existing ones
                         loadCategories(product.category || []);
 
                     } else {
@@ -1322,7 +1586,6 @@
                 }
             }
 
-            // Function to load categories (Copied from new_product.html, modified for selection)
             async function loadCategories(currentCategories = []) {
                 try {
                     const response = await fetch('/api/admin/products/categories');
@@ -1346,10 +1609,9 @@
                             const checkbox = document.createElement('input');
                             checkbox.type = 'checkbox';
                             checkbox.id = `category_${categoryId.replace(/\s+/g, '_')}`;
-                            checkbox.name = 'categories'; // Name remains 'categories'
+                            checkbox.name = 'categories';
                             checkbox.value = categoryId;
 
-                            // Check if this category is in the current product's categories
                             if (currentCategories.includes(categoryId)) {
                                 checkbox.checked = true;
                             }
@@ -1375,7 +1637,6 @@
                 messageArea.innerHTML = '';
                 showLoading();
 
-                // Collect data
                 const name = document.getElementById('name').value;
                 const price = document.getElementById('price').value;
                 const description = document.getElementById('description').value;
@@ -1383,7 +1644,6 @@
                 const is_18_plus = document.getElementById('is_18_plus').checked;
                 const isProductInStock = document.getElementById('in_stock').checked;
 
-                // Get selected categories
                 const selectedCategories = [];
                 existingCategoriesCheckboxesDiv.querySelectorAll('input[type="checkbox"]:checked').forEach(checkbox => {
                     selectedCategories.push(checkbox.value);
@@ -1394,21 +1654,16 @@
                 }
                 const finalCategories = Array.from(new Set(selectedCategories.filter(cat => cat !== '')));
 
-                let mainImageKey = mainImageUrlHiddenInput.value; // Start with existing key
-                let subImageKeys = JSON.parse(subImageUrlsHiddenInput.value || '[]'); // Start with existing keys
-                let receivedImagesZipKey = receivedImagesZipUrlHiddenInput.value; // Start with existing key
+                let mainImageKey = mainImageUrlHiddenInput.value;
+                let subImageKeys = JSON.parse(subImageUrlsHiddenInput.value || '[]');
+                let receivedImagesZipKey = receivedImagesZipUrlHiddenInput.value;
 
                 try {
-                    // Step 1: Upload new main image if selected
                     updateProgress(1, 'Uploading main image...');
                     if (mainImageUploadInput.files.length > 0) {
-                        // If a new file is selected, upload it and get the new key
                         mainImageKey = await uploadToUploadThing(mainImageUploadInput.files[0]);
-                         // Note: The backend doesn't currently delete the old file when a new one is uploaded.
-                         // This would require fetching the old key from the DB before updating.
                     }
 
-                    // Step 2: Upload new sub images if selected (update this part)
                     updateProgress(2, 'Uploading additional images...');
                     if (newSubImages.length > 0) {
                         const newlyUploadedSubImageKeys = [];
@@ -1416,40 +1671,33 @@
                             const key = await uploadToUploadThing(file);
                             newlyUploadedSubImageKeys.push(key);
                         }
-                        // Combine existing keys with newly uploaded keys
                         const existingKeys = existingSubImages.map(url => url.split('/').pop());
                         subImageKeys = [...existingKeys, ...newlyUploadedSubImageKeys];
                     } else {
-                        // Only existing images
                         subImageKeys = existingSubImages.map(url => url.split('/').pop());
                     }
 
-                    // Step 3: Upload new received images as ZIP if selected
                     updateProgress(3, 'Uploading received images...');
                     if (receivedImagesUploadInput.files.length > 0) {
                         const receivedImageFiles = Array.from(receivedImagesUploadInput.files);
                         const zipBlob = await createZipFromImages(receivedImageFiles);
                         const zipFile = new File([zipBlob], 'received_images.zip', { type: 'application/zip' });
-                         // Upload the new zip and get its key
                         receivedImagesZipKey = await uploadToUploadThing(zipFile);
-                         // Note: Uploading a new zip replaces the old one in the DB, but the old file isn't deleted from UploadThing.
-                         // This would require fetching the old zip key from the DB before updating.
                     }
 
-                    // Step 4: Update product in backend
                     updateProgress(4, 'Updating product...');
 
                     const productData = {
                         name: name,
-                        description: description || null, // Ensure null for empty description
+                        description: description || null,
                         price: parseFloat(price),
-                        category: finalCategories, // Array of categories
-                        main_image_url: mainImageKey || null, // Send key or null
-                        sub_image_urls: subImageKeys, // Array of keys
+                        category: finalCategories,
+                        main_image_url: mainImageKey || null,
+                        sub_image_urls: subImageKeys,
                         is_18_plus: is_18_plus,
                         in_stock: isProductInStock,
-                        received_text: received_text || null, // Ensure null for empty text
-                        received_images_zip_url: receivedImagesZipKey || null // Send key or null
+                        received_text: received_text || null,
+                        received_images_zip_url: receivedImagesZipKey || null
                     };
 
                     console.log('[Edit Product Form] Sending update data:', JSON.stringify(productData, null, 2));
@@ -1470,21 +1718,14 @@
                         console.log('[Edit Product Form] Product updated successfully:', result);
                         messageArea.innerHTML = '<div class="message success"><i class="fas fa-check-circle"></i>Product updated successfully!</div>';
 
-                        // Clear file inputs after successful submission
                         if (mainImageUploadInput) mainImageUploadInput.value = '';
                         if (subImageUploadInput) subImageUploadInput.value = '';
                         if (receivedImagesUploadInput) receivedImagesUploadInput.value = '';
-                        // Re-fetch product data to update previews with new URLs/keys from backend if needed,
-                        // or simply clear previews and rely on loadProductData on next page load.
-                        // For simplicity, let's just clear previews and potentially reload data.
                         mainImagePreviewDiv.innerHTML = '';
                         receivedImagesPreviewDiv.innerHTML = '';
-                        loadProductData(); // Reload data to show updated state
+                        loadProductData();
 
-                         // Clear new category input
                         if (newCategoryInput) newCategoryInput.value = '';
-
-                         // Categories checkboxes will be reset by loadProductData
 
                     } else {
                         console.error('[Edit Product Form] Failed to update product:', result.error || result.message || response.statusText);
@@ -1497,10 +1738,7 @@
                 }
             });
 
-            // Initial data load when the page is ready
             loadProductData();
-            // Initial load of categories (can be called by loadProductData)
-            // loadCategories();
         });
     </script>
 </body>
