@@ -17,7 +17,19 @@ async function updateOrderStatusToPaid(orderId, customerEmail) {
         .update(updatePayload)
         .eq('id', orderId)
         .eq('status', 'awaiting_payment')
-        .select(); // Select the updated row
+        .select(`
+            *,
+            items:order_items (
+                quantity,
+                product_details:products (
+                    name,
+                    description,
+                    price,
+                    received_images_zip_url,
+                    received_text
+                )
+            )
+        `);
 
     if (error) {
         console.error(`[TASK_ERROR] Selhala aktualizace objednávky ${orderId} na 'paid':`, error.message);
@@ -25,10 +37,10 @@ async function updateOrderStatusToPaid(orderId, customerEmail) {
     }
     if (count === 0 || !data || data.length === 0) {
         console.warn(`[TASK_WARN] Objednávka ${orderId} nebyla aktualizována na 'paid'. Možná nebyla ve stavu 'awaiting_payment', neexistuje, nebo již byla zpracována.`);
-        return null; // Return null if no rows were updated
+        return null;
     } else {
         console.log(`[TASK_SUCCESS] Objednávka ${orderId} úspěšně aktualizována na 'paid'. Ovlivněné řádky: ${count}`);
-        return data[0]; // Return the updated order object
+        return data[0];
     }
 }
 
@@ -178,10 +190,9 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                             <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #3b82f6;">
                                 <h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Co bude dál?</h3>
                                 <div style="color: #1e40af; line-height: 1.6; font-size: 14px;">
-                                    <div style="margin-bottom: 8px;">🎨 Vaše AI fotografie se právě generují</div>
                                     <div style="margin-bottom: 8px;">📧 Stažení obdržíte během 5-10 minut</div>
                                     <div style="margin-bottom: 8px;">🔗 Odkazy budou platné po neomezenou dobu.</div>
-                                    <div>💎 Vysoké rozlišení + komerční licence</div>
+                                    <div>💎 Vysoké rozlišení</div>
                                 </div>
                             </div>
 
@@ -238,6 +249,9 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
 // Processes order items and sends shipped email using the provided order data.
 async function processOrderItemsAndSendShippedEmail(order) { // Accept order data directly
     console.log(`[TASK] Zpracování položek objednávky ${order.id} pro odeslání emailu 'odesláno/připraveno' na ${order.user_id}.`);
+    
+    console.log(order)
+    
     if (!order || !order.user_id) {
         console.warn(`[TASK_WARN] Chybí email zákazníka nebo data objednávky pro objednávku ${order ? order.id : 'N/A'}. Přeskakuji email 'odesláno/připraveno'.`);
         return;

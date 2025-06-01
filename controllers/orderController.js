@@ -90,6 +90,24 @@ const createOrder = async (req, res) => {
       billingAddressId = null;
     }
 
+    // 4. Insert order items with the new order_id
+    const itemsToInsert = body.items.map(item => ({
+      order_id: orderId,
+      product_id: item.product_id,
+      quantity: item.quantity,
+      price_at_purchase: cartItems.find(p => p.id === item.product_id)?.price || 0, // Store the price at the time of purchase
+    }));
+
+    const { error: orderItemsError } = await supabase
+      .from('order_items')
+      .insert(itemsToInsert);
+
+    if (orderItemsError) {
+      console.error('Error inserting order items:', orderItemsError.message);
+      // Consider rolling back order and address creations here if item insertion fails
+      return res.status(500).json({ message: 'Failed to create order items.', error: orderItemsError.message });
+    }
+
     // 4. Update the order with the foreign keys to addresses
     const { data: updatedOrder, error: updateOrderError } = await supabase
       .from('orders')
