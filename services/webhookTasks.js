@@ -73,11 +73,10 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                         <tr>
                             <td style="width: 80px; vertical-align: top;">
-                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;">AI</div>
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;"></div>
                             </td>
                             <td style="vertical-align: top; padding-left: 15px;">
                                 <h4 style="color: #1f2937; font-size: 16px; font-weight: 600; margin: 0 0 5px 0;">${product.name}</h4>
-                                <p style="color: #64748b; font-size: 14px; margin: 0 0 8px 0; word-break: break-word;">${product.description || 'N/A'}</p>
                                 <div style="color: #64748b; font-size: 14px;">
                                     <span>Množství: ${item.quantity}x</span> •
                                     <span style="font-weight: 600; color: #1f2937;">${itemTotalPrice.toFixed(2)} Kč</span>
@@ -101,14 +100,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
 
 
     const htmlContent = `
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Potvrzení objednávky</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
+<div style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
     <!-- Main Container -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f7fa;">
@@ -121,11 +113,8 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
-                            <div style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: inline-flex; align-items: center; justify-content: center;">
-                                <div style="font-size: 36px; color: white;">✓</div>
-                            </div>
                             <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Děkujeme za váš nákup!</h1>
-                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Vaše objednávka AI generovaných fotek byla úspěšně přijata</p>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Vaše objednávka fotek byla úspěšně přijata</p>
                         </td>
                     </tr>
 
@@ -165,7 +154,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                             <!-- Products -->
                             <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 30px;">
                                 <div style="background-color: #f8fafc; padding: 20px; border-bottom: 1px solid #e2e8f0;">
-                                    <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0;">Objednané AI fotografie</h3>
+                                    <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0;">Objednané fotografie</h3>
                                 </div>
 
                                 <!-- Product Items -->
@@ -211,11 +200,8 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #1f2937; padding: 30px; text-align: center;">
-                            <div style="margin-bottom: 20px;">
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">AI</div>
-                            </div>
                             <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4>
-                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Váš tým SlavesOnline.store</p>
+                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální fotografie<br>Váš tým SlavesOnline.store</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${customerEmailActual}<br>
@@ -228,8 +214,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
             </td>
         </tr>
     </table>
-</body>
-</html>
+</div>
     `;
 
     try {
@@ -250,7 +235,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
 async function processOrderItemsAndSendShippedEmail(order) { // Accept order data directly
     console.log(`[TASK] Zpracování položek objednávky ${order.id} pro odeslání emailu 'odesláno/připraveno' na ${order.user_id}.`);
     
-    console.log(order)
+    console.log(JSON.stringify(order, null, 2))
     
     if (!order || !order.user_id) {
         console.warn(`[TASK_WARN] Chybí email zákazníka nebo data objednávky pro objednávku ${order ? order.id : 'N/A'}. Přeskakuji email 'odesláno/připraveno'.`);
@@ -274,12 +259,12 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                 <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 25px; margin-bottom: 20px; transition: all 0.3s ease;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                         <tr>
-                            <td style="width: 70px; vertical-align: middle;">
-                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👔</div> <!-- Placeholder icon, consider making dynamic -->
+                            <td style="width: 80px; vertical-align: top;">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 14px;"></div>
                             </td>
                             <td style="vertical-align: middle; padding: 0 20px;">
                                 <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 5px 0;">${product.name}</h3>
-                                <p style="color: #64748b; font-size: 14px; margin: 0;">${product.received_text || 'AI fotografie'}</p>
+                                <p style="color: #64748b; font-size: 14px; margin: 0;">${product.received_text || 'Fotografie'}</p>
                             </td>
                             <td style="vertical-align: middle; text-align: right;">
                                 <a href="${product.received_images_zip_url}" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
@@ -299,14 +284,7 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
 
     // Sestavení a odeslání emailu
     const htmlContent = `
-<!DOCTYPE html>
-<html lang="cs">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vaše fotografie jsou připravené ke stažení</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
+<div style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
     <!-- Main Container -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f7fa;">
@@ -318,12 +296,9 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
 
                     <!-- Header -->
                     <tr>
-                        <td style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 40px 30px; text-align: center;">
-                            <div style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: inline-flex; align-items: center; justify-content: center;">
-                                <div style="font-size: 36px; color: white;">📸</div>
-                            </div>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
                             <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Fotografie jsou připravené!</h1>
-                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Stáhněte si vaše AI generované fotografie ve vysokém rozlišení</p>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Stáhněte si vaše fotografie ve vysokém rozlišení</p>
                         </td>
                     </tr>
 
@@ -331,19 +306,19 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                     <tr>
                         <td style="padding: 30px;">
                             <div style="text-align: center; margin-bottom: 30px;">
-                                <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 15px 25px; border-radius: 25px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px;">
+                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 25px; border-radius: 25px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px;">
                                     <span>✨</span>
                                     <span>Objednávka #${order.id} dokončena</span>
                                 </div>
                             </div>
 
                             <!-- Download Notice -->
-                            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #f59e0b;">
+                            <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #667eea;">
                                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
-                                    <div style="font-size: 20px;">⚡</div>
-                                    <h3 style="color: #92400e; font-size: 16px; font-weight: 600; margin: 0;">Důležité informace</h3>
+                                    <div style="font-size: 20px; color: #667eea;">⚡</div>
+                                    <h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin: 0;">Důležité informace</h3>
                                 </div>
-                                <div style="color: #92400e; font-size: 14px; line-height: 1.5;">
+                                <div style="color: #64748b; font-size: 14px; line-height: 1.5;">
                                     <div style="margin-bottom: 5px;">• Odkazy jsou platné <strong>30 dní</strong> od dnešního data</div> <!-- TODO: Verify link expiration -->
                                     <div style="margin-bottom: 5px;">• Každý soubor obsahuje fotografie v rozlišení <strong>4K</strong></div>
                                     <div>• Všechny fotky mají <strong>komerční licenci</strong> pro vaše použití</div>
@@ -368,9 +343,9 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                             </div>
 
                             <!-- Usage Tips -->
-                            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #3b82f6;">
-                                <h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Tipy pro použití</h3>
-                                <div style="color: #1e40af; line-height: 1.6; font-size: 14px;">
+                            <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #667eea;">
+                                <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Tipy pro použití</h3>
+                                <div style="color: #64748b; line-height: 1.6; font-size: 14px;">
                                     <div style="margin-bottom: 8px;">💼 Business fotky jsou ideální pro LinkedIn a firemní prezentace</div> <!-- TODO: Make dynamic based on product type/category -->
                                     <div style="margin-bottom: 8px;">📱 Lifestyle fotky skvěle fungují na sociálních sítích</div> <!-- TODO: Make dynamic based on product type/category -->
                                     <div style="margin-bottom: 8px;">🖼️ Všechny fotky můžete komerčně využívat bez omezení</div>
@@ -381,13 +356,12 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                             <!-- Support -->
                             <div style="text-align: center; background-color: #f8fafc; border-radius: 12px; padding: 25px;">
                                 <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Problémy se stahováním?</h3>
-                                <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým rychle vyřeší jakékoliv technické potíže s downloady.</p>
+                                <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým rychle vyřeší jakékoliv technické potíže s stažením.</p>
 
                                 <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
-                                    <a href="mailto:support@slavesonline.store" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
-                                        <span>📧</span>
-                                        <span>Email podpora</span>
-                                    </a>
+                                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 10px; display: inline-block; font-weight: 600; font-size: 16px;">
+                                        📧 support@slavesonline.store
+                                    </div>
                                     <!--
                                     <a href="https://ai-photos.cz/faq" style="background: transparent; color: #667eea; text-decoration: none; padding: 12px 20px; border: 2px solid #667eea; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
                                         <span>❓</span>
@@ -402,11 +376,8 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                     <!-- Footer -->
                     <tr>
                         <td style="background-color: #1f2937; padding: 30px; text-align: center;">
-                            <div style="margin-bottom: 20px;">
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">AI</div>
-                            </div>
                             <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4> <!-- TODO: Update this if domain changes -->
-                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Děkujeme za důvěru!</p>
+                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální fotografie<br>Děkujeme za důvěru!</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${order.user_id}<br>
@@ -419,15 +390,14 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
             </td>
         </tr>
     </table>
-</body>
-</html>
+</div>
     `;
 
     try {
         await resend.emails.send({
-            from: 'SlavesOnline <noreply@slavesonline.store>', // Updated sender name and domain
+            from: 'SlavesOnline <noreply@slavesonline.store>',
             to: order.user_id,
-            subject: `Vaše AI fotografie jsou připravené ke stažení - Objednávka č. ${order.id}`, // Updated subject
+            subject: `Vaše fotografie jsou připravené - Objednávka č. ${order.id}`,
             html: htmlContent,
         });
         console.log(`[TASK_SUCCESS] Email 'Fotografie připraveny ke stažení' odeslán na ${order.user_id} pro objednávku ${order.id}.`);

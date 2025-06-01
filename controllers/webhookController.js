@@ -2,10 +2,10 @@ const { verifyLemonSqueezyWebhook } = require('../services/lemonsqueezyService')
 const webhookTasks = require('../services/webhookTasks');
 
 const handleLemonSqueezyWebhook = async (req, res) => {
-  /* if (!verifyLemonSqueezyWebhook(req)) {
+  if (!verifyLemonSqueezyWebhook(req)) {
     console.warn('[WEBHOOK_AUTH_FAIL] Webhook signature verification failed.');
     return res.status(403).send('Webhook signature verification failed.');
-  } */
+  }
 
   let event;
   try {
@@ -57,7 +57,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
       if (updatedOrder.user_id) { // Check if email is available for the shipped email task
         console.log(`[WEBHOOK_PROGRESS] Initiating background processing for 'shipped/ready' email and status update for order ${updatedOrder.id}.`);
         // Pass the full order object
-        webhookTasks.processOrderItemsAndSendShippedEmail(updatedOrder) // Do NOT await here
+        await webhookTasks.processOrderItemsAndSendShippedEmail(updatedOrder)
           .then(() => {
             console.log(`[WEBHOOK_SUBTASK_COMPLETE] 'processOrderItemsAndSendShippedEmail' completed for order ${updatedOrder.id}.`);
             // 4. Aktualizace stavu objednávky na 'shipped' (or 'completed')
@@ -74,7 +74,6 @@ const handleLemonSqueezyWebhook = async (req, res) => {
           });
       } else {
         console.warn(`[WEBHOOK_WARN] Customer email not found in updated order data for order ${updatedOrder.id}. Skipping 'shipped/ready' email and subsequent status update to 'shipped'.`);
-        // Consider whether to change status to 'shipped' in this case even without email, or introduce a different status.
       }
 
       // Webhook should respond quickly 200 OK.
