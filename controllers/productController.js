@@ -41,7 +41,21 @@ const getProductById = async (req, res) => {
     if (!data) { // Should be caught by .single() error handling, but as a fallback
       return res.status(404).json({ message: 'Product not found' });
     }
-    res.json(data);
+    
+    const dataForUser = {
+      id: data.id,
+      name: data.name,
+      price: data.price,
+      description: data.description,
+      main_image_url: data.main_image_url,
+      sub_image_urls: data.sub_image_urls,
+      is_18_plus: data.is_18_plus,
+      category: data.category,
+      in_stock: data.in_stock,
+      created_at: data.created_at,
+      updated_at: data.updated_at,
+    };
+    res.json(dataForUser);
   } catch (error) {
     console.error('Error fetching product by ID:', error.message);
     res.status(500).json({ message: 'Error fetching product', error: error.message });

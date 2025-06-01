@@ -33,40 +33,75 @@ const createOrder = async (req, res) => {
     // Convert to cents for LemonSqueezy
     const totalPriceInCents = Math.round(totalPrice * 100);
 
+    const shippingAddress = body.shipping_address;
     const billingAddress = body.billing_address;
 
-    // 1. Nejprve vytvoř objednávku v DB (status awaiting_payment)
+    // 1. Insert shipping address
+    const { data: newShippingAddress, error: shippingAddressError } = await supabase
+      .from('shipping_addresses')
+      .insert(shippingAddress)
+      .select()
+      .single();
+
+    if (shippingAddressError || !newShippingAddress) {
+      return res.status(500).json({ message: 'Failed to create shipping address.', error: shippingAddressError?.message });
+    }
+
+    let newBillingAddress = null;
+    let billingAddressId = null;
+
+    // 2. Insert billing address if different from shipping
+    if (billingAddress && JSON.stringify(shippingAddress) !== JSON.stringify(billingAddress)) {
+      const { data: insertedBillingAddress, error: billingAddressError } = await supabase
+        .from('billing_addresses')
+        .insert(billingAddress)
+        .select()
+        .single();
+
+      if (billingAddressError || !insertedBillingAddress) {
+        // Consider rolling back shipping address creation here if billing fails
+        return res.status(500).json({ message: 'Failed to create billing address.', error: billingAddressError?.message });
+      }
+      newBillingAddress = insertedBillingAddress;
+      billingAddressId = newBillingAddress.id;
+    } else {
+      // If billing is same as shipping, use shipping address ID
+      billingAddressId = newShippingAddress.id;
+    }
+
+    // 3. Create the order with foreign keys to addresses
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: customerEmail,
         total_amount: totalPrice,
-        shipping_address: body.shipping_address,
-        billing_address: body.billing_address || body.shipping_address,
+        shipping_address_id: newShippingAddress.id,
+        billing_address_id: billingAddressId,
         status: 'awaiting_payment',
       })
       .select()
       .single();
 
     if (orderError || !newOrder) {
+      // Consider rolling back address creations here if order fails
       return res.status(500).json({ message: 'Failed to create order.', error: orderError?.message });
     }
 
-    // 2. Použij order_id jako identifikátor pro LemonSqueezy
+    // 4. Use order_id for LemonSqueezy (use shipping address for LemonSqueezy details as billing might be the same)
     const user = {
       id: newOrder.id,
       email: customerEmail,
-      phone: billingAddress?.phone || '',
-      name: billingAddress?.full_name || '',
+      phone: newShippingAddress?.phone || '',
+      name: newShippingAddress?.full_name || '',
       taxNumber: body.tax_number || '',
       discountCode: body.discount_code || '',
     };
 
     const address = {
-      country: billingAddress?.country || '',
-      postalCode: billingAddress?.postal_code || '',
-      city: billingAddress?.city || '',
-      street: billingAddress?.street || '',
+      country: newShippingAddress?.country || '',
+      postalCode: newShippingAddress?.postal_code || '',
+      city: newShippingAddress?.city || '',
+      street: newShippingAddress?.street || '',
     };
 
     const checkoutUrl = await createLemonSqueezyCheckout({ 
@@ -98,7 +133,9 @@ const getOrderById = async (req, res) => {
         order_items (
           *,
           products (id, name, image_url, description)
-        )
+        ),
+        shipping_addresses (*),
+        billing_addresses (*)
       `)
       .eq('id', id)
       .single();
@@ -180,8 +217,61 @@ const cancelMyOrder = async (req, res) => {
     }
   };
   
+const getAdminOrdersApi = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const from = (page - 1) * limit;
+        const to = from + limit - 1;
+        const searchTerm = req.query.search;
+
+        let query = supabase
+            .from('orders')
+            .select('*, shipping_addresses (*), billing_addresses (*)', { count: 'exact', head: true });
+
+        if (searchTerm) {
+            // Adjust search to potentially search within address fields or order user_id
+            // For now, keeping it simple and searching user_id
+            query = query.ilike('user_id', `%${searchTerm}%`);
+        }
+
+        const { count = 0, error: countError } = await query;
+
+        // Reset query for fetching data, applying the same search filter
+        let dataQuery = supabase
+            .from('orders')
+            .select('*, shipping_addresses (*), billing_addresses (*)') // Include addresses in select
+            .order('created_at', { ascending: false })
+            .range(from, to);
+
+        if (searchTerm) {
+            dataQuery = dataQuery.ilike('user_id', `%${searchTerm}%`);
+        }
+
+        const { data: orders, error } = await dataQuery;
+
+        if (error) {
+            console.error('Error fetching orders for API:', error.message);
+            return res.status(500).json({ error: 'Error fetching orders.' });
+        }
+
+        const totalPages = Math.ceil((count || 0) / limit);
+
+        res.json({
+            orders,
+            totalPages,
+            currentPage: page
+        });
+
+    } catch (error) {
+        console.error('Error in getAdminOrdersApi:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     createOrder,
     getOrderById,
     cancelMyOrder,
+    getAdminOrdersApi,
 };
