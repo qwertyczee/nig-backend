@@ -1033,46 +1033,27 @@
                                     </div>
                                     <div id="main_image_preview" class="image-preview-grid"></div>
                                 </div>
-                                <div class="form-section">
-                                    <h3 class="section-title">
-                                        <i class="fas fa-images"></i>
-                                        Additional Product Images
-                                    </h3>
-                                    <div class="images-container">
-                                        <div class="upload-section">
-                                            <div class="form-group">
-                                                <label class="form-label" for="sub_image_upload">Upload New Images</label>
-                                                <div class="file-input-wrapper">
-                                                    <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
-                                                    <label for="sub_image_upload" class="file-input-label">
-                                                        <i class="fas fa-cloud-upload-alt"></i>
-                                                        Select multiple files
-                                                    </label>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="url-list">
-                                                <div class="url-list-header">Current Image URLs:</div>
-                                                <div id="current-urls-list">
-                                                    <div class="url-item" style="justify-content: center; font-style: italic; color: var(--medium-gray);">
-                                                        Loading...
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="current-images-section">
-                                            <div class="current-images-header">All Images Preview</div>
-                                            <div id="all_images_preview" class="images-grid">
-                                                <!-- Images will be populated here -->
+                                <div class="form-group">
+                                    <label class="form-label" for="sub_image_upload">Additional Product Images</label>
+                                    <div class="file-input-wrapper">
+                                        <input type="file" id="sub_image_upload" accept="image/*" multiple name="sub_images" class="file-input">
+                                        <label for="sub_image_upload" class="file-input-label">
+                                            <i class="fas fa-cloud-upload-alt"></i>
+                                            Select multiple files
+                                        </label>
+                                    </div>
+                                    <!-- Combined Preview and URL List -->
+                                    <div class="url-list" style="margin-top: 1rem;">
+                                        <div class="url-list-header">Current Image URLs:</div>
+                                        <div id="current-urls-list">
+                                            <div class="url-item" style="justify-content: center; font-style: italic; color: var(--medium-gray);">
+                                                Loading...
                                             </div>
                                         </div>
                                     </div>
-                                </div>                                
-                                <div class="form-group full-width">
-                                    <label class="form-label" for="sub_image_urls_input">Existing Sub Image URLs (comma-separated)</label>
-                                    <input type="text" id="sub_image_urls_input" class="form-input">
-                                    <input type="hidden" id="sub_image_urls" name="sub_image_urls" value="[]">
+                                    <div id="all_images_preview" class="images-grid" style="margin-top: 1rem;">
+                                        <!-- Images will be populated here by JS -->
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1571,6 +1552,9 @@
                         if (product.received_images_zip_url) {
                             receivedImagesZipUrlHiddenInput.value = product.received_images_zip_url.split('/').pop();
                         }
+
+                        renderAllSubImages();
+                        updateHiddenInputs();
 
                         loadCategories(product.category || []);
 
