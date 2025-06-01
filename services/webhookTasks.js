@@ -2,69 +2,42 @@
 const { supabase } = require('../config/db');
 const Resend = require('resend').Resend;
 const resend = new Resend(process.env.RESEND_API_KEY);
-const jszip = require('jszip');
-const axios = require('axios');
-const path = require('path');
 
-// Import UploadThing utilit
-const { utapi, UTFile } = require('../config/uploadthing'); // Správná cesta k vašemu uploadthing.js
-
-// --- Task 1: updateOrderStatusToPaid --- (beze změny)
+// --- Task 1: updateOrderStatusToPaid ---
+// Updates order status to paid and returns the updated order data.
 async function updateOrderStatusToPaid(orderId, customerEmail) {
     console.log(`[TASK] Aktualizace objednávky ${orderId} na 'paid'.`);
     const updatePayload = {
         status: 'paid',
         user_id: customerEmail,
-        order_id: orderId
     };
 
-    const { error, count } = await supabase
+    const { data, error, count } = await supabase
         .from('orders')
         .update(updatePayload)
         .eq('id', orderId)
-        .eq('status', 'awaiting_payment');
+        .eq('status', 'awaiting_payment')
+        .select(); // Select the updated row
 
     if (error) {
         console.error(`[TASK_ERROR] Selhala aktualizace objednávky ${orderId} na 'paid':`, error.message);
         throw new Error(`Selhala aktualizace objednávky ${orderId} na 'paid': ${error.message}`);
     }
-    if (count === 0) {
+    if (count === 0 || !data || data.length === 0) {
         console.warn(`[TASK_WARN] Objednávka ${orderId} nebyla aktualizována na 'paid'. Možná nebyla ve stavu 'awaiting_payment', neexistuje, nebo již byla zpracována.`);
+        return null; // Return null if no rows were updated
     } else {
         console.log(`[TASK_SUCCESS] Objednávka ${orderId} úspěšně aktualizována na 'paid'. Ovlivněné řádky: ${count}`);
+        return data[0]; // Return the updated order object
     }
 }
 
 // --- Task 2: sendOrderReceivedEmail ---
-async function sendOrderReceivedEmail(orderId, customerEmail) {
-    console.log(`[TASK] Odesílání emailu 'Objednávka přijata' na ${customerEmail} pro objednávku ${orderId}.`);
-    if (!customerEmail) {
-        console.warn(`[TASK_WARN] Chybí email zákazníka pro objednávku ${orderId}. Přeskakuji email 'Objednávka přijata'.`);
-        return;
-    }
-
-    // Fetch order details including items and product details
-    const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-            id,
-            created_at,
-            user_id,
-            items:order_items (
-                quantity,
-                product_details:products (
-                    name,
-                    description,
-                    price
-                )
-            )
-        `)
-        .eq('id', orderId)
-        .single();
-
-    if (orderError || !order) {
-        console.error(`[TASK_ERROR] Nepodařilo se načíst objednávku ${orderId} for email 'Objednávka přijata':`, orderError?.message);
-        // Do not throw error here, just log and exit to avoid blocking webhook
+// Sends an order received email using the provided order data.
+async function sendOrderReceivedEmail(order) { // Accept order data directly
+    console.log(`[TASK] Odesílání emailu 'Objednávka přijata' na ${order.user_id} pro objednávku ${order.id}.`);
+    if (!order || !order.user_id) {
+        console.warn(`[TASK_WARN] Chybí email zákazníka nebo data objednávky pro objednávku ${order ? order.id : 'N/A'}. Přeskakuji email 'Objednávka přijata'.`);
         return;
     }
 
@@ -153,7 +126,7 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
                                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                     <tr>
                                         <td style="padding: 8px 0; font-weight: 600; color: #64748b; font-size: 14px; width: 40%; text-transform: uppercase; letter-spacing: 0.5px;">Číslo objednávky:</td>
-                                        <td style="padding: 8px 0; font-weight: 700; color: #1f2937; font-size: 16px;">#${orderId}</td>
+                                        <td style="padding: 8px 0; font-weight: 700; color: #1f2937; font-size: 16px;">#${order.id}</td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; font-weight: 600; color: #64748b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Datum objednávky:</td>
@@ -252,47 +225,26 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
         await resend.emails.send({
             from: 'SlavesOnline <noreply@slavesonline.store>',
             to: customerEmailActual,
-            subject: `Potvrzení objednávky č. ${orderId}`,
+            subject: `Potvrzení objednávky č. ${order.id}`,
             html: htmlContent,
         });
-        console.log(`[TASK_SUCCESS] Email 'Potvrzení objednávky' odeslán na ${customerEmailActual} pro objednávku ${orderId}.`);
+        console.log(`[TASK_SUCCESS] Email 'Potvrzení objednávky' odeslán na ${customerEmailActual} pro objednávku ${order.id}.`);
     } catch (mailErr) {
-        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Potvrzení objednávky' na ${customerEmailActual} pro objednávku ${orderId}:`, mailErr);
+        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Potvrzení objednávky' na ${customerEmailActual} pro objednávku ${order.id}:`, mailErr);
     }
 }
 
 // --- Task 3: processOrderItemsAndSendShippedEmail ---
-async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
-    console.log(`[TASK] Zpracování položek objednávky ${orderId} pro odeslání emailu 'odesláno/připraveno' na ${customerEmail}.`);
-    if (!customerEmail) {
-        console.warn(`[TASK_WARN] Chybí email zákazníka pro objednávku ${orderId}. Přeskakuji email 'odesláno/připraveno'.`);
+// Processes order items and sends shipped email using the provided order data.
+async function processOrderItemsAndSendShippedEmail(order) { // Accept order data directly
+    console.log(`[TASK] Zpracování položek objednávky ${order.id} pro odeslání emailu 'odesláno/připraveno' na ${order.user_id}.`);
+    if (!order || !order.user_id) {
+        console.warn(`[TASK_WARN] Chybí email zákazníka nebo data objednávky pro objednávku ${order ? order.id : 'N/A'}. Přeskakuji email 'odesláno/připraveno'.`);
         return;
     }
 
-    const { data: order, error: orderError } = await supabase
-        .from('orders')
-        .select(`
-            id,
-            items:order_items (
-                quantity,
-                product_details:products (
-                    name,
-                    description,
-                    received_images_zip_url,
-                    received_text
-                )
-            )
-        `)
-        .eq('id', orderId)
-        .single();
-
-    if (orderError || !order) {
-        console.error(`[TASK_ERROR] Nepodařilo se načíst objednávku ${orderId} pro email 'odesláno/připraveno':`, orderError?.message);
-        return; // Changed from throw to return to avoid crashing webhook
-    }
-
     if (!order.items || order.items.length === 0) {
-        console.warn(`[TASK_WARN] Objednávka ${orderId} neobsahuje žádné položky. Přeskakuji zpracování obrázků pro email 'odesláno/připraveno'.`);
+        console.warn(`[TASK_WARN] Objednávka ${order.id} neobsahuje žádné položky. Přeskakuji zpracování obrázků pro email 'odesláno/připraveno'.`);
         // Optionally send an email notifying about no items or handle this case
         return;
     }
@@ -326,7 +278,7 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
                 </div>
                 `;
             } else {
-                console.warn(`[TASK_WARN] Produkt ${product.name} v objednávce ${orderId} nemá received_images_zip_url.`);
+                console.warn(`[TASK_WARN] Produkt ${product.name} v objednávce ${order.id} nemá received_images_zip_url.`);
             }
         }
     }
@@ -367,7 +319,7 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
                             <div style="text-align: center; margin-bottom: 30px;">
                                 <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 15px 25px; border-radius: 25px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px;">
                                     <span>✨</span>
-                                    <span>Objednávka #${orderId} dokončena</span>
+                                    <span>Objednávka #${order.id} dokončena</span>
                                 </div>
                             </div>
 
@@ -443,7 +395,7 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
                             <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Děkujeme za důvěru!</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
-                                Tento email byl odeslán na adresu ${customerEmail}<br>
+                                Tento email byl odeslán na adresu ${order.user_id}<br>
                                 SlavesOnline.store • Praha, Česká republika<br> <!-- TODO: Update address -->
                                 <span style="color: #9ca3af;">© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span> <!-- TODO: Update year and domain -->
                             </p>
@@ -460,17 +412,18 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
     try {
         await resend.emails.send({
             from: 'SlavesOnline <noreply@slavesonline.store>', // Updated sender name and domain
-            to: customerEmail,
-            subject: `Vaše AI fotografie jsou připravené ke stažení - Objednávka č. ${orderId}`, // Updated subject
+            to: order.user_id,
+            subject: `Vaše AI fotografie jsou připravené ke stažení - Objednávka č. ${order.id}`, // Updated subject
             html: htmlContent,
         });
-        console.log(`[TASK_SUCCESS] Email 'Fotografie připraveny ke stažení' odeslán na ${customerEmail} pro objednávku ${orderId}.`);
+        console.log(`[TASK_SUCCESS] Email 'Fotografie připraveny ke stažení' odeslán na ${order.user_id} pro objednávku ${order.id}.`);
     } catch (mailErr) {
-        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Fotografie připraveny ke stažení' na ${customerEmail} pro objednávku ${orderId}:`, mailErr);
+        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Fotografie připraveny ke stažení' na ${order.user_id} pro objednávku ${order.id}:`, mailErr);
     }
 }
 
-// --- Task 4: updateOrderStatusToShipped --- (beze změny)
+// --- Task 4: updateOrderStatusToShipped ---
+// Updates order status to shipped.
 async function updateOrderStatusToShipped(orderId) {
     console.log(`[TASK] Aktualizace objednávky ${orderId} na 'shipped'.`);
     const { error, count } = await supabase

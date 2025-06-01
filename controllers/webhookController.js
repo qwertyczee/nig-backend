@@ -2,14 +2,13 @@ const { verifyLemonSqueezyWebhook } = require('../services/lemonsqueezyService')
 const webhookTasks = require('../services/webhookTasks');
 
 const handleLemonSqueezyWebhook = async (req, res) => {
-  /* if (!verifyLemonSqueezyWebhook(req)) {
+  if (!verifyLemonSqueezyWebhook(req)) {
     console.warn('[WEBHOOK_AUTH_FAIL] Webhook signature verification failed.');
     return res.status(403).send('Webhook signature verification failed.');
-  } */
+  }
 
   let event;
   try {
-    // Parse the raw body (Buffer) as JSON
     event = JSON.parse(req.body.toString());
   } catch (e) {
     console.error('[WEBHOOK_PARSE_ERROR] Invalid JSON payload:', e);
@@ -20,13 +19,13 @@ const handleLemonSqueezyWebhook = async (req, res) => {
 
   try {
     if (event.meta && event.meta.event_name === 'order_created') {
-      console.log(`[WEBHOOK_INFO] Processing 'order_created' event. Event ID: ${event.meta.event_id}`);
+      console.log(`[WEBHOOK_INFO] Processing 'order_created' event. Event ID: ${event.meta.webhook_id}`);
       const orderData = event.data;
       const orderId = event.meta.custom_data?.user_id;
       const customerEmail = orderData?.attributes?.user_email;
 
       if (!orderId) {
-        console.error(`[WEBHOOK_ERROR] 'user_id' (our order ID) not found in custom_data for event ${event.meta.event_id}.`);
+        console.error(`[WEBHOOK_ERROR] 'user_id' (our order ID) not found in custom_data for event ${event.meta.webhook_id}.`);
         return res.status(400).send('Webhook error: Missing user_id in custom_data. Cannot link to internal order.');
       }
       
@@ -34,42 +33,52 @@ const handleLemonSqueezyWebhook = async (req, res) => {
 
       // --- Sekvence tasků ---
       // 1. Aktualizace stavu objednávky na 'paid' a uložení LS Order ID
-      await webhookTasks.updateOrderStatusToPaid(orderId, customerEmail);
+      const updatedOrder = await webhookTasks.updateOrderStatusToPaid(orderId, customerEmail);
       console.log(`[WEBHOOK_PROGRESS] Status updated to 'paid' for order ${orderId}.`);
 
-      // 2. Odeslání emailu "Objednávka přijata"
-      if (customerEmail) {
-        // Tento email je rychlý, můžeme na něj počkat
-        await webhookTasks.sendOrderReceivedEmail(orderId, customerEmail);
-        console.log(`[WEBHOOK_PROGRESS] 'Order Received' email task completed for order ${orderId}.`);
+      if (!updatedOrder) {
+        console.warn(`[WEBHOOK_WARN] Order ${orderId} was not updated or found after payment status update. Skipping subsequent tasks.`);
+        // Respond 200 OK because the webhook was handled, but the order wasn't in the right state.
+        // A system for monitoring these warnings is recommended.
+        return res.status(200).send('Webhook received, order status not updated (likely already processed or wrong initial state).');
+      }
+
+      // 2. Odeslání emailu "Objednávka přijata" - using the updated order data
+      if (updatedOrder.user_id) { // Check if email is available in the updated order data
+        // This email is quick, we can await it
+        await webhookTasks.sendOrderReceivedEmail(updatedOrder); // Pass the full order object
+        console.log(`[WEBHOOK_PROGRESS] 'Order Received' email task completed for order ${updatedOrder.id}.`);
       } else {
-        console.warn(`[WEBHOOK_WARN] Customer email not found for order ${orderId}. Skipping 'Order Received' email.`);
+        console.warn(`[WEBHOOK_WARN] Customer email not found in updated order data for order ${updatedOrder.id}. Skipping 'Order Received' email.`);
       }
 
       // 3. Zpracování položek, ZIP, email s produkty/odkazem a následný update stavu
-      // Tyto operace mohou být delší, spouštíme je asynchronně, aby webhook rychle odpověděl.
-      if (customerEmail) {
-        console.log(`[WEBHOOK_PROGRESS] Initiating background processing for 'shipped/ready' email and status update for order ${orderId}.`);
-        await webhookTasks.processOrderItemsAndSendShippedEmail(orderId, customerEmail)
+      // These operations can be longer, we run them asynchronously so the webhook responds quickly.
+      if (updatedOrder.user_id) { // Check if email is available for the shipped email task
+        console.log(`[WEBHOOK_PROGRESS] Initiating background processing for 'shipped/ready' email and status update for order ${updatedOrder.id}.`);
+        // Pass the full order object
+        webhookTasks.processOrderItemsAndSendShippedEmail(updatedOrder) // Do NOT await here
           .then(() => {
-            console.log(`[WEBHOOK_SUBTASK_COMPLETE] 'processOrderItemsAndSendShippedEmail' completed for order ${orderId}.`);
-            // 4. Aktualizace stavu objednávky na 'shipped' (nebo 'completed')
-            return webhookTasks.updateOrderStatusToShipped(orderId);
+            console.log(`[WEBHOOK_SUBTASK_COMPLETE] 'processOrderItemsAndSendShippedEmail' completed for order ${updatedOrder.id}.`);
+            // 4. Aktualizace stavu objednávky na 'shipped' (or 'completed')
+            // Still use orderId for the status update as it's a direct DB operation
+            return webhookTasks.updateOrderStatusToShipped(updatedOrder.id);
           })
           .then(() => {
-            console.log(`[WEBHOOK_SUBTASK_COMPLETE] Status updated to 'shipped' for order ${orderId} after email processing.`);
+            console.log(`[WEBHOOK_SUBTASK_COMPLETE] Status updated to 'shipped' for order ${updatedOrder.id} after email processing.`);
           })
           .catch(err => {
-            // Toto je chyba v asynchronním zpracování na pozadí.
-            // Měla by být zalogována a případně by měl být systém pro retry nebo manuální kontrolu.
-            console.error(`[WEBHOOK_BACKGROUND_ERROR] Error in async processing (shipped email or status update) for order ${orderId}:`, err);
+            // This is an error in the asynchronous background processing.
+            // It should be logged and potentially require a retry system or manual check.
+            console.error(`[WEBHOOK_BACKGROUND_ERROR] Error in async processing (shipped email or status update) for order ${updatedOrder.id}:`, err);
           });
       } else {
-        console.warn(`[WEBHOOK_WARN] Customer email not found for order ${orderId}. Skipping 'shipped/ready' email and subsequent status update to 'shipped'.`);
-        // Zvážit, zda v tomto případě status měnit na 'shipped' i bez emailu, nebo zavést jiný stav.
+        console.warn(`[WEBHOOK_WARN] Customer email not found in updated order data for order ${updatedOrder.id}. Skipping 'shipped/ready' email and subsequent status update to 'shipped'.`);
+        // Consider whether to change status to 'shipped' in this case even without email, or introduce a different status.
       }
 
-      // Webhook by měl odpovědět rychle 200 OK.
+      // Webhook should respond quickly 200 OK.
+      // The response indicates successful receipt and initiation of processing, not completion of all tasks.
       res.status(200).send('Webhook received and processing initiated.');
 
     } else {
@@ -77,7 +86,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
       res.status(200).send('Webhook event received, but not processed (not order_created).');
     }
   } catch (error) {
-    // Toto je chyba v synchronní části zpracování webhooku (např. první update stavu nebo chyba v logice zde).
+    // This catches errors in the synchronous part of the webhook processing (e.g., initial status update or logic errors here).
     console.error('[WEBHOOK_ERROR] Internal server error while processing webhook:', error.message, error.stack);
     res.status(500).send('Internal server error while processing webhook.');
   }
