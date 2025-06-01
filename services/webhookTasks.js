@@ -121,7 +121,7 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Potvrzení objednávky digitálních produktů</title>
+    <title>Potvrzení objednávky</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
@@ -137,7 +137,7 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
                     <tr>
                         <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
                             <div style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: inline-flex; align-items: center; justify-content: center;">
-                                <div style="font-size: 36px; color: white;">🎨</div>
+                                <div style="font-size: 36px; color: white;">✓</div>
                             </div>
                             <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Děkujeme za váš nákup!</h1>
                             <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Vaše objednávka AI generovaných fotek byla úspěšně přijata</p>
@@ -162,11 +162,6 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
                                     <tr>
                                         <td style="padding: 8px 0; font-weight: 600; color: #64748b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Email:</td>
                                         <td style="padding: 8px 0; font-weight: 600; color: #1f2937; font-size: 16px;">${customerEmailActual}</td>
-                                    </tr>
-                                    <!-- Assuming a single product type for simplicity or you can loop through unique types -->
-                                    <tr>
-                                        <td style="padding: 8px 0; font-weight: 600; color: #64748b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Typ produktu:</td>
-                                        <td style="padding: 8px 0; font-weight: 600; color: #1f2937; font-size: 16px;">AI Generované fotografie</td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px 0; font-weight: 600; color: #64748b; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">Celková částka:</td>
@@ -223,7 +218,7 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
                                 <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým je tu pro vás. Kontaktujte nás emailem pro jakoukoliv podporu.</p>
 
                                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 10px; display: inline-block; font-weight: 600; font-size: 16px;">
-                                    📧 support@ai-photos.cz
+                                    📧 support@slavesonline.store
                                 </div>
                             </div>
                         </td>
@@ -235,13 +230,13 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
                             <div style="margin-bottom: 20px;">
                                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">AI</div>
                             </div>
-                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">AI-Photos.cz</h4>
-                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Váš tým AI-Photos.cz</p>
+                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4>
+                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Váš tým SlavesOnline.store</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${customerEmailActual}<br>
-                                AI-Photos.cz • Praha, Česká republika<br>
-                                <span style="color: #9ca3af;">© 2025 AI-Photos.cz. Všechna práva vyhrazena.</span>
+                                SlavesOnline.store • Praha, Česká republika<br>
+                                <span style="color: #9ca3af;">© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span>
                             </p>
                         </td>
                     </tr>
@@ -255,9 +250,9 @@ async function sendOrderReceivedEmail(orderId, customerEmail) {
 
     try {
         await resend.emails.send({
-            from: 'AI-Photos.cz <noreply@ai-photos.cz>', // Updated sender name and domain
+            from: 'SlavesOnline <noreply@slavesonline.store>',
             to: customerEmailActual,
-            subject: `Potvrzení objednávky digitálních produktů č. ${orderId}`, // Updated subject
+            subject: `Potvrzení objednávky č. ${orderId}`,
             html: htmlContent,
         });
         console.log(`[TASK_SUCCESS] Email 'Potvrzení objednávky' odeslán na ${customerEmailActual} pro objednávku ${orderId}.`);
@@ -282,8 +277,9 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
                 quantity,
                 product_details:products (
                     name,
-                    image_url,
-                    description
+                    description,
+                    received_images_zip_url,
+                    received_text
                 )
             )
         `)
@@ -292,108 +288,57 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
 
     if (orderError || !order) {
         console.error(`[TASK_ERROR] Nepodařilo se načíst objednávku ${orderId} pro email 'odesláno/připraveno':`, orderError?.message);
-        // Do not throw error here, just log and exit to avoid blocking webhook
         return; // Changed from throw to return to avoid crashing webhook
     }
 
     if (!order.items || order.items.length === 0) {
         console.warn(`[TASK_WARN] Objednávka ${orderId} neobsahuje žádné položky. Přeskakuji zpracování obrázků pro email 'odesláno/připraveno'.`);
+        // Optionally send an email notifying about no items or handle this case
+        return;
     }
 
-    const zip = new jszip();
-    const imageFetchPromises = [];
-    const productNames = [];
-    let productsWithOptions = 0;
+    let productDownloadHtml = '';
 
     for (const item of order.items) {
         const product = item.product_details;
         if (product) {
-            if (product.name) {
-                productNames.push(product.name);
-            }
-            if (product.image_url) {
-                productsWithOptions++;
-                console.log(`[TASK_INFO] Příprava stahování obrázku pro ${product.name} z ${product.image_url}`);
-                imageFetchPromises.push(
-                    axios.get(product.image_url, { responseType: 'arraybuffer' })
-                        .then(response => {
-                            const imageData = Buffer.from(response.data);
-                            let filename = path.basename(new URL(product.image_url).pathname);
-                            filename = `${product.name.replace(/[^a-zA-Z0-9_.-]/g, '_')}_${filename}`;
-                            zip.file(filename, imageData);
-                            console.log(`[TASK_INFO] Přidán ${filename} do ZIPu pro produkt ${product.name}.`);
-                        })
-                        .catch(err => {
-                            console.error(`[TASK_ERROR] Selhalo stahování obrázku ${product.image_url} pro produkt ${product.name}:`, err.message);
-                        })
-                );
+            if (product.received_images_zip_url) {
+                productDownloadHtml += `
+                <!-- Product Item -->
+                <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 25px; margin-bottom: 20px; transition: all 0.3s ease;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
+                        <tr>
+                            <td style="width: 70px; vertical-align: middle;">
+                                <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 16px;">👔</div> <!-- Placeholder icon, consider making dynamic -->
+                            </td>
+                            <td style="vertical-align: middle; padding: 0 20px;">
+                                <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 5px 0;">${product.name}</h3>
+                                <p style="color: #64748b; font-size: 14px; margin: 0;">${product.received_text || 'AI fotografie'}</p>
+                            </td>
+                            <td style="vertical-align: middle; text-align: right;">
+                                <a href="${product.received_images_zip_url}" style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px; transition: all 0.3s ease;">
+                                    <span>📥</span>
+                                    <span>Stáhnout ZIP</span>
+                                </a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                `;
             } else {
-                console.warn(`[TASK_WARN] Produkt ${product.name} v objednávce ${orderId} nemá image_url.`);
+                console.warn(`[TASK_WARN] Produkt ${product.name} v objednávce ${orderId} nemá received_images_zip_url.`);
             }
         }
-    }
-
-    await Promise.all(imageFetchPromises);
-
-    let downloadLink = '';
-    const zipFilename = `order_${orderId}_images.zip`;
-    let zipSizeEstimate = 'nezjištěna'; // Default text for size
-
-    if (Object.keys(zip.files).length > 0) {
-        try {
-            const zipBuffer = await zip.generateAsync({ type: 'nodebuffer', compression: "DEFLATE", compressionOptions: { level: 6 } });
-            zipSizeEstimate = (zipBuffer.length / (1024 * 1024)).toFixed(2) + ' MB';
-
-            // --- Integrace UploadThing ---
-            console.log(`[TASK_INFO] Pokus o nahrání ZIP (${zipFilename}, velikost: ${zipBuffer.length} bajtů) na UploadThing.`);
-
-            // Vytvoření UTFile objektu z bufferu. Název souboru je důležitý.
-            // Explicitně nastavíme MIME typ pro jistotu.
-            const fileToUpload = await UTFile.fromBlobOrBuffer(zipBuffer, zipFilename, { type: "application/zip" });
-
-            // Nahrání souboru pomocí utapi.uploadFiles
-            // Tato metoda očekává pole souborů.
-            const uploadResponseArray = await utapi.uploadFiles([fileToUpload]
-                // Není potřeba explicitně specifikovat 'router' nebo 'endpoint' zde,
-                // protože utapi.uploadFiles() by mělo respektovat ACL z `ourFileRouter`
-                // na základě typu souboru, pokud je v `ourFileRouter` definována odpovídající trasa.
-                // `onUploadComplete` pro `orderZips` by se měl také spustit.
-            );
-
-            // uploadResponseArray je pole výsledků, jeden pro každý nahraný soubor.
-            // Formát: [{ data: { key: string, url: string, name: string, size: number }, error: null } | { data: null, error: UploadThingError }]
-            if (uploadResponseArray && uploadResponseArray.length > 0) {
-                const uploadResult = uploadResponseArray[0];
-                if (uploadResult.data) {
-                    downloadLink = uploadResult.data.url; // URL by mělo být veřejné díky acl: "public-read"
-                    console.log(`[TASK_SUCCESS] ZIP pro objednávku ${orderId} nahrán na UploadThing. URL: ${downloadLink}, Klíč: ${uploadResult.data.key}`);
-                } else if (uploadResult.error) {
-                    console.error(`[TASK_ERROR] Selhalo nahrání ZIP pro objednávku ${orderId} na UploadThing:`, uploadResult.error.message);
-                    console.error("Celý objekt chyby UploadThing:", uploadResult.error);
-                } else {
-                    console.error(`[TASK_ERROR] Neočekávaná odpověď od UploadThing pro objednávku ${orderId}.`);
-                }
-            } else {
-                console.error(`[TASK_ERROR] Žádná odpověď nebo prázdné pole od UploadThing pro objednávku ${orderId}.`);
-            }
-
-        } catch (uploadError) {
-            console.error(`[TASK_ERROR] Chyba během procesu nahrávání na UploadThing pro objednávku ${orderId}:`, uploadError.message);
-            if (uploadError.cause) console.error("Příčina:", uploadError.cause);
-            // Zde by mohla být i chyba v `UTFile.fromBlobOrBuffer` nebo v `zip.generateAsync`
-        }
-    } else if (productsWithOptions > 0) {
-        console.warn(`[TASK_WARN] Žádné obrázky nebyly úspěšně staženy do ZIPu pro objednávku ${orderId}, ačkoliv produkty měly URL obrázků.`);
     }
 
     // Sestavení a odeslání emailu
-    let htmlContent = `
+    const htmlContent = `
 <!DOCTYPE html>
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vaše AI fotografie jsou připravené!</title>
+    <title>Vaše fotografie jsou připravené ke stažení</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
@@ -403,73 +348,86 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
             <td align="center" style="padding: 40px 20px;">
 
                 <!-- Email Content -->
-                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="700" style="max-width: 700px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;">
+                <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;">
 
                     <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 40px 30px; text-align: center;">
                             <div style="background-color: rgba(255,255,255,0.2); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px; display: inline-flex; align-items: center; justify-content: center;">
-                                <div style="font-size: 36px; color: white;">🎉</div>
+                                <div style="font-size: 36px; color: white;">📸</div>
                             </div>
-                            <h1 style="color: white; font-size: 32px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Vaše fotografie jsou hotové!</h1>
-                            <p style="color: rgba(255,255,255,0.9); font-size: 18px; margin: 0; line-height: 1.5;">Objednávka #${orderId}</p>
+                            <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Fotografie jsou připravené!</h1>
+                            <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Stáhněte si vaše AI generované fotografie ve vysokém rozlišení</p>
                         </td>
                     </tr>
 
-                    <!-- Download Section -->
+                    <!-- Status -->
                     <tr>
-                        <td style="padding: 40px 30px;">
-                             ${downloadLink ? `
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; color: white; text-align: center;">
-                                    <h2 style="color: white; font-size: 24px; font-weight: 700; margin: 0 0 10px 0;">Stáhnout Vaše AI fotografie</h2>
-                                    <p style="color: rgba(255,255,255,0.9); font-size: 16px; margin: 0; line-height: 1.5;">Vaše fotografie pro objednávku #${orderId} jsou připraveny ke stažení.</p>
-                                    <div style="text-align: center; margin-top: 20px;">
-                                        <a href="${downloadLink}" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 15px 40px; border-radius: 12px; display: inline-block; font-weight: 700; font-size: 16px; text-decoration: none;">
-                                            📥 Stáhnout fotografie (ZIP${zipSizeEstimate !== 'nezjištěna' ? ' • ' + zipSizeEstimate : ''})
-                                        </a>
-                                    </div>
-                                     <p style="color: rgba(255,255,255,0.9); font-size: 14px; margin-top: 15px; line-height: 1.5;">Tento odkaz bude dostupný dle nastavení UploadThing (typicky trvale pro public-read soubory).</p>
+                        <td style="padding: 30px;">
+                            <div style="text-align: center; margin-bottom: 30px;">
+                                <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 15px 25px; border-radius: 25px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: 16px;">
+                                    <span>✨</span>
+                                    <span>Objednávka #${orderId} dokončena</span>
                                 </div>
+                            </div>
 
-                                <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 12px; padding: 20px; border-left: 4px solid #22c55e;">
-                                    <h4 style="color: #166534; font-size: 16px; font-weight: 600; margin: 0 0 10px 0;">✅ Licence a použití:</h4>
-                                    <div style="color: #166534; font-size: 14px; line-height: 1.6;">
-                                        <div>• Komerční použití povoleno</div>
-                                        <div>• Vhodné pro různé účely (LinkedIn, weby, soc. sítě atd.)</div>
-                                        <div>• Vysoké rozolšení</div>
-                                        <div>• Formát: JPEG</div>
-                                    </div>
+                            <!-- Download Notice -->
+                            <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #f59e0b;">
+                                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
+                                    <div style="font-size: 20px;">⚡</div>
+                                    <h3 style="color: #92400e; font-size: 16px; font-weight: 600; margin: 0;">Důležité informace</h3>
                                 </div>
-                             ` : `
-                                <div style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; color: #991b1b; text-align: center;">
-                                    <h2 style="color: #991b1b; font-size: 24px; font-weight: 700; margin: 0 0 10px 0;">Problém při generování odkazu</h2>
-                                    <p style="color: #991b1b; font-size: 16px; margin: 0; line-height: 1.5;">Bohužel se vyskytl problém při generování odkazu ke stažení Vašich fotografií pro objednávku #${orderId}.</p>
-                                    <p style="color: #991b1b; font-size: 16px; margin: 15px 0 0 0; line-height: 1.5;">Kontaktujte prosím naši podporu s číslem Vaší objednávky (${orderId}).</p>
+                                <div style="color: #92400e; font-size: 14px; line-height: 1.5;">
+                                    <div style="margin-bottom: 5px;">• Odkazy jsou platné <strong>30 dní</strong> od dnešního data</div> <!-- TODO: Verify link expiration -->
+                                    <div style="margin-bottom: 5px;">• Každý soubor obsahuje fotografie v rozlišení <strong>4K</strong></div>
+                                    <div>• Všechny fotky mají <strong>komerční licenci</strong> pro vaše použití</div>
                                 </div>
-                             `}
-                        </td>
-                    </tr>
+                            </div>
 
-                    <!-- Important Info -->
-                    <tr>
-                        <td style="padding: 40px 30px; background-color: #f8fafc;">
-                            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; padding: 25px; margin-bottom: 20px; border-left: 4px solid #3b82f6;">
-                                <h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">⚠️ Důležité informace</h3>
+                            <!-- Download Links -->
+                            <div style="margin-bottom: 30px;">
+                                <h2 style="color: #1f2937; font-size: 22px; font-weight: 700; margin: 0 0 20px 0; text-align: center;">Stáhnout fotografie</h2>
+
+                                ${productDownloadHtml}
+
+                                <!-- Download All Button - Optional, depending on whether there's a combined zip -->
+                                <!--
+                                <div style="text-align: center; margin-top: 25px;">
+                                    <a href="https://download.ai-photos.cz/complete-order-ai12345.zip" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; text-decoration: none; padding: 18px 35px; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
+                                        <span style="font-size: 20px;">⚡</span>
+                                        <span>Stáhnout vše najednou</span>
+                                    </a>
+                                </div>
+                                -->
+                            </div>
+
+                            <!-- Usage Tips -->
+                            <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #3b82f6;">
+                                <h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Tipy pro použití</h3>
                                 <div style="color: #1e40af; line-height: 1.6; font-size: 14px;">
-                                    <div style="margin-bottom: 8px;">🔗 Stažení bude dostupné po neomezenou dobu.</div>
-                                    <div style="margin-bottom: 8px;">💾 Doporučujeme si fotky zálohovat.</div>
-                                    <div style="margin-bottom: 8px;">📧 V případě problémů kontaktujte support.</div>
-                                    <div>⭐ Budeme rádi za Vaše hodnocení a zpětnou vazbu!</div>
+                                    <div style="margin-bottom: 8px;">💼 Business fotky jsou ideální pro LinkedIn a firemní prezentace</div> <!-- TODO: Make dynamic based on product type/category -->
+                                    <div style="margin-bottom: 8px;">📱 Lifestyle fotky skvěle fungují na sociálních sítích</div> <!-- TODO: Make dynamic based on product type/category -->
+                                    <div style="margin-bottom: 8px;">🖼️ Všechny fotky můžete komerčně využívat bez omezení</div>
+                                    <div>✨ Pro nejlepší kvalitu tisknete ve formátu A4 nebo menším</div>
                                 </div>
                             </div>
 
                             <!-- Support -->
-                            <div style="text-align: center; background-color: #ffffff; border-radius: 12px; padding: 25px; border: 2px solid #e2e8f0;">
-                                <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Potřebujete pomoc?</h3>
-                                <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Kontaktujte nás pro jakoukoliv podporu nebo dotazy k vašim AI fotografiím.</p>
+                            <div style="text-align: center; background-color: #f8fafc; border-radius: 12px; padding: 25px;">
+                                <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Problémy se stahováním?</h3>
+                                <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým rychle vyřeší jakékoliv technické potíže s downloady.</p>
 
-                                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 10px; display: inline-block; font-weight: 600; font-size: 16px;">
-                                    📧 support@ai-photos.cz
+                                <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+                                    <a href="mailto:support@slavesonline.store" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                                        <span>📧</span>
+                                        <span>Email podpora</span>
+                                    </a>
+                                    <!--
+                                    <a href="https://ai-photos.cz/faq" style="background: transparent; color: #667eea; text-decoration: none; padding: 12px 20px; border: 2px solid #667eea; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
+                                        <span>❓</span>
+                                        <span>FAQ</span>
+                                    </a>
+                                    -->
                                 </div>
                             </div>
                         </td>
@@ -481,13 +439,13 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
                             <div style="margin-bottom: 20px;">
                                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 50px; height: 50px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">AI</div>
                             </div>
-                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">AI-Photos.cz</h4>
-                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Děkujeme za důvěru! Užijte si vaše nové AI fotografie.<br>Váš tým AI-Photos.cz</p>
+                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4> <!-- TODO: Update this if domain changes -->
+                            <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální AI generované fotografie<br>Děkujeme za důvěru!</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${customerEmail}<br>
-                                AI-Photos.cz • Praha, Česká republika<br>
-                                <span style="color: #9ca3af;">© 2025 AI-Photos.cz. Všechna práva vyhrazena.</span>
+                                SlavesOnline.store • Praha, Česká republika<br> <!-- TODO: Update address -->
+                                <span style="color: #9ca3af;">© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span> <!-- TODO: Update year and domain -->
                             </p>
                         </td>
                     </tr>
@@ -501,14 +459,14 @@ async function processOrderItemsAndSendShippedEmail(orderId, customerEmail) {
 
     try {
         await resend.emails.send({
-            from: 'AI-Photos.cz <noreply@ai-photos.cz>', // Updated sender name and domain
+            from: 'SlavesOnline <noreply@slavesonline.store>', // Updated sender name and domain
             to: customerEmail,
-            subject: `Vaše AI fotografie jsou připravené! Objednávka č. ${orderId}`, // Updated subject
+            subject: `Vaše AI fotografie jsou připravené ke stažení - Objednávka č. ${orderId}`, // Updated subject
             html: htmlContent,
         });
-        console.log(`[TASK_SUCCESS] Email 'Fotografie připraveny' odeslán na ${customerEmail} pro objednávku ${orderId}.`);
+        console.log(`[TASK_SUCCESS] Email 'Fotografie připraveny ke stažení' odeslán na ${customerEmail} pro objednávku ${orderId}.`);
     } catch (mailErr) {
-        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Fotografie připraveny' na ${customerEmail} pro objednávku ${orderId}:`, mailErr);
+        console.error(`[TASK_ERROR] Chyba při odesílání emailu 'Fotografie připraveny ke stažení' na ${customerEmail} pro objednávku ${orderId}:`, mailErr);
     }
 }
 

@@ -50,7 +50,7 @@ const handleLemonSqueezyWebhook = async (req, res) => {
       // Tyto operace mohou být delší, spouštíme je asynchronně, aby webhook rychle odpověděl.
       if (customerEmail) {
         console.log(`[WEBHOOK_PROGRESS] Initiating background processing for 'shipped/ready' email and status update for order ${orderId}.`);
-        webhookTasks.processOrderItemsAndSendShippedEmail(orderId, customerEmail)
+        await webhookTasks.processOrderItemsAndSendShippedEmail(orderId, customerEmail)
           .then(() => {
             console.log(`[WEBHOOK_SUBTASK_COMPLETE] 'processOrderItemsAndSendShippedEmail' completed for order ${orderId}.`);
             // 4. Aktualizace stavu objednávky na 'shipped' (nebo 'completed')
