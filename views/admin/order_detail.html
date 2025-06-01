@@ -948,10 +948,10 @@
                     
                     // Update addresses
                     shippingAddressElement.innerHTML = '';
-                    shippingAddressElement.appendChild(formatAddress(order.shipping_addresses));
+                    shippingAddressElement.appendChild(formatAddress(order.shipping_address_id));
                     
                     billingAddressElement.innerHTML = '';
-                    billingAddressElement.appendChild(formatAddress(order.billing_addresses));
+                    billingAddressElement.appendChild(formatAddress(order.billing_address_id));
                     
                 } else {
                     showError(`Failed to load order: ${order.error || response.statusText}`);

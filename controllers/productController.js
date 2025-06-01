@@ -7,7 +7,7 @@ const getAllProducts = async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('id, name, price, description, main_image_url, sub_image_urls, is_18_plus, category, in_stock, created_at, updated_at')
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -15,6 +15,7 @@ const getAllProducts = async (req, res) => {
       throw error;
     }
     console.log('LOG: productController.ts: getAllProducts - Successfully fetched products. Count:', data?.length);
+
     res.json(data);
   } catch (error) {
     console.error('LOG: productController.ts: getAllProducts - Catch block error:', error.message);
@@ -27,35 +28,22 @@ const getProductById = async (req, res) => {
     const { id } = req.params;
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('id, name, price, description, main_image_url, sub_image_urls, is_18_plus, category, in_stock, created_at, updated_at')
       .eq('id', id)
-      .single(); // .single() expects exactly one row or throws error
+      .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // PostgREST error for "Fetched result consists of 0 rows"
+      if (error.code === 'PGRST116') {
         return res.status(404).json({ message: 'Product not found' });
       }
       throw error;
     }
     
-    if (!data) { // Should be caught by .single() error handling, but as a fallback
+    if (!data) {
       return res.status(404).json({ message: 'Product not found' });
     }
     
-    const dataForUser = {
-      id: data.id,
-      name: data.name,
-      price: data.price,
-      description: data.description,
-      main_image_url: data.main_image_url,
-      sub_image_urls: data.sub_image_urls,
-      is_18_plus: data.is_18_plus,
-      category: data.category,
-      in_stock: data.in_stock,
-      created_at: data.created_at,
-      updated_at: data.updated_at,
-    };
-    res.json(dataForUser);
+    res.json(data);
   } catch (error) {
     console.error('Error fetching product by ID:', error.message);
     res.status(500).json({ message: 'Error fetching product', error: error.message });
