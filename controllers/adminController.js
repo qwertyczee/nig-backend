@@ -1,9 +1,15 @@
 const { supabase } = require('../config/db');
 const { utapi, UTFile } = require('../config/uploadthing');
 
+/**
+ * Handles administrator login by authenticating with Supabase.
+ * Sets an HTTP-only cookie upon successful login.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const postLogin = async (req, res) => {
     const { email, password } = req.body;
-    console.log(`[Admin Login] Attempting Supabase Auth signInWithPassword for email: ${email}`);
+    console.log(`Attempting Supabase Auth signInWithPassword for email: ${email}`);
 
     try {
         const { data, error: signInError } = await supabase.auth.signInWithPassword({
@@ -12,8 +18,7 @@ const postLogin = async (req, res) => {
         });
 
         if (signInError) {
-            console.error('[Admin Login] Supabase signInWithPassword error:', signInError.message);
-            // Return JSON error response
+            console.error('Supabase signInWithPassword error:', signInError.message);
             if (signInError.message.toLowerCase().includes('invalid login credentials')) {
                 return res.status(401).json({ message: 'Invalid email or password.' });
             }
@@ -21,44 +26,42 @@ const postLogin = async (req, res) => {
         }
 
         if (data.user) {
-            console.log('[Admin Login] Supabase Auth successful. User:', data.user.email, 'ID:', data.user.id);
+            console.log('Supabase Auth successful. User:', data.user.email, 'ID:', data.user.id);
 
-            // Set an HTTP-only cookie with admin status or token
-            // Using Supabase session token might be more secure if validated on backend
-            // For simplicity, let's set a flag. A real app might use JWT or similar.
-            const isAdmin = true; // Assuming successful login means admin
-            const userIdentifier = data.user.id; // Use user ID for the cookie value
+            const isAdmin = true;
+            const userIdentifier = data.user.id;
 
-            // Set cookie
-            console.log('[Admin Login] Attempting to set admin_auth cookie for user ID:', userIdentifier);
+            console.log('Attempting to set admin_auth cookie for user ID:', userIdentifier);
             res.cookie('admin_auth', userIdentifier, {
                 httpOnly: true,
-                secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-                maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-                sameSite: 'lax', // Or 'strict' or 'none'
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 7 * 24 * 60 * 60 * 1000,
+                sameSite: 'lax',
             });
-            console.log('[Admin Login] admin_auth cookie setting call made.');
+            console.log('admin_auth cookie setting call made.');
 
-            console.log('[Admin Login] Cookie set. Sending success response.');
-            // Return JSON success response
+            console.log('Cookie set. Sending success response.');
             res.json({ message: 'Login successful', user: { id: data.user.id, email: data.user.email } });
 
         } else {
-            console.log('[Admin Login] Supabase signInWithPassword returned no user and no error.');
-            // This case should ideally be covered by signInError, but as a fallback:
+            console.log('Supabase signInWithPassword returned no user and no error.');
             res.status(500).json({ message: 'Login failed due to unexpected response from auth provider.' });
         }
     } catch (e) {
-        console.error('[Admin Login] Unexpected error during Supabase Auth signInWithPassword:', e.message);
-        // Return JSON error response for unexpected errors
+        console.error('Unexpected error during Supabase Auth signInWithPassword:', e.message);
         res.status(500).json({ message: 'An unexpected error occurred during login.' });
     }
 };
 
+/**
+ * Creates a new product in the database, handling image URLs.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const postAdminCreateProduct = async (req, res) => {
-    console.log('[Admin Controller] postAdminCreateProduct: FUNKCE ZAVOLÁNA.');
-    console.log('[Admin Controller] postAdminCreateProduct: Request body:', JSON.stringify(req.body, null, 2));
-    console.log('[Admin Controller] postAdminCreateProduct: Request files:', req.files);
+    console.log('postAdminCreateProduct: FUNKCE ZAVOLÁNA.');
+    console.log('postAdminCreateProduct: Request body:', JSON.stringify(req.body, null, 2));
+    console.log('postAdminCreateProduct: Request files:', req.files);
 
     const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
     let { main_image_url, sub_image_urls, received_images_zip_url } = req.body;
@@ -68,14 +71,13 @@ const postAdminCreateProduct = async (req, res) => {
     received_images_zip_url = `https://rhcwjrafe0.ufs.sh/f/${received_images_zip_url}`
 
     if (!name || price === undefined || parseFloat(price) < 0) {
-        console.error('[Admin Controller] postAdminCreateProduct: Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
+        console.error('postAdminCreateProduct: Chyba: Jméno a nezáporná cena jsou povinné. Name:', name, 'Price:', price);
         return res.status(400).json({ error: 'Name and a non-negative price are required' });
     }
 
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
     try {
-        // Process categories: combine selected checkboxes and new input
         let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
         const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
         
@@ -83,10 +85,8 @@ const postAdminCreateProduct = async (req, res) => {
             finalCategoriesArray.push(newCategory);
         }
         
-        // Ensure uniqueness and remove any potential empty strings
         finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
 
-        // Ensure that if the array is empty, we store an empty array [] and not potentially an empty string ""
         const categoryToStore = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
 
         const productDataForSupabase = {
@@ -102,7 +102,7 @@ const postAdminCreateProduct = async (req, res) => {
             received_images_zip_url: received_images_zip_url,
         };
 
-        console.log('[Admin Controller] postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Data:', JSON.stringify(productDataForSupabase, null, 2));
+        console.log('postAdminCreateProduct: Pokus o vytvoření produktu v Supabase. Data:', JSON.stringify(productDataForSupabase, null, 2));
         const { data, error: supabaseError } = await supabase
             .from('products')
             .insert([productDataForSupabase])
@@ -110,23 +110,28 @@ const postAdminCreateProduct = async (req, res) => {
             .single();
 
         if (supabaseError) {
-            console.error('[Admin Controller] postAdminCreateProduct: Chyba při vytváření produktu v Supabase:', supabaseError.message);
+            console.error('postAdminCreateProduct: Chyba při vytváření produktu v Supabase:', supabaseError.message);
             return res.status(400).json({ error: 'DB Error: ' + supabaseError.message });
         }
-        console.log('[Admin Controller] postAdminCreateProduct: Produkt vytvořen v Supabase. ID:', data.id);
+        console.log('postAdminCreateProduct: Produkt vytvořen v Supabase. ID:', data.id);
         res.status(201).json({ message: 'Product created successfully', product: data });
 
     } catch (error) {
-        console.error('[Admin Controller] postAdminCreateProduct: === CELKOVÁ CHYBA V postAdminCreateProduct ===:', error.message, error.stack);
+        console.error('postAdminCreateProduct: === CELKOVÁ CHYBA V postAdminCreateProduct ===:', error.message, error.stack);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Unexpected error: ' + error.message });
         }
     }
 };
 
+/**
+ * Updates an existing product in the database, handling image URLs.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const postAdminUpdateProduct = async (req, res) => {
-    console.log('[Admin Controller] postAdminUpdateProduct: FUNCTION CALLED.');
-    console.log('[Admin Controller] postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
+    console.log('postAdminUpdateProduct: FUNCTION CALLED.');
+    console.log('postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
 
     const { id } = req.params;
     const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
@@ -137,7 +142,7 @@ const postAdminUpdateProduct = async (req, res) => {
     received_images_zip_url = `https://rhcwjrafe0.ufs.sh/f/${received_images_zip_url}`
 
     if (!name || price === undefined || parseFloat(price) < 0) {
-        console.error('[Admin Controller] postAdminUpdateProduct: Error: Name and non-negative price are required.');
+        console.error('postAdminUpdateProduct: Error: Name and non-negative price are required.');
         return res.status(400).json({ error: 'Name and a non-negative price are required' });
     }
 
@@ -153,7 +158,6 @@ const postAdminUpdateProduct = async (req, res) => {
 
         finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
 
-        // Ensure that if the array is empty, we store an empty array [] and not potentially an empty string ""
         const categoryToUpdate = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
 
         const productDataForUpdate = {
@@ -169,7 +173,7 @@ const postAdminUpdateProduct = async (req, res) => {
             received_images_zip_url: received_images_zip_url,
         };
 
-        console.log('[Admin Controller] postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', JSON.stringify(productDataForUpdate, null, 2));
+        console.log('postAdminUpdateProduct: Attempting to update product in Supabase. ID:', id, 'Data:', JSON.stringify(productDataForUpdate, null, 2));
         const { data, error: supabaseError } = await supabase
             .from('products')
             .update(productDataForUpdate)
@@ -178,20 +182,25 @@ const postAdminUpdateProduct = async (req, res) => {
             .single();
 
         if (supabaseError) {
-            console.error('[Admin Controller] postAdminUpdateProduct: Error updating product in Supabase:', supabaseError.message);
+            console.error('postAdminUpdateProduct: Error updating product in Supabase:', supabaseError.message);
             return res.status(400).json({ error: 'DB Error: ' + supabaseError.message });
         }
-        console.log('[Admin Controller] postAdminUpdateProduct: Product updated in Supabase. ID:', data.id);
+        console.log('postAdminUpdateProduct: Product updated in Supabase. ID:', data.id);
         res.json({ message: 'Product updated successfully', product: data });
 
     } catch (error) {
-        console.error('[Admin Controller] postAdminUpdateProduct: === GENERAL ERROR IN postAdminUpdateProduct ===:', error.message, error.stack);
+        console.error('postAdminUpdateProduct: === GENERAL ERROR IN postAdminUpdateProduct ===:', error.message, error.stack);
         if (!res.headersSent) {
             res.status(500).json({ error: 'Unexpected error: ' + error.message });
         }
     }
 };
 
+/**
+ * Retrieves dashboard statistics including total products, orders, sales, and customers.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getDashboardStatsApi = async (req, res) => {
     try {
         const { count: totalProducts, error: productsError } = await supabase
@@ -233,6 +242,11 @@ const getDashboardStatsApi = async (req, res) => {
     }
 };
 
+/**
+ * Retrieves a paginated list of orders for the admin panel, with optional search.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAdminOrdersApi = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -251,10 +265,9 @@ const getAdminOrdersApi = async (req, res) => {
 
         const { count = 0, error: countError } = await query;
 
-        // Reset query for fetching data, applying the same search filter
         let dataQuery = supabase
             .from('orders')
-            .select('*')
+            .select('*, shipping_address_id (*), billing_address_id (*), order_items (*, products (id, name, main_image_url, description))')
             .order('created_at', { ascending: false })
             .range(from, to);
 
@@ -283,29 +296,28 @@ const getAdminOrdersApi = async (req, res) => {
     }
 };
 
+/**
+ * Retrieves a list of distinct product categories for the admin panel.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAdminProductCategories = async (req, res) => {
     try {
-        // Fetch distinct categories from the "products" table
-        // Modify query to handle potential malformed data like empty string ""
-        // The .neq('category', '') filter should ideally handle this, but let's ensure robustness.
         const { data: products, error } = await supabase
             .from('products')
-            .select('category'); // Fetch all categories first
+            .select('category');
 
         if (error) {
             console.error('Error fetching product categories from DB:', error.message);
             return res.status(500).json({ error: 'Failed to fetch product categories from database' });
         }
 
-        // Process categories in application code to filter out null/empty strings and get distinct values
         const allCategories = products
             .map(item => item.category)
-            .filter(category => category !== null && category !== '' && Array.isArray(category)); // Filter out null, empty strings, and non-arrays
+            .filter(category => category !== null && category !== '' && Array.isArray(category));
 
-        // Flatten the array of arrays and get unique categories
         const distinctCategories = Array.from(new Set(allCategories.flat()));
 
-        // Format the categories for the frontend as an array of objects { id, name }
         const formattedCategories = distinctCategories
             .map(category => ({
                 id: category,
@@ -319,9 +331,15 @@ const getAdminProductCategories = async (req, res) => {
     }
 };
 
+/**
+ * Retrieves a single product by ID for the admin panel.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAdminProductByIdApi = async (req, res) => {
     try {
         const { id } = req.params;
+        console.log(`Attempting to fetch product with ID: ${id}`);
         const { data: product, error } = await supabase
             .from('products')
             .select('*')
@@ -330,10 +348,12 @@ const getAdminProductByIdApi = async (req, res) => {
 
         if (error || !product) {
             console.error('Error fetching product for API:', error ? error.message : 'Product not found');
-            return res.status(404).json({ error: 'Product not found.' });
+            if (error && error.code === 'PGRST116') {
+                return res.status(404).json({ error: 'Product not found.' });
+            }
+            return res.status(error ? 500 : 404).json({ error: error ? 'Database error fetching product: ' + error.message : 'Product not found.' });
         }
         
-        // Ensure fields that might be null or undefined have default client-friendly values
         product.sub_image_urls = product.sub_image_urls || [];
         product.is_18_plus = product.is_18_plus || false;
         product.in_stock = product.in_stock || false;
@@ -348,17 +368,21 @@ const getAdminProductByIdApi = async (req, res) => {
     }
 };
 
+/**
+ * Deletes a product by ID from the database and associated files from UploadThing.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const deleteAdminProduct = async (req, res) => {
-    console.log('[Admin Controller] deleteAdminProduct: FUNCTION CALLED.');
+    console.log('deleteAdminProduct: FUNCTION CALLED.');
     const { id } = req.params;
 
     if (!id) {
-        console.error('[Admin Controller] deleteAdminProduct: Error: Product ID is required.');
+        console.error('deleteAdminProduct: Error: Product ID is required.');
         return res.status(400).json({ error: 'Product ID is required.' });
     }
 
     try {
-        // First, retrieve the product to get image URLs
         const { data: product, error: fetchError } = await supabase
             .from('products')
             .select('main_image_url, sub_image_urls')
@@ -366,20 +390,15 @@ const deleteAdminProduct = async (req, res) => {
             .single();
 
         if (fetchError || !product) {
-            console.error(`[Admin Controller] deleteAdminProduct: Error fetching product ${id}:`, fetchError ? fetchError.message : 'Product not found.');
-            // If product not found or error fetching, respond accordingly, but don't halt deletion attempt
+            console.error(`Error fetching product ${id}:`, fetchError ? fetchError.message : 'Product not found.');
             if (!product) {
                 return res.status(404).json({ error: 'Product not found.' });
             }
-            // If there was a fetch error but product might exist (e.g., permission), proceed cautiously or return error.
-            // For now, let's return the error.
             return res.status(500).json({ error: 'Database error fetching product for deletion.' });
         }
 
-        // Collect file keys/URLs to delete from UploadThing
         const filesToDelete = [];
         if (product.main_image_url) {
-            // Extract key from ufsUrl
             const mainImageKey = product.main_image_url.split('/').pop();
             if (mainImageKey) filesToDelete.push(mainImageKey);
         }
@@ -390,47 +409,45 @@ const deleteAdminProduct = async (req, res) => {
             });
         }
 
-        // Delete files from UploadThing if there are any
         if (filesToDelete.length > 0) {
-            console.log('[Admin Controller] deleteAdminProduct: Attempting to delete files from UploadThing:', filesToDelete);
+            console.log('Attempting to delete files from UploadThing:', filesToDelete);
             try {
-                 // deleteFiles takes an array of file keys or fileUrls
                 const deleteResult = await utapi.deleteFiles(filesToDelete);
-                console.log('[Admin Controller] deleteAdminProduct: UploadThing delete response:', JSON.stringify(deleteResult, null, 2));
-                // Note: utapi.deleteFiles may return success even if some files weren't found/deleted.
-                // You might want to check the response structure more thoroughly if needed.
+                console.log('UploadThing delete response:', JSON.stringify(deleteResult, null, 2));
             } catch (uploadthingError) {
-                console.error('[Admin Controller] deleteAdminProduct: Error deleting files from UploadThing:', uploadthingError);
-                // Decide if you want to halt the database deletion if file deletion fails.
-                // For now, log the error but proceed with database deletion.
+                console.error('Error deleting files from UploadThing:', uploadthingError);
             }
         }
 
-        // Delete the product from the database
-        console.log(`[Admin Controller] deleteAdminProduct: Attempting to delete product ${id} from Supabase.`);
+        console.log(`Attempting to delete product ${id} from Supabase.`);
         const { error: deleteError } = await supabase
             .from('products')
             .delete()
             .eq('id', id);
 
         if (deleteError) {
-            console.error(`[Admin Controller] deleteAdminProduct: Error deleting product ${id} from Supabase:`, deleteError.message);
+            console.error(`Error deleting product ${id} from Supabase:`, deleteError.message);
             return res.status(500).json({ error: 'Database error deleting product: ' + deleteError.message });
         }
 
-        console.log(`[Admin Controller] deleteAdminProduct: Product ${id} deleted successfully.`);
+        console.log(`Product ${id} deleted successfully.`);
         res.json({ message: 'Product deleted successfully.' });
 
     } catch (error) {
-        console.error('[Admin Controller] deleteAdminProduct: === GENERAL ERROR IN deleteAdminProduct ===:', error.message, error.stack);
+        console.error('=== GENERAL ERROR IN deleteAdminProduct ===:', error.message, error.stack);
         res.status(500).json({ error: 'An unexpected error occurred during product deletion.' });
     }
 };
 
+/**
+ * Retrieves details of a single order by ID for the admin panel.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAdminOrderDetailById = async (req, res) => {
     try {
         const { id } = req.params;
-        console.log(`[Admin Controller] getAdminOrderDetailById: Attempting to fetch order with ID: ${id}`);
+        console.log(`Attempting to fetch order with ID: ${id}`);
         const { data: order, error } = await supabase
             .from('orders')
             .select('*')
@@ -438,18 +455,17 @@ const getAdminOrderDetailById = async (req, res) => {
             .single();
 
         if (error || !order) {
-            console.error('[Admin Controller] getAdminOrderDetailById: Error fetching order:', error ? error.message : 'Order not found');
-            // Return 404 if not found, 500 for other DB errors
-            if (error && error.code === 'PGRST116') { // Example error code for no rows found (adjust if needed based on actual Supabase errors)
+            console.error('Error fetching order:', error ? error.message : 'Order not found');
+            if (error && error.code === 'PGRST116') {
                 return res.status(404).json({ error: 'Order not found.' });
             }
             return res.status(error ? 500 : 404).json({ error: error ? 'Database error fetching order: ' + error.message : 'Order not found.' });
         }
 
-        console.log(`[Admin Controller] getAdminOrderDetailById: Order found for ID: ${id}`);
+        console.log(`Order found for ID: ${id}`);
         res.json(order);
     } catch (error) {
-        console.error('[Admin Controller] getAdminOrderDetailById: === GENERAL ERROR ===:', error.message, error.stack);
+        console.error('=== GENERAL ERROR ===:', error.message, error.stack);
         res.status(500).json({ error: 'An unexpected error occurred while fetching order details.' });
     }
 };

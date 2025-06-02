@@ -1,9 +1,13 @@
 const { supabase } = require('../config/db');
 
-console.log('LOG: productController.ts: Controller file loaded.');
 
+/**
+ * Retrieves all products from the database.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAllProducts = async (req, res) => {
-  console.log('LOG: productController.ts: getAllProducts controller function CALLED.');
+  console.log('getAllProducts controller function CALLED.');
   try {
     const { data, error } = await supabase
       .from('products')
@@ -11,18 +15,23 @@ const getAllProducts = async (req, res) => {
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('LOG: productController.ts: getAllProducts - Supabase error:', error.message);
+      console.error('getAllProducts - Supabase error:', error.message);
       throw error;
     }
-    console.log('LOG: productController.ts: getAllProducts - Successfully fetched products. Count:', data?.length);
+    console.log('getAllProducts - Successfully fetched products. Count:', data?.length);
 
     res.json(data);
   } catch (error) {
-    console.error('LOG: productController.ts: getAllProducts - Catch block error:', error.message);
+    console.error('getAllProducts - Catch block error:', error.message);
     res.status(500).json({ message: 'Error fetching products', error: error.message });
   }
 };
 
+/**
+ * Retrieves a single product by its ID from the database.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getProductById = async (req, res) => {
   try {
     const { id } = req.params;

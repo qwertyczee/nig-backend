@@ -1,8 +1,7 @@
-const jwt = require('jsonwebtoken'); // Using jsonwebtoken for standard JWT operations
+const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const path = require('path');
 
-// Load .env from backend directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
@@ -11,10 +10,15 @@ if (!SUPABASE_JWT_SECRET) {
   console.warn(
     'Warning: SUPABASE_JWT_SECRET is not set in the .env file. Authentication middleware will not function correctly for actual Supabase JWTs.'
   );
-  // In a real scenario, you might throw an error or use a default insecure secret for local dev only.
-  // For this placeholder, we'll allow it to proceed but log a warning.
 }
 
+/**
+ * Middleware to protect routes by verifying a JWT from the authorization header.
+ * If SUPABASE_JWT_SECRET is not set, it uses a mock user for development purposes.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The next middleware function.
+ */
 const protect = (req, res, next) => {
   let token;
   if (
@@ -25,22 +29,16 @@ const protect = (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
 
       if (!SUPABASE_JWT_SECRET) {
-        // Fallback for when SUPABASE_JWT_SECRET is not set (e.g. local dev without full Supabase setup)
-        // This is a MOCK verification for placeholder purposes.
         console.warn('SUPABASE_JWT_SECRET not set. Using mock user for protected route.');
-        req.user = { id: 'mock-user-id-from-middleware', role: 'user' }; // Mock user
+        req.user = { id: 'mock-user-id-from-middleware', role: 'user' };
         return next();
       }
       
-      // Verify token using Supabase JWT secret
       const decoded = jwt.verify(token, SUPABASE_JWT_SECRET);
 
-      // Attach user to request object
-      // Supabase JWT payload typically includes 'sub' (user ID) and 'role' (authenticated, anon, etc.)
-      // You might have custom claims like a specific admin role.
       req.user = {
         id: decoded.sub,
-        role: decoded.user_role || (decoded.claims_admin ? 'admin' : 'user'), // Example: check for custom admin claim
+        role: decoded.user_role || (decoded.claims_admin ? 'admin' : 'user'),
         aud: decoded.aud,
         iat: decoded.iat,
         exp: decoded.exp,
@@ -58,8 +56,15 @@ const protect = (req, res, next) => {
   }
 };
 
+/**
+ * Middleware to restrict access to admin users.
+ * Checks if the authenticated user has 'admin' or 'service_role' role.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The next middleware function.
+ */
 const admin = (req, res, next) => {
-  if (req.user && (req.user.role === 'admin' || req.user.role === 'service_role')) { // service_role is Supabase's super admin
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'service_role')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as an admin' });

@@ -27,7 +27,6 @@ const ourRouter = {
         }),
 };
 
-// *** NEW: Handle prepareUpload requests directly ***
 async function handlePrepareUpload(req, res) {
     try {
         const { fileName, fileSize, fileType, slug } = req.body;

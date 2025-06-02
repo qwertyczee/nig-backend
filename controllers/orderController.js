@@ -1,6 +1,11 @@
 const { supabase } = require('../config/db');
 const { createLemonSqueezyCheckout } = require('../services/lemonsqueezyService');
 
+/**
+ * Creates a new order in the database and initiates a Lemon Squeezy checkout.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const createOrder = async (req, res) => {
   const body = req.body;
   if (!body.shipping_address) {
@@ -11,7 +16,6 @@ const createOrder = async (req, res) => {
     return res.status(400).json({ message: 'Customer email (customer_email) is required for payment processing.' });
   }
   try {
-    // Get all products from the cart
     const { data: cartItems, error: cartError } = await supabase
       .from('products')
       .select('id, price')
@@ -21,7 +25,6 @@ const createOrder = async (req, res) => {
       throw new Error('Failed to fetch products from cart');
     }
 
-    // Calculate total price
     let totalPrice = 0;
     body.items.forEach(cartItem => {
       const product = cartItems.find(p => p.id === cartItem.product_id);
@@ -30,20 +33,17 @@ const createOrder = async (req, res) => {
       }
     });
 
-    // Convert to cents for LemonSqueezy
     const totalPriceInCents = Math.round(totalPrice * 100);
 
     const shippingAddress = body.shipping_address;
     const billingAddress = body.billing_address;
 
-    // 1. Create the order first to get the order_id
     const { data: newOrder, error: orderError } = await supabase
       .from('orders')
       .insert({
         user_id: customerEmail,
         total_amount: totalPrice,
         status: 'awaiting_payment',
-        // shipping_address_id and billing_address_id will be added after creating addresses
       })
       .select()
       .single();
@@ -52,10 +52,8 @@ const createOrder = async (req, res) => {
       return res.status(500).json({ message: 'Failed to create order.', error: orderError?.message });
     }
 
-    // Get the new order ID
     const orderId = newOrder.id;
 
-    // 2. Insert shipping address with the new order_id
     const { data: newShippingAddress, error: shippingAddressError } = await supabase
       .from('shipping_addresses')
       .insert({ ...shippingAddress, order_id: orderId })
@@ -63,15 +61,12 @@ const createOrder = async (req, res) => {
       .single();
 
     if (shippingAddressError || !newShippingAddress) {
-      // Consider rolling back order creation here if shipping address creation fails
-      // (Optional but recommended for data consistency)
       return res.status(500).json({ message: 'Failed to create shipping address.', error: shippingAddressError?.message });
     }
 
     let newBillingAddress = null;
     let billingAddressId = null;
 
-    // 3. Insert billing address if provided, with the new order_id
     if (billingAddress) {
       const { data: insertedBillingAddress, error: billingAddressError } = await supabase
         .from('billing_addresses')
@@ -80,22 +75,19 @@ const createOrder = async (req, res) => {
         .single();
 
       if (billingAddressError || !insertedBillingAddress) {
-        // Consider rolling back order and shipping address creation here if billing fails
         return res.status(500).json({ message: 'Failed to create billing address.', error: billingAddressError?.message });
       }
       newBillingAddress = insertedBillingAddress;
       billingAddressId = newBillingAddress.id;
     } else {
-      // If no billing address is provided, set billing_address_id to null
       billingAddressId = null;
     }
 
-    // 4. Insert order items with the new order_id
     const itemsToInsert = body.items.map(item => ({
       order_id: orderId,
       product_id: item.product_id,
       quantity: item.quantity,
-      price_at_purchase: cartItems.find(p => p.id === item.product_id)?.price || 0, // Store the price at the time of purchase
+      price_at_purchase: cartItems.find(p => p.id === item.product_id)?.price || 0,
     }));
 
     const { error: orderItemsError } = await supabase
@@ -104,11 +96,9 @@ const createOrder = async (req, res) => {
 
     if (orderItemsError) {
       console.error('Error inserting order items:', orderItemsError.message);
-      // Consider rolling back order and address creations here if item insertion fails
       return res.status(500).json({ message: 'Failed to create order items.', error: orderItemsError.message });
     }
 
-    // 4. Update the order with the foreign keys to addresses
     const { data: updatedOrder, error: updateOrderError } = await supabase
       .from('orders')
       .update({
@@ -128,25 +118,23 @@ const createOrder = async (req, res) => {
       .single();
 
     if (updateOrderError || !updatedOrder) {
-       // Consider rolling back order and address creations here if update fails
       return res.status(500).json({ message: 'Failed to update order with address IDs.', error: updateOrderError?.message });
     }
 
-    // 5. Use order_id for LemonSqueezy (use shipping address for LemonSqueezy details as billing might be the same)
     const user = {
       id: updatedOrder.id,
       email: customerEmail,
-      phone: newShippingAddress?.phone || '', // Use shipping address phone
-      name: newShippingAddress?.full_name || '', // Use shipping address full_name
+      phone: newShippingAddress?.phone || '',
+      name: newShippingAddress?.full_name || '',
       taxNumber: body.tax_number || '',
       discountCode: body.discount_code || '',
     };
 
     const address = {
-      country: newShippingAddress?.country || '', // Use shipping address country
-      postalCode: newShippingAddress?.postal_code || '', // Use shipping address postal_code
-      city: newShippingAddress?.city || '', // Use shipping address city
-      street: newShippingAddress?.street || '', // Use shipping address street
+      country: newShippingAddress?.country || '',
+      postalCode: newShippingAddress?.postal_code || '',
+      city: newShippingAddress?.city || '',
+      street: newShippingAddress?.street || '',
     };
 
     const checkoutUrl = await createLemonSqueezyCheckout({ 
@@ -164,6 +152,11 @@ const createOrder = async (req, res) => {
   }
 };
 
+/**
+ * Retrieves an order by its ID for authenticated users.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getOrderById = async (req, res) => {
   const { id } = req.params;
   const userId = req.user?.id; 
@@ -188,12 +181,11 @@ const getOrderById = async (req, res) => {
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') { // PostgREST error for "Fetched result consists of 0 rows"
+      if (error.code === 'PGRST116') {
         return res.status(404).json({ message: 'Order not found or you are not authorized to view it.' });
       }
       throw error;
     }
-    // No need for `if (!order)` check as `.single()` would have thrown PGRST116 if not found.
     res.json(order);
   } catch (error) {
     console.error('Error fetching order by ID:', error.message);
@@ -201,6 +193,11 @@ const getOrderById = async (req, res) => {
   }
 };
 
+/**
+ * Cancels an order by its ID for authenticated users.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const cancelMyOrder = async (req, res) => {
     const { id: orderId } = req.params;
     const userId = req.user?.id;
@@ -223,7 +220,7 @@ const cancelMyOrder = async (req, res) => {
                     products (id, name, image_url)
                 )
             `)
-            .single(); // Expects one row to be updated and returned
+            .single();
 
         if (error) {
             if (error.code === 'PGRST116') {
@@ -248,22 +245,25 @@ const cancelMyOrder = async (req, res) => {
                 }
                 return res.status(403).json({ message: 'Order cannot be cancelled. It may not exist, not belong to you, or not be in a cancellable state.' });
             }
-            throw error; // Other unexpected Supabase errors
+            throw error;
         }
         
-        // `.single()` would throw PGRST116 if count is 0, so this check is somewhat redundant if error handling above is complete.
-        // However, it's a good safeguard.
         if (count === 0 || !data) { 
             return res.status(404).json({ message: 'Order not found, not in a cancellable state, or not authorized.' });
         }
 
-        res.json(data); // Return the updated (cancelled) order
+        res.json(data);
     } catch (error) {
         console.error('Error cancelling order:', error.message);
         res.status(500).json({ message: 'Error cancelling order', error: error.message });
     }
   };
   
+/**
+ * Retrieves a paginated list of orders for administration purposes.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ */
 const getAdminOrdersApi = async (req, res) => {
     try {
         const page = parseInt(req.query.page, 10) || 1;
@@ -277,17 +277,14 @@ const getAdminOrdersApi = async (req, res) => {
             .select('*, shipping_address_id (*), billing_address_id (*)', { count: 'exact', head: true });
 
         if (searchTerm) {
-            // Adjust search to potentially search within address fields or order user_id
-            // For now, keeping it simple and searching user_id
             query = query.ilike('user_id', `%${searchTerm}%`);
         }
 
         const { count = 0, error: countError } = await query;
 
-        // Reset query for fetching data, applying the same search filter
         let dataQuery = supabase
             .from('orders')
-            .select('*, shipping_address_id (*), billing_address_id (*), order_items (*, products (id, name, main_image_url, description))') // Include addresses and product details in select
+            .select('*, shipping_address_id (*), billing_address_id (*), order_items (*, products (id, name, main_image_url, description))')
             .order('created_at', { ascending: false })
             .range(from, to);
 

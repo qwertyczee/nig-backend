@@ -5,55 +5,67 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const { handlePrepareUpload } = require('./config/uploadthing.js')
 
-// Import Supabase client (not initDb)
 const { supabase } = require('./config/db.js');
 
-// Import routes
 const productRoutes = require('./routes/productRoutes.js');
 const orderRoutes = require('./routes/orderRoutes.js');
 const webhookRoutes = require('./routes/webhookRoutes.js');
 const adminRoutes = require('./routes/adminRoutes.js');
 
-// Load .env
 console.log('LOG: index.js: dotenv.config executed.');
 console.log('LOG: index.js: SUPABASE_URL loaded:', !!process.env.SUPABASE_URL);
 console.log('LOG: index.js: SESSION_SECRET loaded:', !!process.env.SESSION_SECRET);
 
-// --- Unhandled Rejection & Uncaught Exception Handlers ---
+/**
+ * Handles unhandled promise rejections.
+ * @param {Error} reason - The reason for the unhandled rejection.
+ * @param {Promise} promise - The promise that was rejected.
+ */
 process.on('unhandledRejection', (reason, promise) => {
     console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-    // In a real app, use a proper logger: logger.error(...)
 });
+
+/**
+ * Handles uncaught exceptions.
+ * @param {Error} error - The uncaught exception.
+ */
 process.on('uncaughtException', (error) => {
     console.error('Uncaught Exception:', error);
-    // In a real app, use a proper logger: logger.error(...)
 });
 
-const PORT = process.env.PORT || 3001; // Changed default from 8080 to 3001 as 8080 is common for frontend dev
+const PORT = process.env.PORT || 3001;
 const app = express();
 
-// Set EJS as the view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Specify the views directory
+app.set('views', path.join(__dirname, 'views'));
 
-app.set('trust proxy', 1); // Important if behind a proxy like Vercel
+app.set('trust proxy', 1);
 
-// --- Parsers ---
+/**
+ * Middleware to parse raw JSON for specific webhook routes.
+ */
 app.use('/api/webhooks/lemonsqueezy', express.raw({ type: 'application/json' }));
+
+/**
+ * Middleware to parse JSON and URL-encoded request bodies.
+ */
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+/**
+ * Middleware to parse cookies.
+ */
 app.use(cookieParser());
 
-// --- CORS Configuration ---
-// Using a simpler CORS setup for now, can be expanded like the example if needed.
-// The example's whitelist approach is good for production.
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
-const whitelist = [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001', 'https://www.slavesonline.store', 'http://www.slavesonline.store', 'https://slavesonline.store', 'http://slavesonline.store', 'https://api.slavesonline.store']; // Added common Vite dev port
+const whitelist = [FRONTEND_URL, 'http://localhost:3000', 'http://localhost:3001', 'https://www.slavesonline.store', 'http://www.slavesonline.store', 'https://slavesonline.store', 'http://slavesonline.store', 'https://api.slavesonline.store'];
 if (process.env.VERCEL_URL) {
     whitelist.push(`https://${process.env.VERCEL_URL}`);
 }
 
-
+/**
+ * CORS configuration for allowing cross-origin requests.
+ */
 const corsOptions = {
     credentials: true,
     methods: ['GET','POST','PUT','DELETE','PATCH','OPTIONS'],
@@ -64,7 +76,7 @@ const corsOptions = {
         'Origin',
         'X-Requested-With'
     ],
-    maxAge: 86400, // 1 day
+    maxAge: 86400,
     origin: (incomingOrigin, callback) => {
         console.log('[CORS] incoming origin:', incomingOrigin);
         if (!incomingOrigin || whitelist.includes(incomingOrigin)) {
@@ -72,75 +84,111 @@ const corsOptions = {
         }
         const msg = `Origin ${incomingOrigin} not in whitelist. Allowed: ${whitelist.join(', ')}`;
         console.warn('[CORS]', msg);
-        callback(new Error(msg)); // Pass error to callback
+        callback(new Error(msg));
     }
 };
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); // Pre-flight requests
 
-// --- Logging Middleware (Simplified) ---
+/**
+ * Applies CORS middleware to all routes.
+ */
+app.use(cors(corsOptions));
+
+/**
+ * Handles pre-flight requests for CORS.
+ */
+app.options('*', cors(corsOptions));
+
+/**
+ * Logging middleware to log incoming requests.
+ */
 app.use((req, res, next) => {
     console.log(`LOG: REQUEST: ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// --- Database Connection Check Middleware (Supabase specific) ---
-let isDbConnected = false; // Naive flag, Supabase client handles connections.
+let isDbConnected = false;
+/**
+ * Middleware to check the Supabase database connection status.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The next middleware function.
+ */
 const dbCheckMiddleware = async (req, res, next) => {
     try {
-        // Simple check: try to get user. More robust checks could query a small table.
-        // Supabase client manages its connection pool, so an explicit connect/disconnect per request isn't typical.
-        // This check is more about ensuring the client can communicate.
-        const { data, error } = await supabase.auth.getUser().catch(err => ({ data: null, error: err })); // Catch potential promise rejection
+        const { data, error } = await supabase.auth.getUser().catch(err => ({ data: null, error: err }));
 
-        if (error && error.message !== 'Auth session missing!') { // "Auth session missing" is normal if no user logged in
+        if (error && error.message !== 'Auth session missing!') {
             console.error('Supabase connection/auth check error (middleware):', error.message);
-            // Allow /api health check to pass even if DB has issues for more granular health reporting
             if (req.originalUrl.startsWith('/api/health')) {
                 return next();
             }
             isDbConnected = false;
             return res.status(503).json({ status: 'error', message: 'Service temporarily unavailable (DB Communication Issue)' });
         }
-        isDbConnected = true; // If no critical error, assume communication is possible
+        isDbConnected = true;
         next();
     } catch (error) {
         console.error('Database connection middleware unexpected error:', error.message);
         isDbConnected = false;
-        // Allow /api health check to pass
         if (req.originalUrl.startsWith('/api/health')) {
             return next();
         }
-        next(error); // Pass to global error handler
+        next(error);
     }
 };
 
-// --- Health Check Route ---
+/**
+ * Health check route to verify API status and database connection.
+ * @route GET /api/health
+ */
 app.get('/api/health', (req, res) => {
     res.status(200).json({ 
         status: 'ok', 
         message: 'API is running', 
         timestamp: new Date().toISOString(),
-        databaseConnected: isDbConnected // Reflects the last check
+        databaseConnected: isDbConnected
     });
 });
 
-// Admin routes are separate and use session auth, might also need DB.
+/**
+ * Mounts admin routes with database connection check.
+ */
 app.use('/api/admin', dbCheckMiddleware, adminRoutes);
-//app.use('/api/uploadthing', handlers)
+
+/**
+ * Mounts product routes with database connection check.
+ */
 app.use('/api/products', dbCheckMiddleware, productRoutes);
+
+/**
+ * Mounts order routes with database connection check.
+ */
 app.use('/api/orders', dbCheckMiddleware, orderRoutes);
+
+/**
+ * Mounts webhook routes with database connection check.
+ */
 app.use('/api/webhooks', dbCheckMiddleware, webhookRoutes);
 
+/**
+ * Mounts Uploadthing routes.
+ */
 app.use("/api/uploadthing", handlePrepareUpload);
 
-// --- Error Handling Middleware ---
-// 404 Handler (Not Found)
+/**
+ * 404 Not Found handler middleware.
+ */
 app.use((req, res, next) => {
     res.status(404).json({ message: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
-// Global Error Handler
+/**
+ * Global error handling middleware.
+ * @param {Error} err - The error object.
+ * @param {object} req - The Express request object.
+ * @param {object} res - The Express response object.
+ * @param {function} next - The next middleware function.
+ */
 app.use((err, req, res, next) => {
     console.error('GLOBAL ERROR HANDLER:', err.message);
     console.error(err.stack);
@@ -149,14 +197,12 @@ app.use((err, req, res, next) => {
     res.status(statusCode).json({ message, ...(process.env.NODE_ENV !== 'production' && { stack: err.stack }) });
 });
 
-
-// --- Server Startup ---
-// For Vercel, we export the app. Vercel handles the listening part.
-// For local development, we can add app.listen.
+/**
+ * Starts the server in non-production environments.
+ */
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
-        // Perform a startup DB check for local dev convenience
         (async () => {
             try {
                 const { data, error } = await supabase.auth.getUser().catch(e => ({ data: null, error: e }));
@@ -172,12 +218,11 @@ if (process.env.NODE_ENV !== 'production') {
     });
 }
 
-// --- Graceful Shutdown (Primarily for local dev, Vercel handles its own lifecycle) ---
+/**
+ * Handles SIGTERM signals for graceful shutdown in local development.
+ */
 process.on('SIGTERM', async () => {
     console.log('SIGTERM received. Shutting down gracefully (local dev).');
-    // Supabase client doesn't have an explicit disconnect method like Prisma.
-    // Connections are managed by the pool.
-    // If there were other resources to clean up, do it here.
     console.log('No specific DB disconnect needed for Supabase client.');
     process.exit(0);
 });

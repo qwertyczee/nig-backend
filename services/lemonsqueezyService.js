@@ -12,7 +12,6 @@ const storeId = process.env.LEMON_SQUEEZY_STORE_ID;
 const variantId = process.env.LEMON_SQUEEZY_VARIANT_ID;
 const apiKey = process.env.LEMON_SQUEEZY_API_KEY;
 
-// Create axios instance with base configuration
 const lemonSqueezyApi = axios.create({
     baseURL: 'https://api.lemonsqueezy.com/v1',
     headers: {
@@ -22,6 +21,15 @@ const lemonSqueezyApi = axios.create({
     }
 });
 
+/**
+ * Creates a Lemon Squeezy checkout URL.
+ * @param {object} params - The parameters for creating the checkout.
+ * @param {object} params.user - User details.
+ * @param {object} params.address - Address details.
+ * @param {string} params.discountCode - Discount code.
+ * @param {number} params.totalPriceInCents - Total price in cents.
+ * @returns {Promise<string>} The checkout URL.
+ */
 async function createLemonSqueezyCheckout({ user, address, discountCode, totalPriceInCents }) {
     try {
         if (!storeId) {
@@ -34,7 +42,6 @@ async function createLemonSqueezyCheckout({ user, address, discountCode, totalPr
             throw new Error('LEMON_SQUEEZY_API_KEY environment variable is not set.');
         }
 
-        // Ensure country is a valid 2-letter ISO code
         const country = address?.country ? String(address.country).toUpperCase() : '';
 
         const payload = {
@@ -96,6 +103,11 @@ async function createLemonSqueezyCheckout({ user, address, discountCode, totalPr
     }
 }
 
+/**
+ * Verifies the signature of a Lemon Squeezy webhook request.
+ * @param {object} req - The Express request object.
+ * @returns {boolean} True if the signature is valid, false otherwise.
+ */
 function verifyLemonSqueezyWebhook(req) {
     if (!LEMON_SQUEEZY_SIGNING_KEY) {
         console.error('Chyba verifikace webhooku: LEMON_SQUEEZY_SIGNING_KEY není nakonfigurován.');
@@ -108,7 +120,6 @@ function verifyLemonSqueezyWebhook(req) {
         return false;
     }
 
-    // Access the raw body. With express.raw() middleware, the raw body is available at req.body.
     const rawBody = req.body;
 
     if (!Buffer.isBuffer(rawBody)) {
@@ -118,7 +129,6 @@ function verifyLemonSqueezyWebhook(req) {
 
     try {
         const hmac = crypto.createHmac('sha256', LEMON_SQUEEZY_SIGNING_KEY);
-        // rawBody is already a Buffer from express.raw(), so no need to convert to string first.
         const digest = Buffer.from(hmac.update(rawBody).digest('hex'), 'utf8');
         const signature = Buffer.from(signatureHeader, 'utf8');
 
@@ -145,4 +155,4 @@ function verifyLemonSqueezyWebhook(req) {
 module.exports = {
     createLemonSqueezyCheckout,
     verifyLemonSqueezyWebhook,
-}; 
+};

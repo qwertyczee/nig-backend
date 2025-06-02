@@ -1,10 +1,13 @@
-// backend/src/services/webhookTasks.js
 const { supabase } = require('../config/db');
 const Resend = require('resend').Resend;
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// --- Task 1: updateOrderStatusToPaid ---
-// Updates order status to paid and returns the updated order data.
+/**
+ * Updates the order status to 'paid' and returns the updated order data.
+ * @param {string} orderId - The ID of the order to update.
+ * @param {string} customerEmail - The email of the customer associated with the order.
+ * @returns {Promise<object|null>} The updated order data, or null if not found/updated.
+ */
 async function updateOrderStatusToPaid(orderId, customerEmail) {
     console.log(`[TASK] Aktualizace objednávky ${orderId} na 'paid'.`);
     const updatePayload = {
@@ -44,9 +47,11 @@ async function updateOrderStatusToPaid(orderId, customerEmail) {
     }
 }
 
-// --- Task 2: sendOrderReceivedEmail ---
-// Sends an order received email using the provided order data.
-async function sendOrderReceivedEmail(order) { // Accept order data directly
+/**
+ * Sends an order received email to the customer.
+ * @param {object} order - The order data.
+ */
+async function sendOrderReceivedEmail(order) {
     console.log(`[TASK] Odesílání emailu 'Objednávka přijata' na ${order.user_id} pro objednávku ${order.id}.`);
     if (!order || !order.user_id) {
         console.warn(`[TASK_WARN] Chybí email zákazníka nebo data objednávky pro objednávku ${order ? order.id : 'N/A'}. Přeskakuji email 'Objednávka přijata'.`);
@@ -54,7 +59,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
     }
 
     const orderDate = new Date(order.created_at).toLocaleDateString('cs-CZ', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    const customerEmailActual = order.user_id; // Use the email fetched from the order data
+    const customerEmailActual = order.user_id;
 
     let productsHtml = '';
     let totalAmount = 0;
@@ -64,7 +69,6 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
             const product = item.product_details;
             if (!product) return '';
 
-            // Calculate item total using product price and quantity
             const itemTotalPrice = product.price * item.quantity;
             totalAmount += itemTotalPrice;
 
@@ -102,15 +106,12 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
     const htmlContent = `
 <div style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
-    <!-- Main Container -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f7fa;">
         <tr>
             <td align="center" style="padding: 40px 20px;">
 
-                <!-- Email Content -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;">
 
-                    <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
                             <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Děkujeme za váš nákup!</h1>
@@ -118,7 +119,6 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                         </td>
                     </tr>
 
-                    <!-- Order Details -->
                     <tr>
                         <td style="padding: 40px 30px;">
                             <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #667eea;">
@@ -144,23 +144,19 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                                 </table>
                             </div>
 
-                            <!-- Status -->
                             <div style="text-align: center; margin-bottom: 30px;">
                                 <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; padding: 12px 24px; border-radius: 25px; display: inline-block; font-weight: 600; font-size: 14px; text-transform: uppercase; letter-spacing: 0.5px;">
                                     ✅ Zaplaceno - Připravuje se ke stažení
                                 </div>
                             </div>
 
-                            <!-- Products -->
                             <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 30px;">
                                 <div style="background-color: #f8fafc; padding: 20px; border-bottom: 1px solid #e2e8f0;">
                                     <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0;">Objednané fotografie</h3>
                                 </div>
 
-                                <!-- Product Items -->
                                 ${productsHtml}
 
-                                <!-- Total -->
                                 <div style="padding: 20px; background-color: #f8fafc; border-top: 2px solid #e2e8f0;">
                                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                                         <tr>
@@ -175,7 +171,6 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                                 </div>
                             </div>
 
-                            <!-- Next Steps -->
                             <div style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #3b82f6;">
                                 <h3 style="color: #1e40af; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Co bude dál?</h3>
                                 <div style="color: #1e40af; line-height: 1.6; font-size: 14px;">
@@ -185,7 +180,6 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                                 </div>
                             </div>
 
-                            <!-- Support -->
                             <div style="text-align: center; background-color: #f8fafc; border-radius: 12px; padding: 25px;">
                                 <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Potřebujete pomoc?</h3>
                                 <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým je tu pro vás. Kontaktujte nás emailem pro jakoukoliv podporu.</p>
@@ -197,7 +191,6 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                         </td>
                     </tr>
 
-                    <!-- Footer -->
                     <tr>
                         <td style="background-color: #1f2937; padding: 30px; text-align: center;">
                             <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4>
@@ -206,7 +199,7 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${customerEmailActual}<br>
                                 SlavesOnline.store • Praha, Česká republika<br>
-                                <span style="color: #9ca3af;">© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span>
+                                <span>© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span>
                             </p>
                         </td>
                     </tr>
@@ -230,9 +223,11 @@ async function sendOrderReceivedEmail(order) { // Accept order data directly
     }
 }
 
-// --- Task 3: processOrderItemsAndSendShippedEmail ---
-// Processes order items and sends shipped email using the provided order data.
-async function processOrderItemsAndSendShippedEmail(order) { // Accept order data directly
+/**
+ * Processes order items and sends a shipped email to the customer.
+ * @param {object} order - The order data.
+ */
+async function processOrderItemsAndSendShippedEmail(order) {
     console.log(`[TASK] Zpracování položek objednávky ${order.id} pro odeslání emailu 'odesláno/připraveno' na ${order.user_id}.`);
     
     console.log(JSON.stringify(order, null, 2))
@@ -244,7 +239,6 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
 
     if (!order.items || order.items.length === 0) {
         console.warn(`[TASK_WARN] Objednávka ${order.id} neobsahuje žádné položky. Přeskakuji zpracování obrázků pro email 'odesláno/připraveno'.`);
-        // Optionally send an email notifying about no items or handle this case
         return;
     }
 
@@ -255,7 +249,6 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
         if (product) {
             if (product.received_images_zip_url) {
                 productDownloadHtml += `
-                <!-- Product Item -->
                 <div style="background-color: #ffffff; border: 2px solid #e2e8f0; border-radius: 16px; padding: 25px; margin-bottom: 20px; transition: all 0.3s ease;">
                     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%">
                         <tr>
@@ -282,19 +275,15 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
         }
     }
 
-    // Sestavení a odeslání emailu
     const htmlContent = `
 <div style="margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background-color: #f5f7fa; color: #333333;">
 
-    <!-- Main Container -->
     <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f5f7fa;">
         <tr>
             <td align="center" style="padding: 40px 20px;">
 
-                <!-- Email Content -->
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0" width="600" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;">
 
-                    <!-- Header -->
                     <tr>
                         <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 40px 30px; text-align: center;">
                             <h1 style="color: white; font-size: 28px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: -0.5px;">Fotografie jsou připravené!</h1>
@@ -302,7 +291,6 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                         </td>
                     </tr>
 
-                    <!-- Status -->
                     <tr>
                         <td style="padding: 30px;">
                             <div style="text-align: center; margin-bottom: 30px;">
@@ -312,48 +300,35 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                                 </div>
                             </div>
 
-                            <!-- Download Notice -->
                             <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; padding: 20px; margin-bottom: 30px; border-left: 4px solid #667eea;">
                                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 10px;">
                                     <div style="font-size: 20px; color: #667eea;">⚡</div>
                                     <h3 style="color: #1f2937; font-size: 16px; font-weight: 600; margin: 0;">Důležité informace</h3>
                                 </div>
                                 <div style="color: #64748b; font-size: 14px; line-height: 1.5;">
-                                    <div style="margin-bottom: 5px;">• Odkazy jsou platné <strong>30 dní</strong> od dnešního data</div> <!-- TODO: Verify link expiration -->
+                                    <div style="margin-bottom: 5px;">• Odkazy jsou platné <strong>30 dní</strong> od dnešního data</div>
                                     <div style="margin-bottom: 5px;">• Každý soubor obsahuje fotografie v rozlišení <strong>4K</strong></div>
                                     <div>• Všechny fotky mají <strong>komerční licenci</strong> pro vaše použití</div>
                                 </div>
                             </div>
 
-                            <!-- Download Links -->
                             <div style="margin-bottom: 30px;">
                                 <h2 style="color: #1f2937; font-size: 22px; font-weight: 700; margin: 0 0 20px 0; text-align: center;">Stáhnout fotografie</h2>
 
                                 ${productDownloadHtml}
 
-                                <!-- Download All Button - Optional, depending on whether there's a combined zip -->
-                                <!--
-                                <div style="text-align: center; margin-top: 25px;">
-                                    <a href="https://download.ai-photos.cz/complete-order-ai12345.zip" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; text-decoration: none; padding: 18px 35px; border-radius: 12px; font-weight: 700; font-size: 16px; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);">
-                                        <span style="font-size: 20px;">⚡</span>
-                                        <span>Stáhnout vše najednou</span>
-                                    </a>
-                                </div>
-                                -->
                             </div>
 
-                            <!-- Usage Tips -->
                             <div style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 12px; padding: 25px; margin-bottom: 30px; border-left: 4px solid #667eea;">
                                 <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Tipy pro použití</h3>
                                 <div style="color: #64748b; line-height: 1.6; font-size: 14px;">
-                                    <div style="margin-bottom: 8px;">💼 Business fotky jsou ideální pro LinkedIn a firemní prezentace</div> <!-- TODO: Make dynamic based on product type/category -->
-                                    <div style="margin-bottom: 8px;">📱 Lifestyle fotky skvěle fungují na sociálních sítích</div> <!-- TODO: Make dynamic based on product type/category -->
+                                    <div style="margin-bottom: 8px;">💼 Business fotky jsou ideální pro LinkedIn a firemní prezentace</div>
+                                    <div style="margin-bottom: 8px;">📱 Lifestyle fotky skvěle fungují na sociálních sítích</div>
                                     <div style="margin-bottom: 8px;">🖼️ Všechny fotky můžete komerčně využívat bez omezení</div>
                                     <div>✨ Pro nejlepší kvalitu tisknete ve formátu A4 nebo menším</div>
                                 </div>
                             </div>
 
-                            <!-- Support -->
                             <div style="text-align: center; background-color: #f8fafc; border-radius: 12px; padding: 25px;">
                                 <h3 style="color: #1f2937; font-size: 18px; font-weight: 600; margin: 0 0 15px 0;">Problémy se stahováním?</h3>
                                 <p style="color: #64748b; margin: 0 0 20px 0; line-height: 1.5;">Náš tým rychle vyřeší jakékoliv technické potíže s stažením.</p>
@@ -362,27 +337,20 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
                                     <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 10px; display: inline-block; font-weight: 600; font-size: 16px;">
                                         📧 support@slavesonline.store
                                     </div>
-                                    <!--
-                                    <a href="https://ai-photos.cz/faq" style="background: transparent; color: #667eea; text-decoration: none; padding: 12px 20px; border: 2px solid #667eea; border-radius: 10px; font-weight: 600; font-size: 14px; display: inline-flex; align-items: center; gap: 8px;">
-                                        <span>❓</span>
-                                        <span>FAQ</span>
-                                    </a>
-                                    -->
                                 </div>
                             </div>
                         </td>
                     </tr>
 
-                    <!-- Footer -->
                     <tr>
                         <td style="background-color: #1f2937; padding: 30px; text-align: center;">
-                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4> <!-- TODO: Update this if domain changes -->
+                            <h4 style="color: white; font-size: 18px; font-weight: 600; margin: 0 0 10px 0;">SlavesOnline.store</h4>
                             <p style="color: #9ca3af; font-size: 14px; margin: 0 0 20px 0; line-height: 1.5;">Profesionální fotografie<br>Děkujeme za důvěru!</p>
 
                             <p style="color: #6b7280; font-size: 12px; margin: 0; line-height: 1.4;">
                                 Tento email byl odeslán na adresu ${order.user_id}<br>
-                                SlavesOnline.store • Praha, Česká republika<br> <!-- TODO: Update address -->
-                                <span style="color: #9ca3af;">© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span> <!-- TODO: Update year and domain -->
+                                SlavesOnline.store • Praha, Česká republika<br>
+                                <span>© 2025 SlavesOnline.store. Všechna práva vyhrazena.</span>
                             </p>
                         </td>
                     </tr>
@@ -406,8 +374,10 @@ async function processOrderItemsAndSendShippedEmail(order) { // Accept order dat
     }
 }
 
-// --- Task 4: updateOrderStatusToShipped ---
-// Updates order status to shipped.
+/**
+ * Updates the order status to 'shipped'.
+ * @param {string} orderId - The ID of the order to update.
+ */
 async function updateOrderStatusToShipped(orderId) {
     console.log(`[TASK] Aktualizace objednávky ${orderId} na 'shipped'.`);
     const { error, count } = await supabase
