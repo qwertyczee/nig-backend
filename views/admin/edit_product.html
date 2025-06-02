@@ -1420,6 +1420,7 @@
 
             async function uploadToUploadThing(file) {
                 try {
+                    // 1) Get presigned URL and fields from our server
                     const presignedResp = await fetch('/api/uploadthing', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -1439,27 +1440,27 @@
                     const uploadData = await presignedResp.json();
                     console.log('Upload data received:', uploadData);
 
+                    // 2) Use the presigned URL directly without modification
                     const { url, fields, key } = uploadData;
 
+                    // Create FormData for multipart upload
                     const formData = new FormData();
-
+                    
+                    // Add all fields first (if any)
                     if (fields) {
                         Object.entries(fields).forEach(([key, value]) => {
                             formData.append(key, value);
                         });
                     }
-
+                    
+                    // Add the file last
                     formData.append('file', file);
 
-                    const uploadResp = await fetch(url, {
+                    // 3) Upload using POST with FormData (not PUT)
+                    const uploadResp = fetch(url, {
                         method: 'PUT',
                         body: formData
                     });
-
-                    if (!uploadResp.ok) {
-                        const errorText = await uploadResp.text();
-                        throw new Error(`Failed to upload file: ${uploadResp.status} ${errorText}`);
-                    }
 
                     console.log('Upload successful, key:', key);
                     return key;
