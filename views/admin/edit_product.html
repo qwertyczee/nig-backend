@@ -1100,6 +1100,12 @@
                                 <input type="text" id="received_image_urls_input" class="form-input">
                                 <input type="hidden" id="received_image_urls" name="received_image_urls" value="[]">
                             </div>
+                            <div class="form-group" id="received_images_zip_container" style="display: none;">
+                                <label class="form-label">Existing Received Images Zip</label>
+                                <div id="received_images_zip_url_container" class="url-list">
+                                    <!-- Existing zip URL will be displayed here by JS -->
+                                </div>
+                            </div>
                         </div>
 
                         <div class="form-section">
@@ -1205,6 +1211,8 @@
             const receivedTextarea = document.getElementById('received_text');
             const receivedImagesUploadInput = document.getElementById('received_images_upload');
             const receivedImagesPreviewDiv = document.getElementById('received_images_preview');
+            const receivedImageUrlsInput = document.getElementById('received_image_urls_input');
+            const receivedImageUrlsHiddenInput = document.getElementById('received_image_urls');
 
             let existingSubImages = [];
             let newSubImages = [];
@@ -1552,6 +1560,10 @@
                         }
                         if (product.received_images_zip_url) {
                             receivedImagesZipUrlHiddenInput.value = product.received_images_zip_url.split('/').pop();
+                            displayReceivedImagesZipUrl(product.received_images_zip_url);
+                            document.getElementById('received_images_zip_container').style.display = 'block';
+                        } else {
+                            document.getElementById('received_images_zip_container').style.display = 'none';
                         }
 
                         renderAllSubImages();
@@ -1569,6 +1581,30 @@
                     messageArea.innerHTML = '<div class="message error"><i class="fas fa-exclamation-triangle"></i>Error fetching product data.</div>';
                     form.style.display = 'none';
                 }
+            }
+
+            function displayReceivedImagesZipUrl(url) {
+                const receivedImagesZipUrlContainer = document.getElementById('received_images_zip_url_container');
+                receivedImagesZipUrlContainer.innerHTML = '';
+
+                const urlDiv = document.createElement('div');
+                urlDiv.className = 'url-item';
+
+                const urlText = document.createElement('span');
+                urlText.className = 'url-text';
+                urlText.textContent = url;
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'url-remove';
+                removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                removeBtn.addEventListener('click', () => {
+                    receivedImagesZipUrlHiddenInput.value = '';
+                    receivedImagesZipUrlContainer.innerHTML = '';
+                });
+
+                urlDiv.appendChild(urlText);
+                urlDiv.appendChild(removeBtn);
+                receivedImagesZipUrlContainer.appendChild(urlDiv);
             }
 
             async function loadCategories(currentCategories = []) {

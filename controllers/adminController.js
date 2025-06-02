@@ -63,7 +63,7 @@ const postAdminCreateProduct = async (req, res) => {
     console.log('postAdminCreateProduct: Request body:', JSON.stringify(req.body, null, 2));
     console.log('postAdminCreateProduct: Request files:', req.files);
 
-    const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
+    const { name, description, price, category, is_18_plus, in_stock, received_text } = req.body;
     let { main_image_url, sub_image_urls, received_images_zip_url } = req.body;
     
     main_image_url = `https://rhcwjrafe0.ufs.sh/f/${main_image_url}`
@@ -78,22 +78,11 @@ const postAdminCreateProduct = async (req, res) => {
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
     try {
-        let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
-        const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
-        
-        if (newCategory) {
-            finalCategoriesArray.push(newCategory);
-        }
-        
-        finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
-
-        const categoryToStore = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
-
         const productDataForSupabase = {
             name,
             description: description || null,
             price: parseFloat(price),
-            category: categoryToStore,
+            category: category,
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls, 
             is_18_plus: is18Plus,
@@ -134,7 +123,7 @@ const postAdminUpdateProduct = async (req, res) => {
     console.log('postAdminUpdateProduct: Request body:', JSON.stringify(req.body, null, 2));
 
     const { id } = req.params;
-    const { name, description, price, categories, new_category_input, is_18_plus, in_stock, received_text } = req.body;
+    const { name, description, price, category, is_18_plus, in_stock, received_text } = req.body;
     let { main_image_url, sub_image_urls, received_images_zip_url } = req.body;
 
     main_image_url = `https://rhcwjrafe0.ufs.sh/f/${main_image_url}`
@@ -148,23 +137,14 @@ const postAdminUpdateProduct = async (req, res) => {
 
     const is18Plus = is_18_plus === 'true' || is_18_plus === 'on' || false;
 
+    console.log(category)
+
     try {
-        let finalCategoriesArray = Array.isArray(categories) ? categories : (categories ? [categories] : []);
-        const newCategory = new_category_input && new_category_input.trim() !== '' ? new_category_input.trim() : null;
-
-        if (newCategory) {
-            finalCategoriesArray.push(newCategory);
-        }
-
-        finalCategoriesArray = Array.from(new Set(finalCategoriesArray.filter(cat => cat !== '')));
-
-        const categoryToUpdate = finalCategoriesArray.length === 0 ? [] : finalCategoriesArray;
-
         const productDataForUpdate = {
             name,
             description: description || null,
             price: parseFloat(price),
-            category: categoryToUpdate,
+            category: category,
             main_image_url: main_image_url, 
             sub_image_urls: sub_image_urls,
             is_18_plus: is18Plus,
